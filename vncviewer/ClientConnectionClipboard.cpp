@@ -41,15 +41,15 @@
 
 void ClientConnection::ProcessLocalClipboardChange()
 {
-	vnclog.Print(2, _T("Clipboard changed\n"));
+	Log::warning(_T("Clipboard changed\n"));
 	
 	HWND hOwner = GetClipboardOwner();
 	if (hOwner == m_hwnd) {
-		vnclog.Print(2, _T("We changed it - ignore!\n"));
+		Log::warning(_T("We changed it - ignore!\n"));
 	} else if (!m_initialClipboardSeen) {
-		vnclog.Print(2, _T("Don't send initial clipboard!\n"));
+		Log::warning(_T("Don't send initial clipboard!\n"));
 		m_initialClipboardSeen = true;
-	} else if (!m_opts.m_DisableClipboard) {
+	} else if (m_conConf.isClipboardEnabled()) {
 		
 		// The clipboard should not be modified by more than one thread at once
 		omni_mutex_lock l(m_clipMutex);
@@ -78,7 +78,7 @@ void ClientConnection::ProcessLocalClipboardChange()
 				try {
 					SendClientCutText(unixcontents, strlen(unixcontents));
 				} catch (WarningException &e) {
-					vnclog.Print(0, _T("Exception while sending clipboard text : %s\n"), e.m_info);
+					Log::interror(_T("VncViewerException while sending clipboard text : %s\n"), e.m_info);
 					DestroyWindow(m_hwnd1);
 				}
 				delete [] contents; 
@@ -96,7 +96,7 @@ void ClientConnection::ProcessLocalClipboardChange()
 
 void ClientConnection::UpdateLocalClipboard(char *buf, size_t len) {
 	
-	if (m_opts.m_DisableClipboard)
+	if (!m_conConf.isClipboardEnabled())
 		return;
 
 	// Copy to wincontents replacing LF with CR-LF

@@ -31,25 +31,19 @@
 #include "SessionDialog.h"
 #include "Exception.h"
 #include "Htmlhelp.h"
-
-
+#include "VncViewerConfigDialog.h"
+#include "client-config-lib/ConnectionConfigSM.h"
 
 SessionDialog::SessionDialog(VNCOptions *pOpt,ClientConnection *cc)
 {
 	m_pOpt = pOpt;
 	m_cc = cc;
-	DWORD dispos;
-
-	RegCreateKeyEx(HKEY_CURRENT_USER,
-		KEY_VNCVIEWER_HISTORI, 0, NULL, 
-		REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,
-		NULL, &m_hRegKey, &dispos);
-    
+	m_config = VncViewerConfig::getInstance();
+	m_conConf = &cc->m_conConf;
 }
 
 SessionDialog::~SessionDialog()
 {
-  RegCloseKey(m_hRegKey); 
 }
 
 // It's exceedingly unlikely, but possible, that if two modal dialogs were
@@ -68,7 +62,6 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
 	// WM_INITDIALOG, which we therafter store with the window and retrieve
 	// as follows:
 	SessionDialog *_this = (SessionDialog *) GetWindowLong(hwnd, GWL_USERDATA);
-	int i;
 	TCHAR tmphost[256];
 	TCHAR buffer[256];
 	HWND hCustomRadio = GetDlgItem(hwnd, IDC_CUSTOM_RADIO);
@@ -84,30 +77,19 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
             SessionDialog *_this = (SessionDialog *) lParam;
             CentreWindow(hwnd);
 			_this->m_cc->m_hSess = hwnd;
+            _this->m_ctrlThis.setWindow(hwnd);
 
-			// Load connection history to the combo box.
-			const int maxEntries = pApp->m_options.m_historyLimit;
-			int listIndex = 0;
-			for (i = 0; i < maxEntries; i++) {
-				TCHAR keyName[256];
-				itoa(i, keyName, 10);
-				TCHAR buf[256];
-				int dwbuflen = 255;
-				if (RegQueryValueEx(_this->m_hRegKey, keyName, NULL, NULL,
-									(LPBYTE)buf, (LPDWORD)&dwbuflen) == ERROR_SUCCESS) {
-					buf[255] = '\0';
-					if (buf[0] != 0) {
-						SendMessage(hcombo, CB_INSERTSTRING, (WPARAM)listIndex++, (LPARAM)buf);
-					}
-				}
-			}
+			_this->updateConHistory(hcombo);
+
 			if (_this->m_pOpt->m_display[0] == '\0') {
 				SendMessage(hcombo, CB_SETCURSEL, 0, 0);
 				LRESULT r = SendMessage(hcombo, CB_GETLBTEXTLEN, 0, 0);
 				if (r > 1 && r <= 256) {
 					r = SendMessage(hcombo, CB_GETLBTEXT, 0, (LPARAM)buffer);
+					// Load connection config
 					if (r > 1) {
-						_this->m_pOpt->LoadOpt(buffer, KEY_VNCVIEWER_HISTORI);
+						ConnectionConfigSM ccsm(&buffer[0]);
+						_this->m_conConf->loadFromStorage(&ccsm);
 					}
 				}
 			} else {
@@ -141,8 +123,11 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
 				{
 					int a = (int)SendMessage(hcombo, CB_GETCURSEL, 0, 0L);
 					SendMessage(hcombo, CB_GETLBTEXT, a, (LPARAM)(int FAR*)buffer );
-					_this->m_pOpt->LoadOpt(buffer,KEY_VNCVIEWER_HISTORI);
-					
+
+					// Load connection config
+					ConnectionConfigSM ccsm(&buffer[0]);
+					_this->m_conConf->loadFromStorage(&ccsm);
+
 					_this->cmp(hwnd);
 
 					EnableConnectButton(hwnd, TRUE);
@@ -171,10 +156,15 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
 				return TRUE;
 			}
 		case IDC_LIST_MODE: 
-			pApp->m_options.LoadOpt(".listen", KEY_VNCVIEWER_HISTORI);
+			// Load connection config
+			{
+				ConnectionConfigSM ccsm(_T(".listen"));
+				pApp->m_conConf.loadFromStorage(&ccsm);
+			}
+
 			pApp->m_options.m_listening=true;
 			pApp->ListenMode();
-			_this->m_pOpt->CloseDialog();
+			_this->m_conConfigDialog.kill(IDCANCEL);
 			EndDialog(hwnd, FALSE);
 			return TRUE; 				
 		case IDC_OK:             
@@ -194,14 +184,25 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
 				_tcscpy(_this->m_pOpt->m_display, display);
 			}
 			
-			_this->m_pOpt->CloseDialog();
+			_this->m_conConfigDialog.kill(IDCANCEL);
 			EndDialog(hwnd, TRUE);
 
 			return TRUE;						
 		case IDCANCEL:
-			_this->m_pOpt->CloseDialog();
-			EndDialog(hwnd, FALSE);			
-			return TRUE;				
+			_this->m_conConfigDialog.kill(IDCANCEL);
+			EndDialog(hwnd, FALSE);
+			return TRUE;
+		case IDC_VNCVIEWER_OPTIONS_BUTTON:
+			{
+			VncViewerConfigDialog *dialog = &g_vncViewerConfigDialog;
+			dialog->setParent(&_this->m_ctrlThis);
+			if (dialog->showModal() == IDOK) {
+				if (dialog->historyWasCleared()) {
+					_this->updateConHistory(GetDlgItem(hwnd, IDC_HOSTNAME_EDIT));
+				}
+			}
+			}
+			return TRUE;
 		case IDC_LOC_NET_RADIO:
 			switch (HIWORD(wParam)) {
 			case BN_CLICKED:
@@ -229,27 +230,15 @@ BOOL CALLBACK SessionDialog::SessDlgProc(  HWND hwnd,  UINT uMsg,  WPARAM wParam
 			return TRUE;
 		case IDC_OPTIONBUTTON:
 			{
-				if (_this->m_pOpt->RaiseDialog()) {
-					return TRUE;	// Options dialog already shown
-				}
+				_this->m_conConfigDialog.setConnectionConfig(_this->m_conConf);
+				_this->m_conConfigDialog.showModal();
+
 				HWND hOptionButton = GetDlgItem(hwnd, IDC_OPTIONBUTTON);
-				_this->m_pOpt->DoDialog();				
 				GetDlgItemText(hwnd, IDC_HOSTNAME_EDIT, 
 								_this->m_pOpt->m_display, 256);
-				SendMessage(hcombo, CB_RESETCONTENT, 0, 0);
-				int dwbuflen = 255;
-				TCHAR valname[256];
-				TCHAR buf[256];
-				int maxEntries = pApp->m_options.m_historyLimit;				
-				for ( i = 0; i < maxEntries; i++) { 				
-					itoa(i, valname, 10);
-					dwbuflen = 255;
-					if(RegQueryValueEx( _this->m_hRegKey, (LPTSTR)valname , NULL, NULL, 
-						(LPBYTE) buf, (LPDWORD) &dwbuflen) != ERROR_SUCCESS) {
-						break;
-					}
-					SendMessage(hcombo, CB_INSERTSTRING, (WPARAM)i, (LPARAM)(int FAR*)buf);
-				}
+
+				_this->updateConHistory(hcombo);
+
 				SetDlgItemText(hwnd, IDC_HOSTNAME_EDIT, _this->m_pOpt->m_display); 				
 				_this->cmp(hwnd);									
 				SetFocus(hOptionButton);
@@ -284,14 +273,14 @@ int SessionDialog::cmp(HWND hwnd)
 	HWND hLocNetRadio = GetDlgItem(hwnd, IDC_LOC_NET_RADIO);
 	int i;
 	for (i = rfbEncodingRaw; i <= LASTENCODING; i++)
-		if ((m_pOpt->m_UseEnc[i] != true) && (i != 3)) a = 0;
-	if (m_pOpt->m_UseEnc[3] != false) a = 0;
-	if (m_pOpt->m_PreferredEncoding != rfbEncodingTight) a = 0;
-	if (m_pOpt->m_Use8Bit != true) a = 0;
-	if (m_pOpt->m_useCompressLevel != true) {
+		if ((m_conConf->isEncodingAllowed(i) != true) && (i != 3)) a = 0;
+	if (m_conConf->isEncodingAllowed(i) != false) a = 0;
+	if (m_conConf->getPreferredEncoding() != rfbEncodingTight) a = 0;
+	if (m_conConf->isUsing8BitColor()!= true) a = 0;
+	if (m_conConf->isCustomCompressionEnabled() != true) {
 		a = 0;
 	} else {
-		if (m_pOpt->m_compressLevel != 6) a = 0;
+		if (m_conConf->getCustomCompressionLevel() != 6) a = 0;
 	}
 	if (a == 1) {
 		SendMessage(hModemRadio, BM_CLICK, 0, 0);
@@ -300,10 +289,10 @@ int SessionDialog::cmp(HWND hwnd)
 
 	a = 2;
 	for (i = rfbEncodingRaw; i <= LASTENCODING; i++)
-		if ((m_pOpt->m_UseEnc[i] != true) && (i != 3)) a = 0;
-	if (m_pOpt->m_UseEnc[3] != false) a = 0;
-	if (m_pOpt->m_Use8Bit != false) a = 0;
-	if (m_pOpt->m_PreferredEncoding != rfbEncodingHextile) a = 0;
+		if ((m_conConf->isEncodingAllowed(i) != true) && (i != 3)) a = 0;
+	if (m_conConf->isEncodingAllowed(i) != false) a = 0;
+	if (m_conConf->isUsing8BitColor()!= false) a = 0;
+	if (m_conConf->getPreferredEncoding() != rfbEncodingHextile) a = 0;
 		
 	if (a == 2) {
 		SendMessage(hLocNetRadio, BM_CLICK, 0, 0);
@@ -312,15 +301,15 @@ int SessionDialog::cmp(HWND hwnd)
 
 	a = 3;
 	for (i = rfbEncodingRaw; i <= LASTENCODING; i++)
-		if ((m_pOpt->m_UseEnc[i] != true) && (i != 3)) a = 0;
-	if (m_pOpt->m_UseEnc[3] != false) a = 0;
-	if (m_pOpt->m_PreferredEncoding != rfbEncodingTight) a = 0;
-	if (m_pOpt->m_useCompressLevel != false) a = 0;
-	if (m_pOpt->m_Use8Bit != false) a = 0;
-	if (m_pOpt->m_enableJpegCompression != true) {
+		if ((m_conConf->isEncodingAllowed(i) != true) && (i != 3)) a = 0;
+	if (m_conConf->isEncodingAllowed(i) != false) a = 0;
+	if (m_conConf->getPreferredEncoding() != rfbEncodingTight) a = 0;
+	if (m_conConf->isCustomCompressionEnabled() != false) a = 0;
+	if (m_conConf->isUsing8BitColor()!= false) a = 0;
+	if (m_conConf->isJpegCompressionEnabled() != true) {
 		a = 0;
 	} else {
-		if (m_pOpt->m_jpegQualityLevel != 6) a = 0;
+		if (m_conConf->getJpegCompressionLevel() != 6) a = 0;
 	}
 	if (a == 3) {
 		SendMessage(hCustomRadio, BM_CLICK, 0, 0);
@@ -335,28 +324,46 @@ int SessionDialog::cmp(HWND hwnd)
 	return a;
 }
 
+void SessionDialog::updateConHistory(HWND hcombo)
+{
+  ComboBox cb;
+  cb.setWindow(hcombo);
+
+  StringStorage text;
+  cb.getText(&text);
+
+  cb.removeAllItems();
+
+  // Load connection history from registry
+  // and inserts hosts to combobox.
+  ConnectionHistory *conHistory = m_config->getConnectionHistory();
+  conHistory->load();
+  for (size_t i = 0; i < conHistory->getHostCount(); i++) {
+    cb.insertItem(i, conHistory->getHost(i));
+  }
+  cb.setText(text.getString());
+}
+
 void SessionDialog::SetConnectionProfile(bool LowBandwidth, bool HighSpeed) 
 {
 	for (int i = rfbEncodingRaw; i <= LASTENCODING; i++)
-		m_pOpt->m_UseEnc[i] = true;
+		m_conConf->allowEncoding(i, true);
 
-	m_pOpt->m_UseEnc[3] = false;	
+	m_conConf->allowEncoding(3, false);
 	if (!LowBandwidth && !HighSpeed) {
-		m_pOpt->m_PreferredEncoding = rfbEncodingTight;
-		m_pOpt->m_useCompressLevel = false;
-		m_pOpt->m_enableJpegCompression = true;
-		m_pOpt->m_jpegQualityLevel = 6;
-		m_pOpt->m_Use8Bit = false;
+		m_conConf->setPreferredEncoding(rfbEncodingTight);
+		m_conConf->disableCustomCompression();
+		m_conConf->setJpegCompressionLevel(6);
+		m_conConf->use8BitColor(false);
 	}
 	if (LowBandwidth && !HighSpeed) {
-		m_pOpt->m_PreferredEncoding = rfbEncodingTight;
-		m_pOpt->m_useCompressLevel = true;
-		m_pOpt->m_compressLevel = 6;
-		m_pOpt->m_Use8Bit = true;
+		m_conConf->setPreferredEncoding(rfbEncodingTight);
+		m_conConf->setCustomCompressionLevel(6);
+		m_conConf->use8BitColor(true);
 	}
 	if (!LowBandwidth && HighSpeed) {
-		m_pOpt->m_PreferredEncoding = rfbEncodingHextile;
-		m_pOpt->m_Use8Bit = false;
+		m_conConf->setPreferredEncoding(rfbEncodingHextile);
+		m_conConf->use8BitColor(false);
 	}
 }
 	

@@ -32,19 +32,19 @@
 
 // Exceptions used in VNCviewer
 
-class Exception  
+class VncViewerException  
 {
 public:
-	Exception(const char *info = NULL);
+	VncViewerException(const char *info = NULL);
 	virtual void Report();
-	virtual ~Exception();
+	virtual ~VncViewerException();
 	char *m_info;
 };
 
 // This indicates something that the catcher should close 
 // the connection quietly.
 // Report() will display a TRACE message
-class QuietException : public Exception {
+class QuietException : public VncViewerException {
 public:
 	QuietException(const char *info = NULL);
 	virtual void Report();
@@ -56,7 +56,7 @@ public:
 // to specify whether or not the connection is closed as a result.
 // In general it will be.
 // Report() will display a message box
-class WarningException : public Exception {
+class WarningException : public VncViewerException {
 public:
 	WarningException(const char *info = NULL, bool close = true);
 	virtual void Report();
@@ -67,7 +67,7 @@ public:
 // This is serious stuff - similar to an assert - we may not use?
 // Report will display an important message box. Connection definitely
 // closed.
-class ErrorException : public Exception {
+class ErrorException : public VncViewerException {
 public:
 	ErrorException(const char *info = NULL);
 	virtual void Report();

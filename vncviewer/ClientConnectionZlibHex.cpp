@@ -53,7 +53,7 @@ bool ClientConnection::zlibDecompress(unsigned char *from_buf, unsigned char *to
 
 		inflateResult = inflateInit( decompressor );
 		if ( inflateResult != Z_OK ) {
-			vnclog.Print(0, _T("zlib inflateInit error: %d\n"), inflateResult);
+			Log::interror(_T("zlib inflateInit error: %d\n"), inflateResult);
 			return false;
 		}
 
@@ -62,7 +62,7 @@ bool ClientConnection::zlibDecompress(unsigned char *from_buf, unsigned char *to
 	// Decompress screen data
 	inflateResult = inflate( decompressor, Z_SYNC_FLUSH );
 	if ( inflateResult < 0 ) {
-		vnclog.Print(0, _T("zlib inflate error: %d\n"), inflateResult);
+		Log::interror(_T("zlib inflate error: %d\n"), inflateResult);
 		return false;
 	}
 

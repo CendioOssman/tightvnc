@@ -27,6 +27,7 @@
 #include "VNCviewerApp32.h"
 #include "vncviewer.h"
 #include "Exception.h"
+#include "gui/ThemeLib.h"
 
 // --------------------------------------------------------------------------
 VNCviewerApp32::VNCviewerApp32(HINSTANCE hInstance, PSTR szCmdLine) :
@@ -49,13 +50,15 @@ VNCviewerApp32::VNCviewerApp32(HINSTANCE hInstance, PSTR szCmdLine) :
 	// Start listening daemons if requested
 	
 	if ((m_options.m_listening) && (FindWindow("VNCviewer Daemon", 0) == NULL)) {
-		vnclog.Print(3, _T("In listening mode - staring daemons\n"));
+		Log::message(_T("In listening mode - staring daemons\n"));
 		ListenMode();
 	} else {
 		m_options.m_listening = false;
 	}
 
 	RegisterSounds();
+
+  ThemeLib::initialize();
 }
 
 	
@@ -81,7 +84,7 @@ void VNCviewerApp32::NewConnection() {
 			// Get the previous options for the next try.
 			pcc->CopyOptions(old_pcc);
 			delete old_pcc;
-		} catch (Exception &e) {
+		} catch (VncViewerException &e) {
 			e.Report();
 			break;
 		}
@@ -108,7 +111,7 @@ void VNCviewerApp32::NewConnection(TCHAR *host, int port) {
 			// Get the previous options for the next try.
 			pcc->CopyOptions(old_pcc);
 			delete old_pcc;
-		} catch (Exception &e) {
+		} catch (VncViewerException &e) {
 			e.Report();	
 			break;
 		}
@@ -135,7 +138,7 @@ void VNCviewerApp32::NewConnection(SOCKET sock) {
 			// Get the previous options for the next try.
 			pcc->CopyOptions(old_pcc);
 			delete old_pcc;
-		} catch (Exception &e) {
+		} catch (VncViewerException &e) {
 			e.Report();
 			break;
 		}
@@ -147,7 +150,8 @@ void VNCviewerApp32::NewConnection(SOCKET sock) {
 void VNCviewerApp32::ListenMode() {
 
 	try {
-		m_pdaemon = new Daemon(m_options.m_listenPort);
+		int listenPort = m_config->getListenPort();
+		m_pdaemon = new Daemon(listenPort);
 	} catch (WarningException &e) {
 		char msg[1024];
 		sprintf(msg, "Error creating listening daemon:\n\r(%s)\n\r%s",
@@ -217,5 +221,9 @@ bool VNCviewerApp32::ProcessDialogMessage(MSG *pmsg)
 VNCviewerApp32::~VNCviewerApp32() {
 	// We don't need to clean up pcc if the thread has been joined.
 	if (m_pdaemon != NULL) delete m_pdaemon;
+
+  if (ThemeLib::isLoaded()) {
+    ThemeLib::deinitialize();
+  }
 }
 	

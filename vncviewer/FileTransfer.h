@@ -30,6 +30,7 @@
 #include "commctrl.h"
 #include "ClientConnection.h"
 #include "FileTransferItemInfo.h"
+#include "util/Log.h"
 
 class ClientConnection;
 

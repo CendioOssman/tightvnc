@@ -28,19 +28,19 @@
 #include "stdhdrs.h"
 #include "Exception.h"
 
-Exception::Exception(const char *info)
+VncViewerException::VncViewerException(const char *info)
 {
 	assert(info != NULL);
 	m_info = new char[strlen(info)+1];
 	strcpy(m_info, info);
 }
 
-Exception::~Exception()
+VncViewerException::~VncViewerException()
 {
 	delete [] m_info;
 }
 
-void Exception::Report()
+void VncViewerException::Report()
 {
 	assert(false);
 }
@@ -48,7 +48,7 @@ void Exception::Report()
 // ---------------------------------------
 
 
-QuietException::QuietException(const char *info) : Exception(info)
+QuietException::QuietException(const char *info) : VncViewerException(info)
 {
 
 }
@@ -67,7 +67,7 @@ void QuietException::Report()
 
 // ---------------------------------------
 
-WarningException::WarningException(const char *info, bool close) : Exception(info)
+WarningException::WarningException(const char *info, bool close) : VncViewerException(info)
 {
 	m_close = close;
 }
@@ -87,7 +87,7 @@ void WarningException::Report()
 
 // ---------------------------------------
 
-ErrorException::ErrorException(const char *info) : Exception(info)
+ErrorException::ErrorException(const char *info) : VncViewerException(info)
 {
 
 }

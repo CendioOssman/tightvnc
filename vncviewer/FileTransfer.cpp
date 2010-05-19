@@ -1263,7 +1263,7 @@ FileTransfer::ReadUploadCancel()
 		sprintf(errmsg, "Upload failed: %s", reason);
 		MessageBox(m_hwndFileTransfer, errmsg, "Upload Failed", MB_ICONEXCLAMATION | MB_OK);
 		SetWindowText(m_hwndFTStatus, errmsg);
-		vnclog.Print(1, _T("Upload failed: %s\n"), reason);
+		Log::error(_T("Upload failed: %s\n"), reason);
 		m_bReportUploadCancel = FALSE;
 		delete[] errmsg;
 	}
@@ -1297,7 +1297,7 @@ FileTransfer::ReadDownloadFailed()
 		sprintf(errmsg, "Download failed: %s", reason);
 		MessageBox(m_hwndFileTransfer, errmsg, "Download Failed", MB_ICONEXCLAMATION | MB_OK);
 		SetWindowText(m_hwndFTStatus, errmsg);
-		vnclog.Print(1, _T("Download failed: %s\n"), reason);
+		Log::error(_T("Download failed: %s\n"), reason);
 		delete[] errmsg;
 	}
 	delete[] reason;

@@ -41,7 +41,7 @@
 #include "omnithreadce.h"
 #define SD_BOTH 0x02
 #else
-#include "omnithread.h"
+#include "omnithread/omnithread.h"
 #endif
 
 #include "ClientConnection.h"
@@ -51,6 +51,16 @@
 #include "FileTransfer.h"
 #include "commctrl.h"
 #include "Exception.h"
+
+#include "ft-common/FTMessage.h"
+#include "network/socket/SocketInputStream.h"
+#include "network/socket/SocketOutputStream.h"
+#include "ft-client-lib/FileTransferRequestSender.h"
+#include "ft-client-lib/FileTransferReplyBuffer.h"
+#include "ft-client-lib/FileTransferMessageProcessor.h"
+
+#include "client-config-lib/ConnectionConfigSM.h"
+
 extern "C" {
 #include "vncauth.h"
 #include "d3des.h"
@@ -59,6 +69,12 @@ extern "C" {
 #define INITIALNETBUFSIZE 4096
 #define MAX_ENCODINGS 20
 #define VWR_WND_CLASS_NAME _T("VNCviewer")
+
+//
+// FIXME: remove it from here
+//
+
+#define SETBYTE(y, n) (((y) & 0xFF) << ((n) * 8))
 
 /*
  * Macro to compare pixel formats.
@@ -90,11 +106,17 @@ const rfbPixelFormat vnc16bitFormat = {16, 16, 0, 1, 63, 31, 31, 0,6,11,0,0};
 // *************************************************************************
 
 ClientConnection::ClientConnection(VNCviewerApp *pApp) 
+: m_conConfDialog(true),
+  m_fileTransferMainDialog(0),
+  m_rfbKeySym(0)
 {
 	Init(pApp);
 }
 
 ClientConnection::ClientConnection(VNCviewerApp *pApp, SOCKET sock) 
+: m_conConfDialog(true),
+  m_fileTransferMainDialog(0),
+  m_rfbKeySym(0)
 {
 	Init(pApp);
 	m_sock = sock;
@@ -116,6 +138,9 @@ ClientConnection::ClientConnection(VNCviewerApp *pApp, SOCKET sock)
 }
 
 ClientConnection::ClientConnection(VNCviewerApp *pApp, LPTSTR host, int port)
+: m_conConfDialog(true),
+  m_fileTransferMainDialog(0),
+  m_rfbKeySym(0)
 {
 	Init(pApp);
 	_tcsncpy(m_host, host, MAX_HOST_NAME_LEN);
@@ -124,6 +149,7 @@ ClientConnection::ClientConnection(VNCviewerApp *pApp, LPTSTR host, int port)
 
 void ClientConnection::Init(VNCviewerApp *pApp)
 {
+	m_rfbKeySym = new RfbKeySym(this);
 	m_hwnd = NULL;
 	m_hwnd1 = NULL;
 	m_hwndscroll = NULL;
@@ -144,6 +170,8 @@ void ClientConnection::Init(VNCviewerApp *pApp)
 	m_passwdSet = false;
 
 	m_connDlg = NULL;
+
+	m_supportsEnableVideoHandling = false;
 
 	m_enableFileTransfers = false;
 	m_fileTransferDialogShown = false;
@@ -179,6 +207,9 @@ void ClientConnection::Init(VNCviewerApp *pApp)
 	CheckBufferSize(INITIALNETBUFSIZE);
 
 	m_pApp->RegisterConnection(this);
+
+	m_config = VncViewerConfig::getInstance();
+	m_conConf = pApp->m_conConf;
 }
 
 void ClientConnection::InitCapabilities()
@@ -199,7 +230,88 @@ void ClientConnection::InitCapabilities()
 	m_serverMsgCaps.Add(rfbFileDownloadFailed, rfbTightVncVendor,
 						sig_rfbFileDownloadFailed, "File download failure notification");
 
+  //
+  // Known file transfer server->client message types
+  //
+
+  m_serverMsgCaps.Add(FTMessage::COMPRESSION_SUPPORT_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::COMPRESSION_SUPPORT_REPLY_SIG,
+                      _T("Compression support"));
+
+  m_serverMsgCaps.Add(FTMessage::FILE_LIST_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::FILE_LIST_REPLY_SIG,
+                      _T("File list reply"));
+
+  m_serverMsgCaps.Add(FTMessage::LAST_REQUEST_FAILED_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::LAST_REQUEST_FAILED_REPLY_SIG,
+                      _T("Last request failed"));
+
+  m_serverMsgCaps.Add(FTMessage::MD5_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::MD5_REPLY_SIG,
+                      _T("File md5 sum reply"));
+
+  m_serverMsgCaps.Add(FTMessage::DIRSIZE_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::DIRSIZE_REPLY_SIG,
+                      _T("Directory size reply"));
+
+  m_serverMsgCaps.Add(FTMessage::RENAME_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::RENAME_REPLY_SIG,
+                      _T("File move reply"));
+
+  m_serverMsgCaps.Add(FTMessage::MKDIR_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::MKDIR_REPLY_SIG,
+                      _T("Directory create reply"));
+
+  m_serverMsgCaps.Add(FTMessage::REMOVE_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::REMOVE_REPLY_SIG,
+                      _T("File remove reply"));
+
+  m_serverMsgCaps.Add(FTMessage::DOWNLOAD_START_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::DOWNLOAD_START_REPLY_SIG,
+                      _T("File download start reply"));
+
+  m_serverMsgCaps.Add(FTMessage::DOWNLOAD_DATA_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::DOWNLOAD_DATA_REPLY_SIG,
+                      _T("File download data reply"));
+
+  m_serverMsgCaps.Add(FTMessage::DOWNLOAD_END_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::DOWNLOAD_END_REPLY_SIG,
+                      _T("File download end reply"));
+
+  m_serverMsgCaps.Add(FTMessage::UPLOAD_START_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::UPLOAD_START_REPLY_SIG,
+                      _T("File upload start reply"));
+
+  m_serverMsgCaps.Add(FTMessage::UPLOAD_DATA_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::UPLOAD_DATA_REPLY_SIG,
+                      _T("File upload data reply"));
+
+  m_serverMsgCaps.Add(FTMessage::UPLOAD_END_REPLY,
+                      rfbTightVncVendor,
+                      FTMessage::UPLOAD_END_REPLY_SIG,
+                      _T("File upload end reply"));
+
+	//
 	// Known client->server message types
+	//
+
+	m_clientMsgCaps.Add(rfbEnableVideoHandling, rfbTightVncVendor,
+						sig_rfbEnableVideoHandling, "Enable special video handling");
+
+	// Old file transfers
 	m_clientMsgCaps.Add(rfbFileListRequest, rfbTightVncVendor,
 						sig_rfbFileListRequest, "File list request");
 	m_clientMsgCaps.Add(rfbFileDownloadRequest, rfbTightVncVendor,
@@ -212,6 +324,70 @@ void ClientConnection::InitCapabilities()
 						sig_rfbFileDownloadCancel, "File download cancel request");
 	m_clientMsgCaps.Add(rfbFileUploadFailed, rfbTightVncVendor,
 						sig_rfbFileUploadFailed, "File upload failure notification");
+
+  //
+  // Known file transfer client->server message types
+  //
+
+  m_clientMsgCaps.Add(FTMessage::COMPRESSION_SUPPORT_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::COMPRESSION_SUPPORT_REQUEST_SIG,
+                      _T("Compression support"));
+
+  m_clientMsgCaps.Add(FTMessage::FILE_LIST_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::FILE_LIST_REQUEST_SIG,
+                      _T("File list request"));
+
+  m_clientMsgCaps.Add(FTMessage::MD5_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::MD5_REQUEST_SIG,
+                      _T("File md5 sum request"));
+
+  m_clientMsgCaps.Add(FTMessage::DIRSIZE_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::DIRSIZE_REQUEST_SIG,
+                      _T("Directory size request"));
+
+  m_clientMsgCaps.Add(FTMessage::RENAME_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::RENAME_REQUEST_SIG,
+                      _T("File move request"));
+
+  m_clientMsgCaps.Add(FTMessage::MKDIR_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::MKDIR_REQUEST_SIG,
+                      _T("Directory create request"));
+
+  m_clientMsgCaps.Add(FTMessage::REMOVE_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::REMOVE_REQUEST_SIG,
+                      _T("File remove request"));
+
+  m_clientMsgCaps.Add(FTMessage::DOWNLOAD_START_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::DOWNLOAD_START_REQUEST_SIG,
+                      _T("File download start request"));
+
+  m_clientMsgCaps.Add(FTMessage::DOWNLOAD_DATA_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::DOWNLOAD_DATA_REQUEST_SIG,
+                      _T("File download data request"));
+
+  m_clientMsgCaps.Add(FTMessage::UPLOAD_START_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::UPLOAD_START_REQUEST_SIG,
+                      _T("File upload start request"));
+
+  m_clientMsgCaps.Add(FTMessage::UPLOAD_DATA_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::UPLOAD_DATA_REQUEST_SIG,
+                      _T("File upload data request"));
+
+  m_clientMsgCaps.Add(FTMessage::UPLOAD_END_REQUEST,
+                      rfbTightVncVendor,
+                      FTMessage::UPLOAD_END_REQUEST_SIG,
+                      _T("File upload end request"));
 
 	// Supported encoding types
 	m_encodingCaps.Add(rfbEncodingCopyRect, rfbStandardVendor,
@@ -249,7 +425,7 @@ void ClientConnection::InitCapabilities()
 // 
 // Run() creates the connection if necessary, does the initial negotiations
 // and then starts the thread running which does the output (update) processing.
-// If Run throws an Exception, the caller must delete the ClientConnection object.
+// If Run throws an VncViewerException, the caller must delete the ClientConnection object.
 //
 
 void ClientConnection::Run()
@@ -260,8 +436,8 @@ void ClientConnection::Run()
 		GetConnectDetails();
 	} else {
 		if (m_pApp->m_options.m_listening) {
-			m_opts.LoadOpt(m_opts.m_display, 
-							KEY_VNCVIEWER_HISTORI);
+			ConnectionConfigSM ccsm(&m_opts.m_display[0]);
+			m_conConf.loadFromStorage(&ccsm);
 		}
 	}
 
@@ -288,11 +464,24 @@ void ClientConnection::Run()
 	if (m_tightVncProtocol) {
 		// Determine which protocol messages and encodings are supported.
 		ReadInteractionCaps();
+
 		// Enable file transfers only if the server supports that.
 		m_enableFileTransfers = false;
+
 		if ( m_clientMsgCaps.IsEnabled(rfbFileListRequest) &&
 			 m_serverMsgCaps.IsEnabled(rfbFileListData) ) {
 			m_enableFileTransfers = true;
+		}
+
+		if ((m_clientMsgCaps.IsEnabled(FTMessage::FILE_LIST_REQUEST)) &&
+			(m_serverMsgCaps.IsEnabled(FTMessage::FILE_LIST_REPLY))) {
+			m_enableFileTransfers = true;
+		}
+
+		// Similarly, EnableVideoHandling should be used only if supported.
+		m_supportsEnableVideoHandling = false;
+		if (m_clientMsgCaps.IsEnabled(rfbEnableVideoHandling)) {
+			m_supportsEnableVideoHandling = true;
 		}
 	}
 
@@ -356,7 +545,8 @@ void ClientConnection::CreateDisplay()
 	wndclass.cbWndExtra		= 0;
 	wndclass.hInstance		= m_pApp->m_instance;
 	wndclass.hIcon			= NULL;
-	switch (m_pApp->m_options.m_localCursor) {
+
+	switch (m_conConf.getLocalCursorShape()) {
 	case NOCURSOR:
 		wndclass.hCursor	= LoadCursor(m_pApp->m_instance, 
 										MAKEINTRESOURCE(IDC_NOCURSOR));
@@ -416,7 +606,7 @@ void ClientConnection::CreateDisplay()
 
 	// Set a suitable palette up
 	if (GetDeviceCaps(m_hBitmapDC, RASTERCAPS) & RC_PALETTE) {
-		vnclog.Print(3, _T("Palette-based display - %d entries, %d reserved\n"), 
+		Log::message(_T("Palette-based display - %d entries, %d reserved\n"), 
 			GetDeviceCaps(m_hBitmapDC, SIZEPALETTE), GetDeviceCaps(m_hBitmapDC, NUMRESERVED));
 		BYTE buf[sizeof(LOGPALETTE)+216*sizeof(PALETTEENTRY)];
 		LOGPALETTE *plp = (LOGPALETTE *) buf;
@@ -439,7 +629,7 @@ void ClientConnection::CreateDisplay()
 
 	// Add stuff to System menu
 	HMENU hsysmenu = GetSystemMenu(m_hwnd1, FALSE);
-	if (!m_opts.m_restricted) {
+	if (!m_conConf.isRestricted()) {
 		bool save_item_flags = (m_serverInitiated) ? MF_GRAYED : 0;
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING, IDC_OPTIONBUTTON,
@@ -470,8 +660,17 @@ void ClientConnection::CreateDisplay()
 				   _T("&New connection...\tCtrl-Alt-Shift-N"));
 		AppendMenu(hsysmenu, save_item_flags, ID_CONN_SAVE_AS,
 				   _T("&Save connection info as...\tCtrl-Alt-Shift-S"));
+#ifdef ENABLE_VIDEO_CONTROLS
+		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
+		AppendMenu(hsysmenu, MF_STRING | MF_CHECKED | MF_GRAYED,
+				   ID_ENABLE_VIDEO_HANDLING,
+				   _T("Enable special video handling"));
+#endif
 	}
 
+	AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
+	AppendMenu(hsysmenu, MF_STRING, IDD_CONFIGURATION,
+			   _T("&Configuration..."));
 	AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 	AppendMenu(hsysmenu, MF_STRING, IDD_APP_ABOUT,
 			   _T("&About TightVNC Viewer..."));
@@ -495,14 +694,13 @@ void ClientConnection::CreateDisplay()
 			      NULL,                // Menu handle
 			      m_pApp->m_instance,
 			      NULL);
-	m_opts.m_hWindow = m_hwnd;
 	hotkeys.SetWindow(m_hwnd1);
     ShowWindow(m_hwnd, SW_HIDE);
 		
 	SetWindowLong(m_hwnd, GWL_USERDATA, (LONG) this);
 	SetWindowLong(m_hwnd, GWL_WNDPROC, (LONG)ClientConnection::WndProc);
 	
-	if(pApp->m_options.m_toolbar) {
+	if (m_config->isToolbarShown()) {
 		CheckMenuItem(GetSystemMenu(m_hwnd1, FALSE),
 					ID_TOOLBAR, MF_BYCOMMAND|MF_CHECKED);
 	}
@@ -590,10 +788,14 @@ HWND ClientConnection::CreateToolbar()
 	but[i].fsState		= TBSTATE_ENABLED;
 	but[i++].fsStyle	= TBSTYLE_BUTTON;
 
+#ifdef ENABLE_VIDEO_CONTROLS
+	but[i++].fsStyle	= TBSTYLE_SEP;
+
 	but[i].iBitmap		= 11;
-	but[i].idCommand	= ID_DISCONNECT;
-	but[i].fsState		= TBSTATE_ENABLED;
-	but[i++].fsStyle	= TBSTYLE_BUTTON;
+	but[i].idCommand	= ID_ENABLE_VIDEO_HANDLING;
+	but[i].fsState		= TBSTATE_INDETERMINATE;
+	but[i++].fsStyle	= TBSTYLE_CHECK;
+#endif
 
 	int numButtons = i;
 	assert(numButtons <= MAX_TOOLBAR_BUTTONS);
@@ -616,88 +818,26 @@ void ClientConnection::SaveConnectionHistory()
 		return;
 	}
 
-	// Create or open the registry key for connection history.
-	HKEY hKey;
-	LONG result = RegCreateKeyEx(HKEY_CURRENT_USER, KEY_VNCVIEWER_HISTORI,
-								 0, NULL, REG_OPTION_NON_VOLATILE,
-								 KEY_ALL_ACCESS, NULL, &hKey, NULL);
-	if (result != ERROR_SUCCESS) {
-		return;
-	}
-
-	// Determine maximum number of connections to remember.
-	const int maxEntries = pApp->m_options.m_historyLimit;
-	if (maxEntries > 1024) {
-		return;
-	}
-
-	// Allocate memory for the list of connections, 256 TCHARs an entry.
-	const int entryBufferSize = 256;
-	const int connListBufferSize = maxEntries * entryBufferSize;
-	TCHAR *connListBuffer = new TCHAR[connListBufferSize];
-	memset(connListBuffer, 0, connListBufferSize * sizeof(TCHAR));
-
-	// Index first characters of each entry for convenient access.
-	TCHAR **connList = new TCHAR*[maxEntries];
-	int i;
-	for (i = 0; i < maxEntries; i++) {
-		connList[i] = &connListBuffer[i * entryBufferSize];
-	}
-
-	// Read the list of connections and remove it from the registry.
-	int numRead = 0;
-	for (i = 0; i < maxEntries; i++) {
-		TCHAR valueName[16];
-		_sntprintf(valueName, 16, "%d", i);
-		LPBYTE bufPtr = (LPBYTE)connList[numRead];
-		DWORD bufSize = (entryBufferSize - 1) * sizeof(TCHAR);
-		LONG err = RegQueryValueEx(hKey, valueName, 0, 0, bufPtr, &bufSize);
-		if (err == ERROR_SUCCESS) {
-			if (connList[numRead][0] != '\0') {
-				numRead++;
-			}
-			RegDeleteValue(hKey, valueName);
-		}
-	}
-
-	// Save current connection first.
-	const BYTE *newConnPtr = (const BYTE *)m_opts.m_display;
-	DWORD newConnSize = (_tcslen(m_opts.m_display) + 1) * sizeof(TCHAR);
-	RegSetValueEx(hKey, _T("0"), 0, REG_SZ, newConnPtr, newConnSize);
-
-	// Save the list of other connections.
-	// Don't forget to exclude duplicates of current connection and make
-	// sure the number of entries written will not exceed maxEntries.
-	int numWritten = 1;
-	for (i = 0; i < numRead && numWritten < maxEntries; i++) {
-		if (_tcscmp(connList[i], m_opts.m_display) != 0) {
-			TCHAR keyName[16];
-			_sntprintf(keyName, 16, "%d", numWritten);
-			LPBYTE bufPtr = (LPBYTE)connList[i];
-			DWORD bufSize = (_tcslen(connList[i]) + 1) * sizeof(TCHAR);
-			RegSetValueEx(hKey, keyName, 0, REG_SZ, bufPtr, bufSize);
-			numWritten++;
-		}
-	}
-
-	// If not everything is written due to the maxEntries limitation, then
-	// delete settings for the connection that was not saved. But make sure
-	// we do not delete settings for the current connection.
-	if (i < numRead) {
-		if (_tcscmp(connList[i], m_opts.m_display) != 0) {
-			RegDeleteKey(hKey, connList[i]);
-		}
-	}
-
-	RegCloseKey(hKey);
+	// Save connection list
+	ConnectionHistory *conHistory = m_config->getConnectionHistory();
+	conHistory->load();
+	conHistory->addHost(&m_opts.m_display[0]);
+	conHistory->save();
 
 	// Save connection options for current connection.
-	m_opts.SaveOpt(m_opts.m_display, KEY_VNCVIEWER_HISTORI);
+	ConnectionConfigSM ccsm(&m_opts.m_display[0]);
+	m_conConf.saveToStorage(&ccsm);
+}
+
+void ClientConnection::ApplyOptions()
+{
+	EnableFullControlOptions();
+	ApplyCursorShape();
 }
 
 void ClientConnection::EnableFullControlOptions()
 {
-	if (m_opts.m_ViewOnly) {
+	if (m_conConf.isViewOnly()) {
 		SwitchOffKey();
 		EnableAction(IDD_FILETRANSFER, false);
 		EnableAction(ID_CONN_CTLALTDEL, false);
@@ -711,21 +851,52 @@ void ClientConnection::EnableFullControlOptions()
 		EnableAction(ID_CONN_ALTDOWN, true);
 		EnableAction(ID_CONN_CTLESC, true);
 	}
+#ifdef ENABLE_VIDEO_CONTROLS
+	EnableAction(ID_ENABLE_VIDEO_HANDLING, m_supportsEnableVideoHandling);
+#endif
+}
+
+void ClientConnection::ApplyCursorShape()
+{
+  switch (m_conConf.getLocalCursorShape()) {
+  case NOCURSOR:
+    SetClassLong(m_hwnd, GCL_HCURSOR,
+                 (long)LoadCursor(pApp->m_instance,
+                 MAKEINTRESOURCE(IDC_NOCURSOR)));
+    break;
+  case SMALLCURSOR:
+    SetClassLong(m_hwnd, GCL_HCURSOR,
+                 (long)LoadCursor(pApp->m_instance,
+                 MAKEINTRESOURCE(IDC_SMALLDOT)));
+    break;
+  case NORMALCURSOR:
+    SetClassLong(m_hwnd, GCL_HCURSOR,
+                 (long)LoadCursor(NULL, IDC_ARROW));
+    break;
+  case DOTCURSOR:
+  default:
+    SetClassLong(m_hwnd, GCL_HCURSOR,
+                 (long)LoadCursor(pApp->m_instance,
+                 MAKEINTRESOURCE(IDC_DOTCURSOR)));
+  }
 }
 
 void ClientConnection::EnableAction(int id, bool enable)
 {
+	HMENU sysMenu = GetSystemMenu(m_hwnd1, FALSE);
+	LONG state;
+
 	if (enable) {
-		EnableMenuItem(GetSystemMenu(m_hwnd1, FALSE), id,
-					   MF_BYCOMMAND | MF_ENABLED);
-		SendMessage(m_hToolbar, TB_SETSTATE, (WPARAM)id,
-					(LPARAM)MAKELONG(TBSTATE_ENABLED, 0));
+		EnableMenuItem(sysMenu, id, MF_BYCOMMAND | MF_ENABLED);
+		bool wasChecked =
+			(GetMenuState(sysMenu, id, MF_BYCOMMAND) == MF_CHECKED);
+		int checkedBit = (wasChecked ? TBSTATE_CHECKED : 0);
+		state = MAKELONG(TBSTATE_ENABLED | checkedBit, 0);
 	} else {
-		EnableMenuItem(GetSystemMenu(m_hwnd1, FALSE), id,
-					   MF_BYCOMMAND | MF_GRAYED);
-		SendMessage(m_hToolbar, TB_SETSTATE, (WPARAM)id,
-					(LPARAM)MAKELONG(TBSTATE_INDETERMINATE, 0));
+		EnableMenuItem(sysMenu, id, MF_BYCOMMAND | MF_GRAYED);
+		state = MAKELONG(TBSTATE_INDETERMINATE, 0);
 	}
+	SendMessage(m_hToolbar, TB_SETSTATE, (WPARAM)id, (LPARAM)state);
 }
 
 void ClientConnection::SwitchOffKey()
@@ -750,7 +921,9 @@ void ClientConnection::GetConnectDetails()
 {
 	
 	if (m_opts.m_configSpecified) {
-		LoadConnection(m_opts.m_configFilename, false);
+		if (LoadConnection(m_opts.m_configFilename, false) != 0) {
+			throw QuietException("Could not load saved connection");
+		}
 	} else {
 		SessionDialog sessdlg(&m_opts, this);
 		if (!sessdlg.DoDialog()) {
@@ -820,7 +993,7 @@ void ClientConnection::Connect()
 		sprintf(msg, "Failed to connect to server (%.255s)", m_opts.m_display);
 		throw WarningException(msg);
 	}
-	vnclog.Print(0, _T("Connected to %s port %d\n"), m_host, m_port);
+	Log::interror(_T("Connected to %s port %d"), m_host, m_port);
 
 	if (m_connDlg != NULL)
 		m_connDlg->SetStatus("Connection established");
@@ -855,8 +1028,8 @@ void ClientConnection::NegotiateProtocolVersion()
 	if (sscanf(pv, rfbProtocolVersionFormat, &majorVersion, &minorVersion) != 2) {
 		throw WarningException(_T("Invalid protocol"));
 	}
-	vnclog.Print(0, _T("RFB server supports protocol version 3.%d\n"),
-				 minorVersion);
+    Log::interror(_T("RFB server supports protocol version 3.%d"),
+				  minorVersion);
 
 	if (majorVersion == 3 && minorVersion >= 8) {
 		m_minorVersion = 8;
@@ -876,7 +1049,7 @@ void ClientConnection::NegotiateProtocolVersion()
 	if (m_connDlg != NULL)
 		m_connDlg->SetStatus("Protocol version negotiated");
 
-	vnclog.Print(0, _T("Connected to RFB server, using protocol version 3.%d\n"),
+	Log::interror(_T("Connected to RFB server, using protocol version 3.%d"),
 				 m_minorVersion);
 }
 
@@ -909,7 +1082,7 @@ void ClientConnection::PerformAuthentication()
 		PerformAuthenticationTight();
 		break;
 	default:	// should never happen
-		vnclog.Print(0, _T("Internal error: Invalid security type\n"));
+		Log::interror(_T("Internal error: Invalid security type\n"));
 		throw ErrorException("Internal error: Invalid security type");
     }
 }
@@ -929,7 +1102,7 @@ int ClientConnection::ReadSecurityType()
 		throw WarningException(ReadFailureReason());
 
 	if (secType != rfbSecTypeNone && secType != rfbSecTypeVncAuth) {
-		vnclog.Print(0, _T("Unknown security type from RFB server: %d\n"),
+		Log::interror(_T("Unknown security type from RFB server: %d\n"),
 					 (int)secType);
 		throw ErrorException("Unknown security type requested!");
     }
@@ -970,7 +1143,7 @@ int ClientConnection::SelectSecurityType()
 			WriteExact((char *)&secType, sizeof(secType));
 			if (m_connDlg != NULL)
 				m_connDlg->SetStatus("TightVNC protocol extensions enabled");
-			vnclog.Print(8, _T("Enabling TightVNC protocol extensions\n"));
+			Log::detail(_T("Enabling TightVNC protocol extensions\n"));
 			return rfbSecTypeTight;
 		}
 	}
@@ -983,8 +1156,8 @@ int ClientConnection::SelectSecurityType()
 				WriteExact((char *)&secType, sizeof(secType));
 				if (m_connDlg != NULL)
 					m_connDlg->SetStatus("Security type requested");
-				vnclog.Print(8, _T("Choosing security type %s(%d)\n"),
-							 secTypeNames[i], (int)secType);
+				Log::detail(_T("Choosing security type %s(%d)\n"),
+							secTypeNames[i], (int)secType);
 				break;
 			}
 		}
@@ -992,7 +1165,7 @@ int ClientConnection::SelectSecurityType()
     }
 
     if (secType == rfbSecTypeInvalid) {
-		vnclog.Print(0, _T("Server did not offer supported security type\n"));
+		Log::interror(_T("Server did not offer supported security type\n"));
 		throw ErrorException("Server did not offer supported security type!");
 	}
 
@@ -1036,7 +1209,7 @@ void ClientConnection::PerformAuthenticationTight()
 		m_connDlg->SetStatus("Header of authentication capability list received");
 
 	if (!caps.nAuthTypes) {
-		vnclog.Print(0, _T("No authentication needed\n"));
+		Log::error(_T("No authentication needed\n"));
 		if (m_connDlg != NULL)
 			m_connDlg->SetStatus("No authentication needed");
 		Authenticate(rfbAuthNone);
@@ -1046,7 +1219,7 @@ void ClientConnection::PerformAuthenticationTight()
 		if (m_connDlg != NULL)
 			m_connDlg->SetStatus("Authentication capability list received");
 		if (!m_authCaps.NumEnabled()) {
-			vnclog.Print(0, _T("No suitable authentication schemes offered by the server\n"));
+			Log::interror(_T("No suitable authentication schemes offered by the server\n"));
 			throw ErrorException("No suitable authentication schemes offered by the server");
 		}
 
@@ -1090,12 +1263,12 @@ void ClientConnection::Authenticate(CARD32 authScheme)
 		authFuncPtr = &ClientConnection::AuthenticateVNC;
 		break;
 	default:
-		vnclog.Print(0, _T("Unknown authentication scheme: %d\n"),
+		Log::interror(_T("Unknown authentication scheme: %d\n"),
 					 (int)authScheme);
 		throw ErrorException("Unknown authentication scheme!");
 	}
 
-	vnclog.Print(0, _T("Authentication scheme: %s\n"),
+	Log::interror(_T("Authentication scheme: %s\n"),
 				 m_authCaps.GetDescription(authScheme));
 
 	const int errorMsgSize = 256;
@@ -1105,7 +1278,7 @@ void ClientConnection::Authenticate(CARD32 authScheme)
 
 	// Report authentication error.
 	if (wasError) {
-		vnclog.Print(0, _T("%s\n"), errorMsg);
+		Log::interror(_T("%s\n"), errorMsg);
 		if (m_connDlg != NULL)
 			m_connDlg->SetStatus("Error during authentication");
 		throw AuthException(errorMsg);
@@ -1125,7 +1298,7 @@ void ClientConnection::Authenticate(CARD32 authScheme)
 	case rfbAuthOK:
 		if (m_connDlg != NULL)
 			m_connDlg->SetStatus("Authentication successful");
-		vnclog.Print(0, _T("Authentication successful\n"));
+		Log::interror(_T("Authentication successful\n"));
 		return;
 	case rfbAuthFailed:
 		if (m_minorVersion >= 8) {
@@ -1145,7 +1318,7 @@ void ClientConnection::Authenticate(CARD32 authScheme)
 	}
 
 	// Report authentication failure.
-	vnclog.Print(0, _T("%s\n"), errorMsg);
+	Log::interror(_T("%s\n"), errorMsg);
 	if (m_connDlg != NULL)
 		m_connDlg->SetStatus(errorMsg);
 	throw AuthException(errorMsg);
@@ -1223,7 +1396,7 @@ bool ClientConnection::AuthenticateVNC(char *errBuf, int errBufSize)
 void ClientConnection::SendClientInit()
 {
     rfbClientInitMsg ci;
-	ci.shared = m_opts.m_Shared;
+    ci.shared = m_conConf.getSharedFlag();
 
     WriteExact((char *)&ci, sz_rfbClientInitMsg);
 
@@ -1262,8 +1435,8 @@ void ClientConnection::ReadServerInit()
     
 	SetWindowText(m_hwnd1, m_desktopName);	
 
-	vnclog.Print(0, _T("Desktop name \"%s\"\n"),m_desktopName);
-	vnclog.Print(1, _T("Geometry %d x %d depth %d\n"),
+	Log::interror(_T("Desktop name \"%s\"\n"),m_desktopName);
+	Log::error(_T("Geometry %d x %d depth %d\n"),
 		m_si.framebufferWidth, m_si.framebufferHeight, m_si.format.depth );
 	SetWindowText(m_hwnd1, m_desktopName);	
 
@@ -1317,19 +1490,19 @@ void ClientConnection::SizeWindow(bool centered)
 	SystemParametersInfo(SPI_GETWORKAREA, 0, &workrect, 0);
 	int workwidth = workrect.right -  workrect.left;
 	int workheight = workrect.bottom - workrect.top;
-	vnclog.Print(2, _T("Screen work area is %d x %d\n"),
+	Log::warning(_T("Screen work area is %d x %d\n"),
 				 workwidth, workheight);
 
 	RECT fullwinrect;
-	
-	if (m_opts.m_scaling) {
-		SetRect(&fullwinrect, 0, 0,
-				m_si.framebufferWidth * m_opts.m_scale_num / m_opts.m_scale_den,
-				m_si.framebufferHeight * m_opts.m_scale_num / m_opts.m_scale_den);
+
+	if (m_conConf.scalingActive()) {
+		double k = (double)m_conConf.getScaleNumerator() / m_conConf.getScaleDenominator();
+		int scaledWidth = (int)(m_si.framebufferWidth * k);
+		int scaledHeight = (int)(m_si.framebufferHeight * k);
+		SetRect(&fullwinrect, 0, 0, scaledWidth, scaledHeight);
 	} else {
-		SetRect(&fullwinrect, 0, 0,
-				m_si.framebufferWidth, m_si.framebufferHeight);
-	}	
+		SetRect(&fullwinrect, 0, 0, m_si.framebufferWidth, m_si.framebufferHeight);
+	}
 
 	AdjustWindowRectEx(&fullwinrect, 
 			   GetWindowLong(m_hwnd, GWL_STYLE ), 
@@ -1420,7 +1593,7 @@ void ClientConnection::PositionChildWindow()
 	
 	SetWindowPos(m_hwndscroll, HWND_TOP, rparent.left - 1, rparent.top - 1,
 					parentwidth + 2, parentheight + 2, SWP_SHOWWINDOW);
-	if (!m_opts.m_FitWindow) {
+	if (!m_conConf.isFitWindowEnabled()) {
 		if (InFullScreenMode()) {				
 			ShowScrollBar(m_hwndscroll, SB_HORZ, FALSE);
 			ShowScrollBar(m_hwndscroll, SB_VERT, FALSE);
@@ -1457,11 +1630,8 @@ void ClientConnection::PositionChildWindow()
 					(m_si.framebufferHeight * 100 + den - 1) / den);								
 			}
 
-			m_opts.m_scale_num = 100;
-			m_opts.m_scale_den = den;
+			m_conConf.setScale(100, den);
 				
-			m_opts.FixScaling();
-
 			m_fullwinwidth = fullwinrect.right - fullwinrect.left;
 			m_fullwinheight = fullwinrect.bottom - fullwinrect.top;
 		}
@@ -1492,7 +1662,7 @@ void ClientConnection::PositionChildWindow()
 	m_vScrollMax = m_fullwinheight;
            
 		int newhpos, newvpos;
-	if (!m_opts.m_FitWindow) {
+	if (!m_conConf.isFitWindowEnabled()) {
 		newhpos = max(0, min(m_hScrollPos, 
 								 m_hScrollMax - max(m_cliwidth, 0)));
 		newvpos = max(0, min(m_vScrollPos, 
@@ -1508,7 +1678,7 @@ void ClientConnection::PositionChildWindow()
 								
 	m_hScrollPos = newhpos;
 	m_vScrollPos = newvpos;
-	if (!m_opts.m_FitWindow) {
+	if (!m_conConf.isFitWindowEnabled()) {
 		UpdateScrollbars();
 	} else {
 		InvalidateRect(m_hwnd, NULL, FALSE);
@@ -1563,16 +1733,14 @@ void ClientConnection::CreateLocalFramebuffer() {
 
 void ClientConnection::SetupPixelFormat() {
 	// Have we requested a reduction to 8-bit?
-    if (m_opts.m_Use8Bit) {		
-      
-		vnclog.Print(2, _T("Requesting 8-bit truecolour\n"));  
+	if (m_conConf.isUsing8BitColor()) {
+		Log::warning(_T("Requesting 8-bit truecolour\n"));  
 		m_myFormat = vnc8bitFormat;
-    
 		// We don't support colormaps so we'll ask the server to convert
     } else if (!m_si.format.trueColour) {
         
         // We'll just request a standard 16-bit truecolor
-        vnclog.Print(2, _T("Requesting 16-bit truecolour\n"));
+        Log::warning(_T("Requesting 16-bit truecolour\n"));
         m_myFormat = vnc16bitFormat;
         
     } else {
@@ -1598,7 +1766,7 @@ void ClientConnection::SetupPixelFormat() {
 			TempDC hrootdc(NULL);
 			int localBitsPerPixel = GetDeviceCaps(hrootdc, BITSPIXEL);
 			int localRasterCaps	  = GetDeviceCaps(hrootdc, RASTERCAPS);
-			vnclog.Print(2, _T("Memory DC has depth of %d and %s pallete-based.\n"), 
+			Log::warning(_T("Memory DC has depth of %d and %s pallete-based.\n"), 
 				localBitsPerPixel, (localRasterCaps & RC_PALETTE) ? "is" : "is not");
 			
 			// If we're using truecolor, and the server has more bits than we do
@@ -1651,8 +1819,10 @@ void ClientConnection::SetFormatAndEncodings()
 	// preferred encoding is not actually usable.
 	for (i = LASTENCODING; i >= rfbEncodingRaw; i--)
 	{
-		if (m_opts.m_PreferredEncoding == i) {
-			if (m_opts.m_UseEnc[i]) {
+		int p_enc = m_conConf.getPreferredEncoding();
+
+		if (p_enc == i) {
+			if (m_conConf.isEncodingAllowed(i)) {
 				encs[se->nEncodings++] = Swap32IfLE(i);
 				if ( i == rfbEncodingZlib ||
 					 i == rfbEncodingTight ||
@@ -1660,7 +1830,8 @@ void ClientConnection::SetFormatAndEncodings()
 					useCompressLevel = true;
 				}
 			} else {
-				m_opts.m_PreferredEncoding--;
+				p_enc--;
+				m_conConf.setPreferredEncoding(p_enc);
 			}
 		}
 	}
@@ -1670,8 +1841,8 @@ void ClientConnection::SetFormatAndEncodings()
 	// desirable!
 	for (i = LASTENCODING; i >= rfbEncodingRaw; i--)
 	{
-		if ( (m_opts.m_PreferredEncoding != i) &&
-			 (m_opts.m_UseEnc[i]))
+		if ( (m_conConf.getPreferredEncoding()!= i) &&
+			 (m_conConf.isEncodingAllowed(i)))
 		{
 			encs[se->nEncodings++] = Swap32IfLE(i);
 			if ( i == rfbEncodingZlib ||
@@ -1683,27 +1854,23 @@ void ClientConnection::SetFormatAndEncodings()
 	}
 
 	// Request desired compression level if applicable
-	if ( useCompressLevel && m_opts.m_useCompressLevel &&
-		 m_opts.m_compressLevel >= 0 &&
-		 m_opts.m_compressLevel <= 9) {
+	if ( useCompressLevel && m_conConf.isCustomCompressionEnabled()) {
 		encs[se->nEncodings++] = Swap32IfLE( rfbEncodingCompressLevel0 +
-											 m_opts.m_compressLevel );
+											 m_conConf.getCustomCompressionLevel() );
 	}
 
 	// Request cursor shape updates if enabled by user
-	if (m_opts.m_requestShapeUpdates) {
+	if (m_conConf.isRequestingShapeUpdates()) {
 		encs[se->nEncodings++] = Swap32IfLE(rfbEncodingXCursor);
 		encs[se->nEncodings++] = Swap32IfLE(rfbEncodingRichCursor);
-		if (!m_opts.m_ignoreShapeUpdates)
+		if (!m_conConf.isIgnoringShapeUpdates())
 			encs[se->nEncodings++] = Swap32IfLE(rfbEncodingPointerPos);
 	}
 
 	// Request JPEG quality level if JPEG compression was enabled by user
-	if ( m_opts.m_enableJpegCompression &&
-		 m_opts.m_jpegQualityLevel >= 0 &&
-		 m_opts.m_jpegQualityLevel <= 9) {
+	if (m_conConf.isJpegCompressionEnabled()) {
 		encs[se->nEncodings++] = Swap32IfLE( rfbEncodingQualityLevel0 +
-											 m_opts.m_jpegQualityLevel );
+											 m_conConf.getJpegCompressionLevel());
 	}
 
 	// Notify the server that we support LastRect and NewFBSize encodings
@@ -1739,6 +1906,9 @@ void ClientConnection::CopyOptions(ClientConnection *source)
 
 ClientConnection::~ClientConnection()
 {
+	if (m_rfbKeySym != 0) {
+		delete m_rfbKeySym;
+	}
 	if (m_hwnd1 != 0)
 		DestroyWindow(m_hwnd1);
 
@@ -1759,7 +1929,7 @@ ClientConnection::~ClientConnection()
 		DeleteObject(m_hBitmap);
 	if (m_hPalette != NULL)
 		DeleteObject(m_hPalette);
-	
+
 	m_pApp->DeregisterConnection(this);
 }
 
@@ -1812,7 +1982,7 @@ LRESULT CALLBACK ClientConnection::ScrollProc(HWND hwnd, UINT iMsg, WPARAM wPara
 			case SB_THUMBTRACK:
 				dx = pos - _this->m_hScrollPos;
 			}
-			if (!_this->m_opts.m_FitWindow) 
+			if (!_this->m_conConf.isFitWindowEnabled())
 				_this->ScrollScreen(dx,0);
 			return 0;
 		}
@@ -1834,7 +2004,7 @@ LRESULT CALLBACK ClientConnection::ScrollProc(HWND hwnd, UINT iMsg, WPARAM wPara
 			case SB_THUMBTRACK:
 				dy = pos - _this->m_vScrollPos;
 			}
-			if (!_this->m_opts.m_FitWindow) 
+			if (!_this->m_conConf.isFitWindowEnabled())
 				_this->ScrollScreen(0,dy);
 			return 0;
 		}
@@ -1891,8 +2061,8 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 		case ID_CONN_SAVE_AS:
 			TTStr->lpszText = "Save connection info as...";
 			break;
-		case ID_DISCONNECT:
-			TTStr->lpszText = "Disconnect";
+		case ID_ENABLE_VIDEO_HANDLING:
+			TTStr->lpszText = "Toggle special video handling";
 			break;
 		}
 		return 0;
@@ -1913,9 +2083,6 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 		case ID_NEWCONN:
 			_this->m_pApp->NewConnection();
 			return 0;
-		case ID_DISCONNECT:
-			SendMessage(hwnd, WM_CLOSE, 0, 0);
-			return 0;
 		case ID_TOOLBAR:
 			if (GetMenuState(GetSystemMenu(_this->m_hwnd1, FALSE),
 				ID_TOOLBAR,MF_BYCOMMAND) == MF_CHECKED) {
@@ -1932,18 +2099,22 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 			return 0;			
 		case IDC_OPTIONBUTTON:
 			{
-				if (SetForegroundWindow(_this->m_opts.m_hParent) != 0) return 0;
-				int prev_scale_num = _this->m_opts.m_scale_num;
-				int prev_scale_den = _this->m_opts.m_scale_den;
-				
-				if (_this->m_opts.DoDialog(true)) {
+				int prev_scale_num = _this->m_conConf.getScaleNumerator();
+				int prev_scale_den = _this->m_conConf.getScaleDenominator();
+
+				Control ctrlThis;
+				ctrlThis.setWindow(_this->m_hwnd);
+
+				_this->m_conConfDialog.setConnectionConfig(&_this->m_conConf);
+				_this->m_conConfDialog.setParent(&ctrlThis);
+
+				if (_this->m_conConfDialog.showModal() == IDOK) {
 					_this->m_pendingFormatChange = true;
-					if (_this->m_opts.m_FitWindow) {
-						_this->m_opts.m_scaling = true;
+					if (_this->m_conConf.isFitWindowEnabled()) {
 						_this->PositionChildWindow();
 					} else {
-						if (prev_scale_num != _this->m_opts.m_scale_num ||
-							prev_scale_den != _this->m_opts.m_scale_den) {
+						if (prev_scale_num != _this->m_conConf.getScaleNumerator() ||
+							prev_scale_den != _this->m_conConf.getScaleDenominator()) {
 							// Resize the window if scaling factors were changed
 							_this->SizeWindow(false);
 							InvalidateRect(_this->m_hwnd, NULL, FALSE);
@@ -1951,21 +2122,36 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 					}
 				}
 				
-				if (_this->m_serverInitiated) {
-					_this->m_opts.SaveOpt(".listen", 
-										KEY_VNCVIEWER_HISTORI);
-				} else {
-					_this->m_opts.SaveOpt(_this->m_opts.m_display,
-										KEY_VNCVIEWER_HISTORI);
+				StringStorage entryName(_T(".listen"));
+				if (!_this->m_serverInitiated) {
+					entryName.setString(&_this->m_opts.m_display[0]);
 				}
-				_this->EnableFullControlOptions();
+				// Save connection options
+				ConnectionConfigSM ccsm(entryName.getString());
+				_this->m_conConf.saveToStorage(&ccsm);
+
+				_this->ApplyOptions();
 				return 0;
 			}
 		case IDD_APP_ABOUT:
 			ShowAboutBox();
 			return 0;
+		case IDD_CONFIGURATION:
+			g_vncViewerConfigDialog.showModal();
+			break;
 		case IDD_FILETRANSFER:
-			if (_this->m_clientMsgCaps.IsEnabled(rfbFileListRequest)) {
+      if (_this->m_clientMsgCaps.IsEnabled(FTMessage::FILE_LIST_REQUEST)) {
+        _this->m_fileTransferMainDialog->show();
+
+        //
+        // Add "Tab" key support to non-modal file transfer window
+        //
+
+        VNCviewerApp32 *pApp = (VNCviewerApp32 *)(_this->m_pApp);
+        pApp->RemoveModelessDialog(_this->m_fileTransferMainDialog->getControl()->getWindow());
+        pApp->AddModelessDialog(_this->m_fileTransferMainDialog->getControl()->getWindow());
+
+      } else if (_this->m_clientMsgCaps.IsEnabled(rfbFileListRequest)) {
 				if (!_this->m_fileTransferDialogShown) {
 					_this->m_fileTransferDialogShown = true;
 					_this->m_pFileTransfer->CreateFileTransferDialog();
@@ -2029,6 +2215,26 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 				_this->SendKeyEvent(XK_Alt_L, true);
 			}
 			return 0;
+#ifdef ENABLE_VIDEO_CONTROLS
+		case ID_ENABLE_VIDEO_HANDLING:
+			if (_this->m_clientMsgCaps.IsEnabled(rfbEnableVideoHandling)) {
+				HMENU sysMenu = GetSystemMenu(_this->m_hwnd1, FALSE);
+				int id = ID_ENABLE_VIDEO_HANDLING;
+
+				if (GetMenuState(sysMenu, id, MF_BYCOMMAND) == MF_CHECKED) {
+					_this->sendEnableVideoHandling(false);
+					CheckMenuItem(sysMenu, id, MF_BYCOMMAND | MF_UNCHECKED);
+					LONG state = MAKELONG(TBSTATE_ENABLED, 0);
+					SendMessage(_this->m_hToolbar, TB_SETSTATE, (WPARAM)id, (LPARAM)state);
+				} else {
+					_this->sendEnableVideoHandling(true);
+					CheckMenuItem(sysMenu, id, MF_BYCOMMAND | MF_CHECKED);
+					LONG state = MAKELONG(TBSTATE_CHECKED | TBSTATE_ENABLED, 0);
+					SendMessage(_this->m_hToolbar, TB_SETSTATE, (WPARAM)id, (LPARAM)state);
+				}
+			}
+			return 0;
+#endif
 		case ID_CLOSEDAEMON:
 			if (MessageBox(NULL, _T("Are you sure you want to exit?"), 
 				_T("Closing VNCviewer"), 
@@ -2039,7 +2245,7 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 		}
 		break;		
 	case WM_KILLFOCUS:
-		if ( _this->m_opts.m_ViewOnly) return 0;
+		if ( _this->m_conConf.isViewOnly()) return 0;
 		_this->SwitchOffKey();
 		return 0;
 	case WM_SIZE:		
@@ -2055,13 +2261,14 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 		// Remove us from the clipboard viewer chain
 		BOOL res = ChangeClipboardChain( _this->m_hwnd, _this->m_hwndNextViewer);
 #endif
+		StringStorage entryName(&_this->m_opts.m_display[0]);
 		if (_this->m_serverInitiated) {
-			_this->m_opts.SaveOpt(".listen", 
-								KEY_VNCVIEWER_HISTORI);
-		} else {
-			_this->m_opts.SaveOpt(_this->m_opts.m_display,
-								KEY_VNCVIEWER_HISTORI);
+			entryName.setString(_T(".listen"));
 		}
+		// Save connection options
+		ConnectionConfigSM ccsm(entryName.getString());
+		_this->m_conConf.saveToStorage(&ccsm);
+
 		if (_this->m_waitingOnEmulateTimer) {
 			
 			KillTimer(_this->m_hwnd, _this->m_emulate3ButtonsTimer);
@@ -2070,7 +2277,6 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 			
 		_this->m_hwnd1 = 0;
 		_this->m_hwnd = 0;
-		_this->m_opts.m_hWindow = 0;
 		// We are currently in the main thread.
 		// The worker thread should be about to finish if
 		// it hasn't already. Wait for it.
@@ -2154,7 +2360,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 				if (_this->BumpScroll(coords.x, coords.y))
 					return 0;
 			}
-			if ( _this->m_opts.m_ViewOnly)
+			if ( _this->m_conConf.isViewOnly())
 				return 0;
 
 			_this->ProcessPointerEvent(coords.x, coords.y, wParam, iMsg);
@@ -2167,7 +2373,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 	case WM_SYSKEYUP:
 		{
 			if (!_this->m_running) return 0;
-			if ( _this->m_opts.m_ViewOnly) return 0;
+			if ( _this->m_conConf.isViewOnly()) return 0;
 			bool down = (((DWORD) lParam & 0x80000000l) == 0);
 			if ((int) wParam == 0x11) {
 				if (!down) {
@@ -2195,8 +2401,8 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 								(LPARAM)MAKELONG(TBSTATE_CHECKED|TBSTATE_ENABLED, 0));
 				}
 			}
-			
-            _this->ProcessKeyEvent((int) wParam, (DWORD) lParam);
+
+			_this->m_rfbKeySym->processKeyEvent((int) wParam, (DWORD) lParam);
 			return 0;
 		}
 	case WM_CHAR:
@@ -2204,7 +2410,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 #ifdef UNDER_CE
         {
             int key = wParam;
-            vnclog.Print(4,_T("CHAR msg : %02x\n"), key);
+            Log::warning(_T("CHAR msg : %02x\n"), key);
             // Control keys which are in the Keymap table will already
             // have been handled.
             if (key == 0x0D  ||  // return
@@ -2220,12 +2426,14 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
             return 0;
         }
 #endif
+		_this->m_rfbKeySym->processCharEvent((WCHAR)wParam, (unsigned int)lParam);
 	case WM_DEADCHAR:
 	case WM_SYSDEADCHAR:
-	  return 0;
+		return 0;
 	case WM_SETFOCUS:
 		if (_this->InFullScreenMode())
 			SetWindowPos(hwnd, HWND_TOPMOST, 0,0,100,100, SWP_NOMOVE | SWP_NOSIZE);
+		_this->m_rfbKeySym->processFocusRestoration();
 		return 0;
 	// Cacnel modifiers when we lose focus
 	case WM_KILLFOCUS:
@@ -2245,7 +2453,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 
 				SetWindowPos(_this->m_hwnd1, hwndafter, 0,0,100,100, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
-			vnclog.Print(6, _T("Losing focus - cancelling modifiers\n"));
+			Log::info(_T("Losing focus - cancelling modifiers\n"));
 			return 0;
 		}	
     case WM_QUERYNEWPALETTE:
@@ -2320,6 +2528,10 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 	return DefWindowProc(hwnd, iMsg, wParam, lParam);
 }
 
+void ClientConnection::onRfbKeySymEvent(unsigned short rfbKeySym, bool down)
+{
+  SendKeyEvent(rfbKeySym, down);
+}
 
 // ProcessPointerEvent handles the delicate case of emulating 3 buttons
 // on a two button mouse, then passes events off to SubProcessPointerEvent.
@@ -2327,7 +2539,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 void
 ClientConnection::ProcessPointerEvent(int x, int y, DWORD keyflags, UINT msg) 
 {
-	if (m_opts.m_Emul3Buttons) {
+	if (m_conConf.isEmulate3ButtonsEnabled()) {
 		// XXX To be done:
 		// If this is a left or right press, the user may be 
 		// about to press the other button to emulate a middle press.
@@ -2337,8 +2549,8 @@ ClientConnection::ProcessPointerEvent(int x, int y, DWORD keyflags, UINT msg)
 		// before timer has expired, we cancel timer & take different action.
 		if (m_waitingOnEmulateTimer) {
 			if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP ||
-				abs(x - m_emulateButtonPressedX) > m_opts.m_Emul3Fuzz ||
-				abs(y - m_emulateButtonPressedY) > m_opts.m_Emul3Fuzz) {
+				abs(x - m_emulateButtonPressedX) > m_conConf.getEmulate3ButtonsFuzz() ||
+				abs(y - m_emulateButtonPressedY) > m_conConf.getEmulate3ButtonsFuzz()) {
 				// if button released or we moved too far then cancel.
 				// First let the remote know where the button was down
 				SubProcessPointerEvent(
@@ -2391,11 +2603,11 @@ ClientConnection::ProcessPointerEvent(int x, int y, DWORD keyflags, UINT msg)
 					SetTimer(
 					m_hwnd, 
 					IDT_EMULATE3BUTTONSTIMER, 
-					m_opts.m_Emul3Timeout, 
+					m_conConf.getEmulate3ButtonsTimeout(), 
 					NULL);
 				
 				if (!m_emulate3ButtonsTimer) {
-					vnclog.Print(0, _T("Failed to create timer for emulating 3 buttons"));
+					Log::interror(_T("Failed to create timer for emulating 3 buttons"));
 					PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
 					return;
 				}
@@ -2425,7 +2637,7 @@ ClientConnection::SubProcessPointerEvent(int x, int y, DWORD keyflags)
 {
 	int mask;
   
-	if (m_opts.m_SwapMouse) {
+	if (m_conConf.isMouseSwapEnabled()) {
 		mask = ( ((keyflags & MK_LBUTTON) ? rfbButton1Mask : 0) |
 				 ((keyflags & MK_MBUTTON) ? rfbButton3Mask : 0) |
 				 ((keyflags & MK_RBUTTON) ? rfbButton2Mask : 0) );
@@ -2443,9 +2655,9 @@ ClientConnection::SubProcessPointerEvent(int x, int y, DWORD keyflags)
 	
 	try {
 		int x_scaled =
-			(x + m_hScrollPos) * m_opts.m_scale_den / m_opts.m_scale_num;
+			(x + m_hScrollPos) * m_conConf.getScaleDenominator() / m_conConf.getScaleNumerator();
 		int y_scaled =
-			(y + m_vScrollPos) * m_opts.m_scale_den / m_opts.m_scale_num;
+			(y + m_vScrollPos) * m_conConf.getScaleDenominator() / m_conConf.getScaleNumerator();
 
 		SendPointerEvent(x_scaled, y_scaled, mask);
 
@@ -2454,7 +2666,7 @@ ClientConnection::SubProcessPointerEvent(int x, int y, DWORD keyflags)
 			mask &= !(rfbButton4Mask | rfbButton5Mask);
 			SendPointerEvent(x_scaled, y_scaled, mask);
 		}
-	} catch (Exception &e) {
+	} catch (VncViewerException &e) {
 		e.Report();
 		PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
 	}
@@ -2528,7 +2740,7 @@ inline void ClientConnection::ProcessKeyEvent(int virtkey, DWORD keyData)
 #else
     char keyname[32];
     if (GetKeyNameText(  keyData,keyname, 31)) {
-        vnclog.Print(4, _T("Process key: %s (keyData %04x): "), keyname, keyData);
+        Log::message(_T("Process key: %s (keyData %04x): "), keyname, keyData);
     };
 #endif
 #endif
@@ -2538,44 +2750,44 @@ inline void ClientConnection::ProcessKeyEvent(int virtkey, DWORD keyData)
 		
 		if (kas.releaseModifiers & KEYMAP_LCONTROL) {
 			SendKeyEvent(XK_Control_L, false );
-			vnclog.Print(5, _T("fake L Ctrl raised\n"));
+			Log::info(_T("fake L Ctrl raised\n"));
 		}
 		if (kas.releaseModifiers & KEYMAP_LALT) {
 			SendKeyEvent(XK_Alt_L, false );
-			vnclog.Print(5, _T("fake L Alt raised\n"));
+			Log::info(_T("fake L Alt raised\n"));
 		}
 		if (kas.releaseModifiers & KEYMAP_RCONTROL) {
 			SendKeyEvent(XK_Control_R, false );
-			vnclog.Print(5, _T("fake R Ctrl raised\n"));
+			Log::info(_T("fake R Ctrl raised\n"));
 		}
 		if (kas.releaseModifiers & KEYMAP_RALT) {
 			SendKeyEvent(XK_Alt_R, false );
-			vnclog.Print(5, _T("fake R Alt raised\n"));
+			Log::info(_T("fake R Alt raised\n"));
 		}
 		
 		for (int i = 0; kas.keycodes[i] != XK_VoidSymbol && i < MaxKeysPerKey; i++) {
 			SendKeyEvent(kas.keycodes[i], down );
-			vnclog.Print(4, _T("Sent keysym %04x (%s)\n"), 
+			Log::message(_T("Sent keysym %04x (%s)\n"), 
 				kas.keycodes[i], down ? _T("press") : _T("release"));
 		}
 		
 		if (kas.releaseModifiers & KEYMAP_RALT) {
 			SendKeyEvent(XK_Alt_R, true );
-			vnclog.Print(5, _T("fake R Alt pressed\n"));
+			Log::info(_T("fake R Alt pressed\n"));
 		}
 		if (kas.releaseModifiers & KEYMAP_RCONTROL) {
 			SendKeyEvent(XK_Control_R, true );
-			vnclog.Print(5, _T("fake R Ctrl pressed\n"));
+			Log::info(_T("fake R Ctrl pressed\n"));
 		}
 		if (kas.releaseModifiers & KEYMAP_LALT) {
 			SendKeyEvent(XK_Alt_L, false );
-			vnclog.Print(5, _T("fake L Alt pressed\n"));
+			Log::info(_T("fake L Alt pressed\n"));
 		}
 		if (kas.releaseModifiers & KEYMAP_LCONTROL) {
 			SendKeyEvent(XK_Control_L, false );
-			vnclog.Print(5, _T("fake L Ctrl pressed\n"));
+			Log::info(_T("fake L Ctrl pressed\n"));
 		}
-	} catch (Exception &e) {
+	} catch (VncViewerException &e) {
 		e.Report();
 		PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
 	}
@@ -2595,7 +2807,7 @@ ClientConnection::SendKeyEvent(CARD32 key, bool down)
     ke.down = down ? 1 : 0;
     ke.key = Swap32IfLE(key);
     WriteExact((char *)&ke, sz_rfbKeyEventMsg);
-    vnclog.Print(6, _T("SendKeyEvent: key = x%04x status = %s\n"), key, 
+    Log::info(_T("SendKeyEvent: key = x%04x status = %s\n"), key, 
         down ? _T("down") : _T("up"));
 }
 
@@ -2612,9 +2824,20 @@ void ClientConnection::SendClientCutText(char *str, size_t len)
     cct.length = Swap32IfLE(len);
     WriteExact((char *)&cct, sz_rfbClientCutTextMsg);
 	WriteExact(str, len);
-	vnclog.Print(6, _T("Sent %d bytes of clipboard\n"), len);
+	Log::info(_T("Sent %d bytes of clipboard\n"), len);
 }
 #endif
+
+void ClientConnection::sendEnableVideoHandling(bool enable)
+{
+  rfbEnableVideoHandlingMsg evh;
+
+  evh.type = rfbEnableVideoHandling;
+  evh.enableFlag = enable ? 1 : 0;
+  WriteExact((char *)&evh, sz_rfbEnableVideoHandlingMsg);
+
+  Log::info(_T("Sent EnableVideoHandling(%d)\n"), (int)evh.enableFlag);
+}
 
 // Copy any updated areas from the bitmap onto the screen.
 
@@ -2641,9 +2864,9 @@ inline void ClientConnection::DoBlit()
 		::Sleep(m_pApp->m_options.m_delay);
 	}
 	
-	if (m_opts.m_scaling) {
-		int n = m_opts.m_scale_num;
-		int d = m_opts.m_scale_den;
+	if (m_conConf.scalingActive()) {
+		int n = m_conConf.getScaleNumerator();
+		int d = m_conConf.getScaleDenominator();
 		
 		// We're about to do some scaling on these values in the StretchBlt
 		// We want to make sure that they divide nicely by n so we round them
@@ -2672,7 +2895,7 @@ inline void ClientConnection::DoBlit()
 			(ps.rcPaint.bottom-ps.rcPaint.top) * d / n, 
 			SRCCOPY)) 
 		{
-			vnclog.Print(0, _T("Blit error %d\n"), GetLastError());
+			Log::interror(_T("Blit error %d\n"), GetLastError());
 			// throw ErrorException("Error in blit!\n");
 		};
 	} else {
@@ -2680,7 +2903,7 @@ inline void ClientConnection::DoBlit()
 			ps.rcPaint.right-ps.rcPaint.left, ps.rcPaint.bottom-ps.rcPaint.top, 
 			m_hBitmapDC, ps.rcPaint.left+m_hScrollPos, ps.rcPaint.top+m_vScrollPos, SRCCOPY)) 
 		{
-			vnclog.Print(0, _T("Blit error %d\n"), GetLastError());
+			Log::interror(_T("Blit error %d\n"), GetLastError());
 			// throw ErrorException("Error in blit!\n");
 		}
 	}
@@ -2750,7 +2973,27 @@ void ClientConnection::ShowConnInfo()
 
 void* ClientConnection::run_undetached(void* arg) {
 
-	vnclog.Print(9, _T("Update-processing thread started\n"));
+	Log::detail(_T("Update-processing thread started\n"));
+
+  //
+  // File transfer variables
+  //
+
+  SocketInputStream socketInputStream(m_sock);
+  SocketOutputStream socketOutputStream(m_sock);
+
+  FileTransferRequestSender fileTransferRequestSender(&socketOutputStream, &m_writeMutex);
+  FileTransferReplyBuffer fileTransferReplyBuffer(&socketInputStream, &m_readMutex);
+
+  FileTransferMessageProcessor fileTransferMessageProcessor;
+
+  m_fileTransferMainDialog = new FileTransferMainDialog(&fileTransferRequestSender,
+                                                        &fileTransferReplyBuffer,
+                                                        &fileTransferMessageProcessor);
+
+  m_fileTransferMainDialog->updateSupportedOperations(&m_clientMsgCaps, &m_serverMsgCaps);
+
+  fileTransferMessageProcessor.addListener(&fileTransferReplyBuffer);
 
 	m_threadStarted = true;
 
@@ -2766,22 +3009,54 @@ void* ClientConnection::run_undetached(void* arg) {
 		while (!m_bKillThread) {
 			
 			// Look at the type of the message, but leave it in the buffer 
-			CARD8 msgType;
+			UINT32 msgType;
+      UINT8  msgType8;
+
 			{
 			  omni_mutex_lock l(m_readMutex);  // we need this if we're not using ReadExact
-			  int bytes = recv(m_sock, (char *) &msgType, 1, MSG_PEEK);
+			  int bytes = recv(m_sock, (char *) &msgType8, 1, MSG_PEEK);
 			  if (bytes == 0) {
                 m_pFileTransfer->CloseUndoneFileTransfers();
-			    vnclog.Print(0, _T("Connection closed\n") );
+			    Log::interror(_T("Connection closed\n") );
 			    throw WarningException(_T("Connection closed"));
 			  }
 			  if (bytes < 0) {
                 m_pFileTransfer->CloseUndoneFileTransfers();
-			    vnclog.Print(3, _T("Socket error reading message: %d\n"), WSAGetLastError() );
+			    Log::warning(_T("SocketIPv4 error reading message: %d\n"), WSAGetLastError() );
 			    throw WarningException("Error while waiting for server message");
 			  }
 			}
-				
+
+      //
+      // This type of message is reserved for tightvnc extension
+      // for using plug-ins like new file transfer
+      //
+
+      if (msgType8 == 0xFC) {
+        UINT8 buf[4];
+
+        //
+        // Read missing 4 bytes of UINT32
+        //
+
+        ReadExact((char *)&buf[0], 4);
+
+        UINT8 plugInType = buf[2];
+
+        msgType = 0;
+        msgType += SETBYTE(buf[0], 3); // msg.type
+        msgType += SETBYTE(buf[1], 2); // reserved = 0
+        msgType += SETBYTE(buf[2], 1); // plug-in type
+        msgType += SETBYTE(buf[3], 0); // submessage
+
+        Log::warning(_T("Extended RFB message type 0x%08X received\n"),
+                     (unsigned int)msgType);
+      } else {
+        msgType = (UINT32)msgType8;
+        Log::warning(_T("RFB message type 0x%02X received\n"),
+                     (unsigned int)msgType);
+      } // if not extended rfb message
+
 			switch (msgType) {
 			case rfbFramebufferUpdate:
 				ReadScreenUpdate();
@@ -2808,14 +3083,31 @@ void* ClientConnection::run_undetached(void* arg) {
 				m_pFileTransfer->ReadDownloadFailed();
 				break;
 
+      case FTMessage::COMPRESSION_SUPPORT_REPLY:
+      case FTMessage::FILE_LIST_REPLY:
+      case FTMessage::DOWNLOAD_START_REPLY:
+      case FTMessage::DOWNLOAD_DATA_REPLY:
+      case FTMessage::DOWNLOAD_END_REPLY:
+      case FTMessage::UPLOAD_START_REPLY:
+      case FTMessage::UPLOAD_DATA_REPLY:
+      case FTMessage::UPLOAD_END_REPLY:
+      case FTMessage::MD5_REPLY:
+      case FTMessage::DIRSIZE_REPLY:
+      case FTMessage::RENAME_REPLY:
+      case FTMessage::MKDIR_REPLY:
+      case FTMessage::REMOVE_REPLY:
+      case FTMessage::LAST_REQUEST_FAILED_REPLY:
+        fileTransferMessageProcessor.processRfbMessage(msgType);
+        break;
+
 			default:
-				vnclog.Print(3, _T("Unknown message type x%02x\n"), msgType );
+				Log::warning(_T("Unknown message type x%02x\n"), msgType );
 				throw WarningException("Unhandled message type received!\n");
 			}
 
 		}
         
-        vnclog.Print(4, _T("Update-processing thread finishing\n") );
+        Log::message(_T("Update-processing thread finishing\n") );
 
 	} catch (WarningException &e) {
 		m_running = false;
@@ -2827,7 +3119,44 @@ void* ClientConnection::run_undetached(void* arg) {
 		m_running = false;
 		e.Report();
 		PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
-	} 
+  } catch (IOException) {
+
+    //
+    // FIXME: Report about exception
+    //
+
+    m_running = false;
+    PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
+  } catch (ZLibException) {
+
+    //
+    // FIXME: Report about exception
+    //
+
+    m_running = false;
+    PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
+  } catch (OperationNotSupportedException) {
+
+    //
+    // FIXME: Debug
+    // FIXME: This exception must be caught only while file transfer
+    // client is not ready (not coded). This will help to avoid "stubs"
+    // error and cut debug time to minimum on such kind of errors.
+    //
+
+    _ASSERT(FALSE);
+    m_running = false;
+    PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
+  } catch (OperationNotPermittedException) {
+
+    //
+    // FIXME: Report about exception
+    //
+
+    m_running = false;
+    PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
+  }
+
 	return this;
 }
 
@@ -2848,7 +3177,7 @@ ClientConnection::SendFramebufferUpdateRequest(int x, int y, int w, int h, bool 
     fur.w = Swap16IfLE(w);
     fur.h = Swap16IfLE(h);
 
-	vnclog.Print(10, _T("Request %s update\n"), incremental ? _T("incremental") : _T("full"));
+	Log::debug(_T("Request %s update\n"), incremental ? _T("incremental") : _T("full"));
     WriteExact((char *)&fur, sz_rfbFramebufferUpdateRequestMsg);
 }
 
@@ -2868,14 +3197,14 @@ inline void ClientConnection::SendFullFramebufferUpdateRequest()
 void ClientConnection::SendAppropriateFramebufferUpdateRequest()
 {
 	if (m_pendingFormatChange) {
-		vnclog.Print(3, _T("Requesting new pixel format\n") );
+		Log::warning(_T("Requesting new pixel format\n") );
 		rfbPixelFormat oldFormat = m_myFormat;
 		SetupPixelFormat();
-		SoftCursorFree();
 		SetFormatAndEncodings();
 		m_pendingFormatChange = false;
 		// If the pixel format has changed, request whole screen
 		if (!PF_EQ(m_myFormat, oldFormat)) {
+			SoftCursorFree();
 			SendFullFramebufferUpdateRequest();	
 		} else {
 			SendIncrementalFramebufferUpdateRequest();
@@ -2955,7 +3284,7 @@ void ClientConnection::ReadScreenUpdate() {
 			ReadZlibHexRect(&surh);
 			break;
 		default:
-			vnclog.Print(0, _T("Unknown encoding %d - not supported!\n"), surh.encoding);
+			Log::interror(_T("Unknown encoding %d - not supported!\n"), surh.encoding);
 			break;
 		}
 
@@ -2976,7 +3305,7 @@ void ClientConnection::ReadScreenUpdate() {
 
 void ClientConnection::SetDormant(bool newstate)
 {
-	vnclog.Print(5, _T("%s dormant mode\n"), newstate ? _T("Entering") : _T("Leaving"));
+	Log::info(_T("%s dormant mode\n"), newstate ? _T("Entering") : _T("Leaving"));
 	m_dormant = newstate;
 	if (!m_dormant)
 		SendIncrementalFramebufferUpdateRequest();
@@ -2988,7 +3317,7 @@ void ClientConnection::SetDormant(bool newstate)
 void ClientConnection::ReadServerCutText()
 {
 	rfbServerCutTextMsg sctm;
-	vnclog.Print(6, _T("Read remote clipboard change\n"));
+	Log::info(_T("Read remote clipboard change\n"));
 	ReadExact((char *) &sctm, sz_rfbServerCutTextMsg);
 	size_t len = Swap32IfLE(sctm.length);
 
@@ -3006,7 +3335,7 @@ void ClientConnection::ReadSetColourMapEntries()
 	// Currently, we read and silently ignore SetColourMapEntries.
 
 	rfbSetColourMapEntriesMsg msg;
-	vnclog.Print(3, _T("Read server colour map entries (ignored)\n"));
+	Log::warning(_T("Read server colour map entries (ignored)\n"));
 	ReadExact((char *)&msg, sz_rfbSetColourMapEntriesMsg);
 	int numEntries = Swap16IfLE(msg.nColours);
 
@@ -3030,13 +3359,13 @@ void ClientConnection::ReadBell() {
 		::Beep(440, 125);
 	}
 	#endif
-	if (m_opts.m_DeiconifyOnBell) {
+	if (m_conConf.isDeiconifyOnRemoteBellEnabled()) {
 		if (IsIconic(m_hwnd1)) {
 			SetDormant(false);
 			ShowWindow(m_hwnd1, SW_SHOWNORMAL);
 		}
 	}
-	vnclog.Print(6, _T("Bell!\n"));
+	Log::info(_T("Bell!\n"));
 }
 
 
@@ -3051,7 +3380,7 @@ void ClientConnection::ReadExact(char *inbuf, int wanted)
 	omni_mutex_lock l(m_readMutex);
 
 	int offset = 0;
-    vnclog.Print(10, _T("  reading %d bytes\n"), wanted);
+    Log::debug(_T("  reading %d bytes\n"), wanted);
 	
 	while (wanted > 0) {
 
@@ -3059,9 +3388,9 @@ void ClientConnection::ReadExact(char *inbuf, int wanted)
 		if (bytes == 0) throw WarningException("Connection closed.");
 		if (bytes == SOCKET_ERROR) {
 			int err = ::GetLastError();
-			vnclog.Print(1, _T("Socket error while reading %d\n"), err);
+			Log::error(_T("SocketIPv4 error while reading %d\n"), err);
 			m_running = false;
-			throw WarningException("ReadExact: Socket error while reading.");
+			throw WarningException("ReadExact: SocketIPv4 error while reading.");
 		}
 		wanted -= bytes;
 		offset += bytes;
@@ -3075,7 +3404,7 @@ inline void ClientConnection::ReadString(char *buf, int length)
 	if (length > 0)
 		ReadExact(buf, length);
 	buf[length] = '\0';
-    vnclog.Print(10, _T("Read a %d-byte string\n"), length);
+    Log::debug(_T("Read a %d-byte string\n"), length);
 }
 
 
@@ -3086,7 +3415,7 @@ inline void ClientConnection::WriteExact(char *buf, int bytes)
 		return;
 
 	omni_mutex_lock l(m_writeMutex);
-	vnclog.Print(10, _T("  writing %d bytes\n"), bytes);
+	Log::debug(_T("  writing %d bytes\n"), bytes);
 
 	int i = 0;
     int j;
@@ -3103,11 +3432,11 @@ inline void ClientConnection::WriteExact(char *buf, int bytes)
 				FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
 				err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
 				(LPTSTR) &lpMsgBuf, 0, NULL ); // Process any inserts in lpMsgBuf.
-			vnclog.Print(1, _T("Socket error %d: %s\n"), err, lpMsgBuf);
+			Log::error(_T("SocketIPv4 error %d: %s\n"), err, lpMsgBuf);
 			LocalFree( lpMsgBuf );
 			m_running = false;
 
-			throw WarningException("WriteExact: Socket error while writing.");
+			throw WarningException("WriteExact: SocketIPv4 error while writing.");
 		}
 		i += j;
     }
@@ -3125,7 +3454,7 @@ char *ClientConnection::ReadFailureReason()
 	CheckBufferSize(reasonLen + 1);
 	ReadString(m_netbuf, reasonLen);
 
-	vnclog.Print(0, _T("RFB connection failed, reason: %s\n"), m_netbuf);
+	Log::interror(_T("RFB connection failed, reason: %s\n"), m_netbuf);
 	return m_netbuf;
 }
 
@@ -3138,7 +3467,7 @@ void ClientConnection::CheckBufferSize(size_t bufsize)
 
 	// Don't try to allocate more than 2 gigabytes.
 	if (bufsize >= 0x80000000) {
-		vnclog.Print(1, _T("Requested buffer size is too big (%u bytes)\n"),
+		Log::error(_T("Requested buffer size is too big (%u bytes)\n"),
 					 (unsigned int)bufsize);
 		throw WarningException("Requested buffer size is too big.");
 	}
@@ -3155,7 +3484,7 @@ void ClientConnection::CheckBufferSize(size_t bufsize)
 	}
 	m_netbuf = newbuf;
 	m_netbufsize = bufsize + 256;
-	vnclog.Print(4, _T("Buffer size expanded to %u\n"),
+	Log::message(_T("Buffer size expanded to %u\n"),
 				 (unsigned int)m_netbufsize);
 }
 
@@ -3168,7 +3497,7 @@ void ClientConnection::CheckZlibBufferSize(size_t bufsize)
 
 	// Don't try to allocate more than 2 gigabytes.
 	if (bufsize >= 0x80000000) {
-		vnclog.Print(1, _T("Requested zlib buffer size is too big (%u bytes)\n"),
+		Log::error(_T("Requested zlib buffer size is too big (%u bytes)\n"),
 					 (unsigned int)bufsize);
 		throw WarningException("Requested zlib buffer size is too big.");
 	}
@@ -3185,7 +3514,7 @@ void ClientConnection::CheckZlibBufferSize(size_t bufsize)
 	}
 	m_zlibbuf = newbuf;
 	m_zlibbufsize = bufsize + 256;
-	vnclog.Print(4, _T("Zlib buffer size expanded to %u\n"),
+	Log::message(_T("Zlib buffer size expanded to %u\n"),
 				 (unsigned int)m_zlibbufsize);
 }
 
@@ -3200,10 +3529,10 @@ void ClientConnection::InvalidateScreenRect(const RECT *pRect) {
 	// received into the corresponding window coords, and invalidate
 	// *that* region.
 
-	if (m_opts.m_scaling) {
+	if (m_conConf.scalingActive()) {
 		// First, we adjust coords to avoid rounding down when scaling.
-		int n = m_opts.m_scale_num;
-		int d = m_opts.m_scale_den;
+		int n = m_conConf.getScaleNumerator();
+		int d = m_conConf.getScaleDenominator();
 		int left   = (pRect->left / d) * d;
 		int top    = (pRect->top  / d) * d;
 		int right  = (pRect->right  + d - 1) / d * d; // round up

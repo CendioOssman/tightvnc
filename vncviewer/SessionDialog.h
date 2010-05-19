@@ -32,6 +32,15 @@
 #include "VNCOptions.h"
 #include "VNCviewerApp.h"
 #include "VNCviewerApp32.h"
+
+#include "client-config-lib/VncViewerConfig.h"
+#include "client-config-lib/ConnectionConfig.h"
+
+#include "gui/Control.h"
+
+#include "VncViewerConfigDialog.h"
+#include "ConnectionConfigDialog.h"
+
 class SessionDialog  
 {
 public:
@@ -43,15 +52,21 @@ public:
 	int m_port;
 	TCHAR m_host[256];
    	virtual ~SessionDialog();
-    HKEY m_hRegKey;
 	
 private:
+	void updateConHistory(HWND hcombo);
+
 	void SetConnectionProfile(bool LowBandwidth, bool HighSpeed);
 	int cmp(HWND hwnd);
 	ClientConnection *m_cc;
+	VncViewerConfig *m_config;
 	VNCOptions *m_pOpt;
 	TCHAR keyname[40];
-	
+	ConnectionConfigDialog m_conConfigDialog;
+	Control m_ctrlThis;
+
+	ConnectionConfig *m_conConf;
+
 	static BOOL CALLBACK SessDlgProc(  HWND hwndDlg,  UINT uMsg, 
 		WPARAM wParam, LPARAM lParam );
 

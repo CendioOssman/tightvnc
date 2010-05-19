@@ -30,8 +30,9 @@
 #pragma once
 
 #include "res/resource.h"
+#include "res/resource2.h"
 #include "VNCviewerApp.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "VNCHelp.h"
 #include "HotKeys.h"
 
@@ -43,7 +44,6 @@
 extern VNCviewerApp *pApp;
 
 // Global logger - may be used by anything
-extern Log vnclog;
 extern VNCHelp help;
 extern HotKeys hotkeys;
 

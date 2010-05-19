@@ -48,6 +48,6 @@ void ClientConnection::ReadCopyRect(rfbFramebufferUpdateRectHeader *pfburh) {
 	if (!BitBlt(
 		m_hBitmapDC,pfburh->r.x, pfburh->r.y, pfburh->r.w, pfburh->r.h,
 		m_hBitmapDC, cr.srcX, cr.srcY, SRCCOPY)) {
-		vnclog.Print(0, _T("Error in blit in ClientConnection::CopyRect\n"));
+		Log::interror(_T("Error in blit in ClientConnection::CopyRect\n"));
 	}
 }

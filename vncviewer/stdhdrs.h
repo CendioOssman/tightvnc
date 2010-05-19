@@ -27,7 +27,10 @@
 #define VC_EXTRALEAN
 
 // These two lines are needed to get the mouse wheel macros.
+#ifndef WINVER
 #define WINVER 0x0400
+#endif
+
 #define _WIN32_WINDOWS 0x0410
 
 #include <winsock2.h>

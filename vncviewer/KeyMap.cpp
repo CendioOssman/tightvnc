@@ -31,6 +31,8 @@
 #include "stdhdrs.h"
 #include "KeyMap.h"
 #include "vncviewer.h"
+#include "util/Keymap.h"
+#include "util/StringStorage.h"
 
 // Define the keymap structure
 typedef struct vncKeymapping_struct {
@@ -116,13 +118,29 @@ static const vncKeymapping keymap[] = {
     {VK_NUMLOCK,	XK_Num_Lock},
     {VK_SCROLL,		XK_Scroll_Lock},
     {VK_KEYPAD_ENTER,	XK_KP_Enter},
-    {VK_CANCEL,         XK_Break}
+    {VK_CANCEL,		XK_Break},
+    {VK_LWIN,		XK_Super_L},
+    {VK_RWIN,		XK_Super_R},
+    {VK_APPS,		XK_Menu}
 };
 
 
 KeyMap::KeyMap() {
 };
 
+WCHAR KeyMap::TC2WC(TCHAR c)
+{
+#ifdef _UNICODE
+  return c;
+#else
+  WCHAR buf[3];
+  size_t len = 2;
+  StringStorage oneCharString;
+  oneCharString.appendChar(c);
+  oneCharString.toUnicodeString(buf, &len);
+  return buf[0];
+#endif
+}
 
 KeyActionSpec KeyMap::PCtoX(UINT virtkey, DWORD keyData) { 
 	UINT numkeys = 0;
@@ -131,10 +149,10 @@ KeyActionSpec KeyMap::PCtoX(UINT virtkey, DWORD keyData) {
     kas.releaseModifiers = 0;
 
     bool extended = ((keyData & 0x1000000) != 0);
-    vnclog.Print(8,_T(" keyData %04x "), keyData);
+    Log::info(_T(" keyData %04x "), keyData);
     
     if (extended) { 
-        vnclog.Print(8, _T(" (extended) "));
+        Log::info(_T(" (extended) "));
         switch (virtkey) {
         case VK_MENU :
             virtkey = VK_RMENU; break;
@@ -169,11 +187,11 @@ KeyActionSpec KeyMap::PCtoX(UINT virtkey, DWORD keyData) {
 				kas.keycodes[numkeys-1] = XK_Meta_R;
 			}
 		}
-        vnclog.Print(8, _T("keymap gives %u (%x) "), key, key);
+        Log::info(_T("keymap gives %u (%x) "), key, key);
 
     } else {
         // not found in table
-        vnclog.Print(8, _T("not in special keymap, "));
+        Log::info(_T("not in special keymap, "));
 		
 		// Under CE, we're not so concerned about this bit because we handle a WM_CHAR message later
 
@@ -213,12 +231,16 @@ KeyActionSpec KeyMap::PCtoX(UINT virtkey, DWORD keyData) {
                if (kas.releaseModifiers == 0)
                    kas.releaseModifiers = KEYMAP_LCONTROL | KEYMAP_LALT | KEYMAP_RALT;
 
-               vnclog.Print(8, _T("Ctrl-Alt pressed: ToAscii (without modifiers) returns %d byte(s): "), ret);
+               Log::info(_T("Ctrl-Alt pressed: ToAscii (without modifiers) returns %d byte(s): "), ret);
                 for (int i = 0; i < ret; i++) {
-                   kas.keycodes[numkeys++] = *(buf+i);
-                   vnclog.Print(8, _T("%02x (%c) "), *(buf+i) , *(buf+i));
+                   TCHAR ch = *(buf + i);
+                   UINT32 keySym = ch;
+                   Keymap newKeyMap;
+                   newKeyMap.unicodeCharToKeySym(TC2WC(ch), &keySym);
+                   kas.keycodes[numkeys++] = keySym;
+                   Log::info(_T("%02x (%c) "), keySym , *(buf+i));
                 }
-                vnclog.Print(8,_T("\n"));
+                Log::info(_T("\n"));
            } 
 
         } 
@@ -257,10 +279,14 @@ KeyActionSpec KeyMap::PCtoX(UINT virtkey, DWORD keyData) {
             }
             // if this works, and it's a regular printable character, we just send that
             if (ret >= 1) {
-                vnclog.Print(8,_T("ToAscii (without ctrl) returns %d byte(s): "), ret);
+                Log::info(_T("ToAscii (without ctrl) returns %d byte(s): "), ret);
                 for (int i = 0; i < ret; i++) {
-                   kas.keycodes[numkeys++] = *(buf+i);
-                  vnclog.Print(8, _T("%02x (%c) "), *(buf+i) , *(buf+i));
+                  TCHAR ch = *(buf + i);
+                  UINT32 keySym = ch;
+                  Keymap newKeyMap;
+                  newKeyMap.unicodeCharToKeySym(TC2WC(ch), &keySym);
+                  kas.keycodes[numkeys++] = keySym;
+                  Log::info(_T("%02x (%c) "), keySym , *(buf+i));
                 }
             }
         }

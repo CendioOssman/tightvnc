@@ -28,6 +28,9 @@
 #include "VNCviewerApp.h"
 #include "Exception.h"
 
+#include "client-config-lib/VncViewerSettingsManager.h"
+#include "util/FileLog.h"
+
 // For WinCE Palm, you might want to use this for debugging, since it
 // seems impossible to give the command some arguments.
 // #define PALM_LOG 1
@@ -35,28 +38,20 @@
 VNCviewerApp *pApp;
 
 VNCviewerApp::VNCviewerApp(HINSTANCE hInstance, LPTSTR szCmdLine) {
+	// Load vncviewer application configuration
+	m_config = VncViewerConfig::getInstance();
+	m_config->loadFromStorage(VncViewerSettingsManager::getInstance());
+
 	pApp = this;
 	m_instance = hInstance;
 
-	// Read the command line
-	m_options.SetFromCommandLine(szCmdLine);
-	
 	// Logging info
-	vnclog.SetLevel(m_options.m_logLevel);
-	if (m_options.m_logToConsole) {
-		vnclog.SetMode(Log::ToConsole | Log::ToDebug);
-	}
-	if (m_options.m_logToFile) {
-		vnclog.SetFile(m_options.m_logFilename);
-	}
+	m_log = new FileLog(m_config->getPathToLogFile());
+	m_log->changeLevel(m_config->getLogLevel());
 
-#ifdef PALM_LOG
-	// Hack override for WinCE Palm developers who can't give
-	// options to commands, not even via shortcuts.
-	vnclog.SetLevel(20);
- 	vnclog.SetFile(_T("\\Temp\\log"));
-#endif
- 	
+	// Read the command line
+	m_options.SetFromCommandLine(szCmdLine, &m_conConf);
+	
 	// Clear connection list
 	for (int i = 0; i < MAX_CONNECTIONS; i++)
 		m_clilist[i] = NULL;
@@ -68,7 +63,7 @@ VNCviewerApp::VNCviewerApp(HINSTANCE hInstance, LPTSTR szCmdLine) {
 		MessageBox(NULL, _T("Error initialising sockets library"), _T("VNC info"), MB_OK | MB_ICONSTOP);
 		PostQuitMessage(1);
 	}
-	vnclog.Print(3, _T("Started and Winsock (v %d) initialised\n"), wsaData.wVersion);
+    Log::warning(_T("Started and Winsock (v %d) initialised\n"), wsaData.wVersion);
 }
 
 
@@ -81,12 +76,12 @@ void VNCviewerApp::RegisterConnection(ClientConnection *pConn) {
 	for (i = 0; i < MAX_CONNECTIONS; i++) {
 		if (m_clilist[i] == NULL) {
 			m_clilist[i] = pConn;
-			vnclog.Print(4,_T("Registered connection with app\n"));
+			Log::warning(_T("Registered connection with app\n"));
 			return;
 		}
 	}
 	// If we've got here, something is wrong.
-	vnclog.Print(-1, _T("Client list overflow!\n"));
+	Log::error(_T("Client list overflow!\n"));
 	MessageBox(NULL, _T("Client list overflow!"), _T("VNC error"),
 		MB_OK | MB_ICONSTOP);
 	PostQuitMessage(1);
@@ -102,7 +97,7 @@ void VNCviewerApp::DeregisterConnection(ClientConnection *pConn) {
 			for (int j = i; m_clilist[j] &&	j < MAX_CONNECTIONS-1 ; j++)
 				m_clilist[j] = m_clilist[j+1];
 			m_clilist[MAX_CONNECTIONS-1] = NULL;
-			vnclog.Print(4,_T("Deregistered connection from app\n"));
+			Log::warning(_T("Deregistered connection from app\n"));
 
 			// No clients left? then we should finish, unless we're in
 			// listening mode.
@@ -113,7 +108,7 @@ void VNCviewerApp::DeregisterConnection(ClientConnection *pConn) {
 		}
 	}
 	// If we've got here, something is wrong.
-	vnclog.Print(-1, _T("Client not found for deregistering!\n"));
+	Log::interror(_T("Client not found for deregistering!\n"));
 	PostQuitMessage(1);
 }
 
@@ -121,11 +116,9 @@ void VNCviewerApp::DeregisterConnection(ClientConnection *pConn) {
 
 
 VNCviewerApp::~VNCviewerApp() {
-		
-	
 	// Clean up winsock
 	WSACleanup();
 	
-	vnclog.Print(2, _T("VNC viewer closing down\n"));
+	Log::warning(_T("VNC viewer closing down\n"));
 
 }

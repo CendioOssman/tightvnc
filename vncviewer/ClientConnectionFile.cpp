@@ -29,6 +29,7 @@
 #include "ClientConnection.h"
 #include "Exception.h"
 #include "vncauth.h"
+#include "config-lib/IniFileSettingsManager.h"
 
 // This file contains the code for saving and loading connection info.
 
@@ -53,7 +54,7 @@ static void ofnInit()
 
 void ClientConnection::SaveConnection()
 {
-	vnclog.Print(2, _T("Saving connection info\n"));	
+	Log::warning(_T("Saving connection info\n"));	
 	char tname[_MAX_FNAME + _MAX_EXT];
 	ofnInit();
 
@@ -96,12 +97,12 @@ void ClientConnection::SaveConnection()
 			MessageBox(m_hwnd, msg, "Error saving file", MB_ICONERROR | MB_OK);
 			break;
 		default:
-			vnclog.Print(0, "Error %d from GetSaveFileName\n", err);
+			Log::interror("Error %d from GetSaveFileName\n", err);
 			break;
 		}
 		return;
 	}
-	vnclog.Print(1, "Saving to %s\n", fname);	
+	Log::error("Saving to %s\n", fname);	
 	int ret = WritePrivateProfileString("connection", "host", m_host, fname);
 	char buf[32];
 	sprintf(buf, "%d", m_port);
@@ -121,7 +122,14 @@ void ClientConnection::SaveConnection()
 			WritePrivateProfileString("connection", "password", buf, fname);
 		}
 	}
-	m_opts.Save(fname);
+
+	//
+	// Save connection settings
+	//
+
+	IniFileSettingsManager ifsm(&fname[0], _T("options"));
+	m_conConf.saveToStorage(&ifsm);
+
 	m_opts.Register();
 }
 
@@ -163,7 +171,14 @@ int ClientConnection::LoadConnection(char *fname, bool sess)
 		m_passwdSet = true;
 	}
 	if (sess) {
-		m_opts.Load(fname);
+
+		//
+		// Load connection settings
+		//
+
+		IniFileSettingsManager ifsm(&fname[0], _T("options"));
+		m_conConf.loadFromStorage(&ifsm);
+
 		m_opts.Register();
 	}
 	return 0;

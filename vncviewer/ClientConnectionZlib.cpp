@@ -71,7 +71,7 @@ void ClientConnection::ReadZlibRect(rfbFramebufferUpdateRectHeader *pfburh) {
 
 		inflateResult = inflateInit( &m_decompStream );
 		if ( inflateResult != Z_OK ) {
-			vnclog.Print(0, _T("zlib inflateInit error: %d\n"), inflateResult);
+			Log::interror(_T("zlib inflateInit error: %d\n"), inflateResult);
 			return;
 		}
 		m_decompStreamInited = true;
@@ -80,7 +80,7 @@ void ClientConnection::ReadZlibRect(rfbFramebufferUpdateRectHeader *pfburh) {
 	// Decompress screen data
 	inflateResult = inflate( &m_decompStream, Z_SYNC_FLUSH );
 	if ( inflateResult < 0 ) {
-		vnclog.Print(0, _T("zlib inflate error: %d\n"), inflateResult);
+		Log::interror(_T("zlib inflate error: %d\n"), inflateResult);
 		return;
 	}
 
@@ -105,7 +105,7 @@ void ClientConnection::ReadZlibRect(rfbFramebufferUpdateRectHeader *pfburh) {
 			SETPIXELS(m_zlibbuf, 32, pfburh->r.x, pfburh->r.y, pfburh->r.w, pfburh->r.h)            
 				break;
 		default:
-			vnclog.Print(0, _T("Invalid number of bits per pixel: %d\n"), m_myFormat.bitsPerPixel);
+			Log::interror(_T("Invalid number of bits per pixel: %d\n"), m_myFormat.bitsPerPixel);
 			return;
 		}
 		

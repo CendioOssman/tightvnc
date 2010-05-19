@@ -36,6 +36,8 @@
 
 #include "rfb.h"
 
+#include "util/Log.h"
+
 // A single key press on the client may result in more than one 
 // going to the server.
 
@@ -64,6 +66,13 @@ public:
 	KeyMap();
 	KeyActionSpec PCtoX(UINT virtkey, DWORD keyData);
 private:
+	/**
+	* Converts TCHAR to Wide character.
+	* @parar c character.
+	* @return wide character.
+	*/
+	static WCHAR TC2WC(TCHAR c);
+
 	// CARD32 keymap[256];
 	unsigned char buf[4]; // lots of space for now
 	BYTE keystate[256];

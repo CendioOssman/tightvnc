@@ -48,7 +48,7 @@ typedef unsigned char  CARD8;
 #define DISPLAY_TO_PORT(d) ( (d) + RFB_PORT_OFFSET )
 
 // include the protocol spec
-#include <rfb/rfbproto.h>
+#include "rfbproto.h"
 
 // define some quick endian conversions
 // change this if necessary

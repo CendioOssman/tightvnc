@@ -43,9 +43,25 @@ static LRESULT CALLBACK AboutDlgProc(HWND hwnd, UINT iMsg,
 		EndDialog(hwnd, TRUE);
 		return TRUE;
 	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+		switch (LOWORD(wParam)) {
+		case IDC_VISIT_SITE:
+			{
+				char psz[] = "http://www.tightvnc.com/";
+				ShellExecute(hwnd, "open", psz, NULL, NULL, SW_SHOWNORMAL);
+			}
+			break;
+		case IDC_ORDER_SUPPORT:
+			{
+				char psz[] = "http://www.tightvnc.com/support.php";
+				ShellExecute(hwnd, "open", psz, NULL, NULL, SW_SHOWNORMAL);
+			}
+			break;
+		case IDOK:
+		case IDCANCEL:
 			EndDialog(hwnd, TRUE);
+			break;
 		}
+		return TRUE;
 	}
 	return FALSE;
 }

@@ -37,13 +37,13 @@
 
 bool ClientConnection::InFullScreenMode() 
 {
-	return m_opts.m_FullScreen; 
+	return m_conConf.isFullscreenEnabled();
 };
 
 // You can explicitly change mode by calling this
 void ClientConnection::SetFullScreenMode(bool enable)
 {	
-	m_opts.m_FullScreen = enable;
+	m_conConf.enableFullscreen(enable);
 	RealiseFullScreenMode(false);
 }
 
@@ -52,8 +52,9 @@ void ClientConnection::SetFullScreenMode(bool enable)
 void ClientConnection::RealiseFullScreenMode(bool suppressPrompt)
 {
 	LONG style = GetWindowLong(m_hwnd1, GWL_STYLE);
-	if (m_opts.m_FullScreen) {
-		if (!suppressPrompt && !pApp->m_options.m_skipprompt) {
+	if (m_conConf.isFullscreenEnabled()) {
+		bool skipprompt = !m_config->isPromptOnFullscreenEnabled();
+		if (!suppressPrompt && !skipprompt) {
 			MessageBox(m_hwnd1, 
 				_T("To exit from full-screen mode, press Ctrl-Alt-Shift-F.\r\n"
 				"Alternatively, press Ctrl-Esc Esc and then right-click\r\n"
@@ -93,13 +94,13 @@ bool ClientConnection::BumpScroll(int x, int y)
 	int rightborder = GetSystemMetrics(SM_CXSCREEN)-BUMPSCROLLBORDER;
 	int bottomborder = GetSystemMetrics(SM_CYSCREEN)-BUMPSCROLLBORDER;
 	if (x < BUMPSCROLLBORDER)
-		dx = -BUMPSCROLLAMOUNTX * m_opts.m_scale_num / m_opts.m_scale_den;
+		dx = -BUMPSCROLLAMOUNTX * m_conConf.getScaleNumerator() / m_conConf.getScaleDenominator();
 	if (x >= rightborder)
-		dx = +BUMPSCROLLAMOUNTX * m_opts.m_scale_num / m_opts.m_scale_den;;
+		dx = +BUMPSCROLLAMOUNTX * m_conConf.getScaleNumerator() / m_conConf.getScaleDenominator();;
 	if (y < BUMPSCROLLBORDER)
-		dy = -BUMPSCROLLAMOUNTY * m_opts.m_scale_num / m_opts.m_scale_den;;
+		dy = -BUMPSCROLLAMOUNTY * m_conConf.getScaleNumerator() / m_conConf.getScaleDenominator();;
 	if (y >= bottomborder)
-		dy = +BUMPSCROLLAMOUNTY * m_opts.m_scale_num / m_opts.m_scale_den;;
+		dy = +BUMPSCROLLAMOUNTY * m_conConf.getScaleNumerator() / m_conConf.getScaleDenominator();;
 	if (dx || dy) {
 		if (ScrollScreen(dx,dy)) {
 			// If we haven't physically moved the cursor, artificially

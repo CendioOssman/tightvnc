@@ -27,15 +27,17 @@
 #include "stdhdrs.h"
 #include "vncviewer.h"
 #include "Exception.h"
+
+#include "util/ResourceLoader.h"
+
 #ifdef UNDER_CE
 #include "omnithreadce.h"
 #else
-#include "omnithread.h"
+#include "omnithread/omnithread.h"
 #include "VNCviewerApp32.h"
 #endif
 
 // All logging is done via the log object
-Log vnclog;
 VNCHelp help;
 HotKeys hotkeys;
 
@@ -45,6 +47,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdLin
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 #endif
 {
+  //
+  // FIXME: Resource loader owner must be Application class
+  // or something like this. Instanize resourse loader here
+  // is not good way.
+  //
+
+  ResourceLoader resourceLoader(hInstance);
+  VncViewerConfig config;
+
 	// The state of the application as a whole is contained in the one app object
 	#ifdef _WIN32_WCE
 		VNCviewerApp app(hInstance, szCmdLine);
@@ -83,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	// Clean up winsock
 	WSACleanup();
 
-	vnclog.Print(3, _T("Exiting\n"));
+    Log::warning(_T("Exiting\n"));
 
 	return msg.wParam;
 }

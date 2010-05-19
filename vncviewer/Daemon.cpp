@@ -32,6 +32,9 @@
 #include "Exception.h"
 #include "ClientConnection.h"
 #include "AboutBox.h"
+#include "ConnectionConfigDialog.h"
+#include "client-config-lib/ConnectionConfigSM.h"
+#include "VncViewerConfigDialog.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -40,7 +43,6 @@
 
 Daemon::Daemon(int port)
 {
-
 	// Create a dummy window
 	WNDCLASSEX wndclass;
 
@@ -120,20 +122,20 @@ Daemon::Daemon(int port)
 }
 
 void Daemon::AddTrayIcon() {
-	vnclog.Print(4, _T("Adding tray icon\n"));
+	Log::message(_T("Adding tray icon\n"));
 	SendTrayMsg(NIM_ADD);
 }
 
 void Daemon::CheckTrayIcon() {
-	vnclog.Print(8, _T("Checking tray icon\n"));
+	Log::info(_T("Checking tray icon\n"));
 	if (!SendTrayMsg(NIM_MODIFY)) {
-		vnclog.Print(4, _T("Tray icon not there - reinstalling\n"));
+		Log::message(_T("Tray icon not there - reinstalling\n"));
 		AddTrayIcon();
 	};
 }
 
 void Daemon::RemoveTrayIcon() {
-	vnclog.Print(4, _T("Deleting tray icon\n"));
+	Log::message(_T("Deleting tray icon\n"));
 	SendTrayMsg(NIM_DELETE);
 }
 
@@ -197,7 +199,7 @@ LRESULT CALLBACK Daemon::WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPa
 					break;
 				}
 			case FD_CLOSE:
-				vnclog.Print(5, _T("Daemon connection closed\n"));
+				Log::info(_T("Daemon connection closed\n"));
 				DestroyWindow(hwnd);
 				break;
 			}
@@ -210,14 +212,27 @@ LRESULT CALLBACK Daemon::WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPa
 			pApp->NewConnection();
 			break;
 		case IDC_OPTIONBUTTON:
-			pApp->m_options.DoDialog();
-			pApp->m_options.SaveOpt(".listen", KEY_VNCVIEWER_HISTORI);
+			{
+				Control ctrlThis;
+				ctrlThis.setWindow(_this->m_hwnd);
+
+				ConnectionConfigDialog conConfDialog;
+				conConfDialog.setParent(&ctrlThis);
+				conConfDialog.setConnectionConfig(&_this->m_conConf);
+				if (conConfDialog.showModal() == IDOK) {
+					ConnectionConfigSM ccsm(_T(".listen"));
+					_this->m_conConf.saveToStorage(&ccsm);
+				}
+			}
 			break;
 		case ID_CLOSEDAEMON:
 			PostQuitMessage(0);
 			break;
 		case IDD_APP_ABOUT:
 			ShowAboutBox();
+			break;
+		case IDD_CONFIGURATION:
+			g_vncViewerConfigDialog.showModal();
 			break;
 		}
 		return 0;
@@ -230,7 +245,7 @@ LRESULT CALLBACK Daemon::WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPa
 					GetMenuItemID(hSubMenu, 0), 0);
 			} else if (lParam==WM_RBUTTONUP) {
 				if (hSubMenu == NULL) { 
-					vnclog.Print(2, _T("No systray submenu\n"));
+					Log::warning(_T("No systray submenu\n"));
 					return 0;
 				}
 				// Make first menu item the default (bold font)

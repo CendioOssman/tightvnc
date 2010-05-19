@@ -34,7 +34,7 @@
 #ifdef UNDER_CE
 #include "omnithreadce.h"
 #else
-#include "omnithread.h"
+#include "omnithread/omnithread.h"
 #endif
 #include "CapsContainer.h"
 #include "VNCOptions.h"
@@ -42,7 +42,11 @@
 #include "KeyMap.h"
 #include "ConnectingDialog.h"
 #include "FileTransfer.h"
+#include "ft-client-lib/FileTransferMainDialog.h"
+#include "ConnectionConfigDialog.h"
 #include "zlib/zlib.h"
+#include "rfb/RfbKeySym.h"
+
 extern "C" {
 #include "libjpeg/jpeglib.h"
 }
@@ -57,13 +61,12 @@ extern "C" {
 class ClientConnection;
 typedef void (ClientConnection:: *tightFilterFunc)(int);
 
-class ClientConnection  : public omni_thread
+class ClientConnection  : public omni_thread, private RfbKeySymListener
 {
 public:
 	ClientConnection(VNCviewerApp *pApp);
 	ClientConnection(VNCviewerApp *pApp, SOCKET sock);
 	ClientConnection(VNCviewerApp *pApp, LPTSTR host, int port);
-	ClientConnection(VNCviewerApp *pApp, LPTSTR configFile);
 	virtual ~ClientConnection();
 	void Run();
 	void KillThread();
@@ -75,6 +78,8 @@ public:
 	HWND m_hSess;
 
 private:
+	virtual void onRfbKeySymEvent(unsigned short rfbKeySym, bool down);
+
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WndProc1(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK Proc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
@@ -82,11 +87,16 @@ private:
 	void DoBlit();
 	VNCviewerApp *m_pApp;
 	ConnectingDialog *m_connDlg;
+	ConnectionConfigDialog m_conConfDialog;
+
+	bool m_supportsEnableVideoHandling;
 
 	bool m_enableFileTransfers;
 	bool m_fileTransferDialogShown;
 	friend class FileTransfer;
 	FileTransfer *m_pFileTransfer;
+
+	RfbKeySym *m_rfbKeySym;
 
 	SOCKET m_sock;
 	bool m_serverInitiated;
@@ -133,13 +143,18 @@ private:
 	void SendKeyEvent(CARD32 key, bool down);
 	void SwitchOffKey();
 
+	void sendEnableVideoHandling(bool enable);
+
 	void ReadScreenUpdate();
 	void Update(RECT *pRect);
 	void SizeWindow(bool centered);
 	void PositionChildWindow();
 	bool ScrollScreen(int dx, int dy);
 	void UpdateScrollbars();
+
+	void ApplyOptions();
 	void EnableFullControlOptions();
+	void ApplyCursorShape();
 	void EnableAction(int id, bool enable);
 
 	void InvalidateScreenRect(const RECT *pRect);
@@ -309,6 +324,12 @@ private:
 	HDC		m_hBitmapDC;
 	HPALETTE m_hPalette;
 
+  //
+  // File transfer main dialog
+  //
+
+  FileTransferMainDialog *m_fileTransferMainDialog;
+
 #ifdef UNDER_CE
 	// Under WinCE this points to the DIB pixels.
 	BYTE* m_bits;
@@ -374,7 +395,9 @@ private:
 	DWORD m_emulateKeyFlags;
 	int m_emulateButtonPressedX;
 	int m_emulateButtonPressedY;
-
+public:
+	VncViewerConfig *m_config;
+	ConnectionConfig m_conConf;
 };
 
 // Some handy classes for temporary GDI object selection

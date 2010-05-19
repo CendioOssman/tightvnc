@@ -33,7 +33,7 @@
 
 void ClientConnection::ReadCursorShape(rfbFramebufferUpdateRectHeader *pfburh) {
 
-	vnclog.Print(6, _T("Receiving cursor shape update, cursor %dx%d\n"),
+	Log::info(_T("Receiving cursor shape update, cursor %dx%d\n"),
 				 (int)pfburh->r.w, (int)pfburh->r.h);
 
 	int bytesPerRow = (pfburh->r.w + 7) / 8;
@@ -48,7 +48,7 @@ void ClientConnection::ReadCursorShape(rfbFramebufferUpdateRectHeader *pfburh) {
 		return;
 
 	// Ignore cursor shape updates if requested by user
-	if (m_opts.m_ignoreShapeUpdates) {
+	if (m_conConf.isIgnoringShapeUpdates()) {
 		int bytesToSkip = (pfburh->encoding == rfbEncodingXCursor) ?
 			(6 + 2 * bytesMaskData) : (bytesSourceData + bytesMaskData);
 		CheckBufferSize(bytesToSkip);
@@ -303,7 +303,7 @@ void ClientConnection::SoftCursorSaveArea() {
 	PaletteSelector ps2(m_hSavedAreaDC, m_hPalette);
 
 	if (!BitBlt(m_hSavedAreaDC, 0, 0, w, h, m_hBitmapDC, x, y, SRCCOPY)) {
-		vnclog.Print(0, _T("Error saving screen under cursor\n"));
+		Log::interror(_T("Error saving screen under cursor\n"));
 	}
 }
 
@@ -327,7 +327,7 @@ void ClientConnection::SoftCursorRestoreArea() {
 	PaletteSelector ps2(m_hSavedAreaDC, m_hPalette);
 
 	if (!BitBlt(m_hBitmapDC, x, y, w, h, m_hSavedAreaDC, 0, 0, SRCCOPY)) {
-		vnclog.Print(0, _T("Error restoring screen under cursor\n"));
+		Log::interror(_T("Error restoring screen under cursor\n"));
 	}
 
 	InvalidateScreenRect(&r);

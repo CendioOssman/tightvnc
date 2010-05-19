@@ -38,6 +38,7 @@ class VNCviewerApp;
 #define MAX_AUTH_RETRIES   (3)
 
 #include "ClientConnection.h"
+#include "util/FileLog.h"
 
 class VNCviewerApp {
 public:
@@ -58,9 +59,13 @@ public:
 	VNCOptions m_options;
 	HINSTANCE  m_instance;
 
+	VncViewerConfig *m_config;
+	ConnectionConfig m_conConf;
+
 private:
 	ClientConnection *m_clilist[MAX_CONNECTIONS];
 	omni_mutex m_clilistMutex;
+	FileLog *m_log;
 };
 
 #endif // VNCVIEWERAPP_H__
