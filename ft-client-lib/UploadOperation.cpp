@@ -270,7 +270,8 @@ void UploadOperation::processFolder()
   } else {
     StringStorage message;
 
-    message.format(_T("Error: failed to get file list of local '%s' folder"), m_pathToSourceFile.getString());
+    message.format(_T("Error: failed to get file list in local folder '%s'"),
+                   m_pathToSourceFile.getString());
 
     notifyError(message.getString());
   }

@@ -261,7 +261,7 @@ void DownloadOperation::processFolder()
     if (!local.mkdir()) {
       StringStorage message;
 
-      message.format(_T("Error: failed to create local '%s' folder"),
+      message.format(_T("Error: failed to create local folder '%s'"),
                      m_pathToTargetFile.getString());
 
       notifyError(message.getString());

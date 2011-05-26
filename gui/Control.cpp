@@ -59,9 +59,23 @@ void Control::setEnabled(bool enabled)
   invalidate();
 }
 
-void Control::setText(const TCHAR * text)
+void Control::setText(const TCHAR *text)
 {
   SetWindowText(m_hwnd, text);
+}
+
+void Control::setSignedInt(int value)
+{
+  StringStorage text;
+  text.format(_T("%d"), value);
+  setText(text.getString());
+}
+
+void Control::setUnsignedInt(unsigned int value)
+{
+  StringStorage text;
+  text.format(_T("%u"), value);
+  setText(text.getString());
 }
 
 void Control::setTextVerticalAlignment(VerticalAlignment align)

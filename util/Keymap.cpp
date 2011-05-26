@@ -986,6 +986,26 @@ struct codepair {
   { 0x20ac, 0x20ac },  
 };
 
+const UINT32 EXTENDED_KEYS[] = {
+  XK_Control_R,
+  XK_Alt_R,
+
+  XK_KP_Enter,
+  XK_KP_Divide,
+
+  XK_Home,
+  XK_Page_Up,
+  XK_Page_Down,
+  XK_End,
+  XK_Insert,
+  XK_Delete,
+
+  XK_Left,
+  XK_Up,
+  XK_Right,
+  XK_Down
+};
+
 long keysym2ucs(unsigned short keysym)
 {
   int min = 0;
@@ -1013,8 +1033,16 @@ long keysym2ucs(unsigned short keysym)
   return -1;
 }
 
-bool Keymap::keySymToVirtualCode(UINT32 keySym, BYTE *vkCode)
+bool Keymap::keySymToVirtualCode(UINT32 keySym, BYTE *vkCode, bool *extended)
 {
+  *extended = false;
+  for (size_t j = 0; j < sizeof(EXTENDED_KEYS); j++) {
+    if (EXTENDED_KEYS[j] == keySym) {
+      *extended = true;
+      break;
+    }
+  }
+
   for (UINT i = 0; i < sizeof(SERVER_AUXILIARY_TRANSLATE_TABLE) /
                               sizeof(KS2VKEntry); i++) {
     if (SERVER_AUXILIARY_TRANSLATE_TABLE[i].keySym == keySym) {
@@ -1038,6 +1066,10 @@ bool Keymap::virtualCodeToKeySym(UINT32 *keySym, BYTE vkCode)
 
 bool Keymap::keySymToUnicodeChar(UINT32 keySym, WCHAR *ch)
 {
+  if ((keySym & 0x01000000) != 0 && keySym >= 0x100 && keySym <= 0x10ffff) {
+    *ch = keySym & 0xffff;
+    return true;
+  }
   if ((keySym >= 32 && keySym <= 126) || (keySym >= 160 && keySym <= 255)) {
     *ch = (WCHAR)keySym;
 
@@ -1071,5 +1103,7 @@ bool Keymap::unicodeCharToKeySym(WCHAR ch, UINT32 *keySym)
     }
   }
 
-  return false;
+  *keySym = ch | 0x01000000;
+
+  return true;
 }

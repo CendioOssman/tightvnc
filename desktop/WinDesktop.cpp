@@ -185,19 +185,7 @@ void WinDesktop::onClipboardUpdate(const StringStorage *newClipboard)
 {
   Log::info(_T("clipboard update detected"));
 
-  bool isEqual;
-  {
-    AutoLock al(&m_storedClipCritSec);
-    isEqual = m_receivedClip.isEqualTo(newClipboard);
-    isEqual = isEqual || m_sentClip.isEqualTo(newClipboard);
-  }
-  if (!isEqual) {
-    {
-      AutoLock al(&m_storedClipCritSec);
-      m_sentClip = *newClipboard;
-    }
-    m_extClipListener->onClipboardUpdate(newClipboard);
-  }
+  m_extClipListener->onClipboardUpdate(newClipboard);
 }
 
 void WinDesktop::onUpdateRequest(const Rect *rectRequested, bool incremental)

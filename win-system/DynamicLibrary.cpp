@@ -29,6 +29,23 @@
 DynamicLibrary::DynamicLibrary(const TCHAR *filename)
 : m_module(0)
 {
+  init(filename);
+}
+
+DynamicLibrary::DynamicLibrary()
+: m_module(0)
+{
+}
+
+DynamicLibrary::~DynamicLibrary()
+{
+  if (m_module != 0) {
+    FreeLibrary(m_module);
+  }
+}
+
+void DynamicLibrary::init(const TCHAR *filename)
+{
   m_module = LoadLibrary(filename);
 
   if (m_module == 0) {
@@ -37,13 +54,6 @@ DynamicLibrary::DynamicLibrary(const TCHAR *filename)
     errMsg.format(_T("%s library not found"), filename);
 
     throw Exception(errMsg.getString());
-  }
-}
-
-DynamicLibrary::~DynamicLibrary()
-{
-  if (m_module != 0) {
-    FreeLibrary(m_module);
   }
 }
 

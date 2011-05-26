@@ -374,8 +374,8 @@ void ConnectionConfigDialog::updateControls()
     m_customCompressionLevel.setPos(level);
     labelText.format(_T("%d"), level);
   } else {
-    labelText.setString(_T("1"));
-    m_customCompressionLevel.setPos(1);
+    labelText.setString(_T("6"));
+    m_customCompressionLevel.setPos(6);
   }
   m_customCompressionLevelLabel.setText(labelText.getString());
 
@@ -384,8 +384,8 @@ void ConnectionConfigDialog::updateControls()
     m_jpegCompressionLevel.setPos(level);
     labelText.format(_T("%d"), level);
   } else {
-    labelText.setString(_T("1"));
-    m_customCompressionLevel.setPos(1);
+    labelText.setString(_T("6"));
+    m_jpegCompressionLevel.setPos(6);
   }
   m_jpegCompressionLevelLabel.setText(labelText.getString());
 

@@ -186,7 +186,7 @@ void ControlTrayIcon::onConfigurationMenuItemClick()
 
   Configurator::getInstance()->setServiceFlag(isConnectedToService);
 
-  {
+  if (!m_configDialog->isCreated()) {
     UpdateLocalConfigCommand updateLocalConfigCommand(m_serverControl);
 
     ControlCommand safeCommand(&updateLocalConfigCommand, m_appControl);

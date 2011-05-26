@@ -30,14 +30,18 @@
 
 #include "util/DesCrypt.h"
 
-ControlAuth::ControlAuth(ControlGate *gate, const TCHAR *vncPassword)
+ControlAuth::ControlAuth(ControlGate *gate, const TCHAR *password)
 : m_gate(gate)
 {
-  StringStorage vncPass(vncPassword);
-  char vncPasswordAnsi[VNC_PASSWORD_SIZE + 1];
-  vncPass.toAnsiString((char *)&vncPasswordAnsi[0], sizeof(vncPasswordAnsi));
-  memset(m_vncPassword, 0, sizeof(m_vncPassword));
-  memcpy(m_vncPassword, vncPasswordAnsi, strlen(vncPasswordAnsi));
+  StringStorage truncatedPass(password);
+  truncatedPass.getSubstring(&truncatedPass, 0, VNC_PASSWORD_SIZE - 1);
+
+  char passwordAnsi[VNC_PASSWORD_SIZE + 1];
+  bool success = truncatedPass.toAnsiString(passwordAnsi, sizeof(passwordAnsi));
+  _ASSERT(success);
+
+  memset(m_password, 0, sizeof(m_password));
+  memcpy(m_password, passwordAnsi, strlen(passwordAnsi));
 
   m_gate->writeUInt32(ControlProto::AUTH_MSG_ID);
   m_gate->writeUInt32(0);
@@ -77,7 +81,7 @@ void ControlAuth::authRfb()
 
   DesCrypt desCrypt;
 
-  desCrypt.encrypt(response, challenge, sizeof(challenge), m_vncPassword);
+  desCrypt.encrypt(response, challenge, sizeof(challenge), m_password);
 
   m_gate->writeFully(response, sizeof(response));
 }

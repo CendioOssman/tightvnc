@@ -49,14 +49,14 @@ CAPTION "About TightVNC"
 FONT 8, "Ms Shell Dlg 2"
 {
     CONTROL         IDB_LOGO_BIG, IDC_STATIC, WC_STATIC, WS_GROUP | SS_BITMAP, 24, 14, 60, 55
-    LTEXT           "TightVNC Server for Windows", IDC_STATIC, 107, 7, 188, 10, SS_LEFT
-    LTEXT           "Version unknown", IDC_STATIC_VERSION, 107, 17, 188, 10, SS_LEFT
-    LTEXT           "Copyright (C) 2008-2010 GlavSoft LLC.\nCopyright (C) 2000-2010 Constantin Kaplinsky\nAll Rights Reserved.", IDC_STATIC, 107, 33, 188, 26, SS_LEFT
-    LTEXT           "TightVNC is free software and comes with no warranty.", IDC_STATIC, 107, 65, 188, 10, SS_LEFT
-    LTEXT           "We provide technical support, development and customization services on TightVNC.\nPlease visit the Web site for more information on our products.", IDC_STATIC, 13, 82, 283, 18, SS_LEFT
-    DEFPUSHBUTTON   "Visit the Web site", IDC_VISIT_WEB_SITE_BUTTON, 7, 108, 94, 15, WS_GROUP
-    PUSHBUTTON      "Order technical support", IDC_ORDER_SUPPORT_BUTTON, 107, 108, 94, 15
-    PUSHBUTTON      "Close this window", IDCANCEL, 207, 108, 94, 15
+    LTEXT           "TightVNC Server for Windows", IDC_STATIC, 107, 12, 188, 10, SS_LEFT
+    LTEXT           "Version unknown, build time unknown", IDC_STATIC_VERSION, 107, 20, 188, 10, SS_LEFT
+    LTEXT           "Copyright (C) 2008-2011 GlavSoft LLC.\nAll Rights Reserved.", IDC_STATIC, 107, 38, 188, 18, SS_LEFT
+    LTEXT           "", IDC_STATIC_LICENSING, 107, 64, 188, 10, SS_LEFT
+    LTEXT           "We provide technical support, development and customization services on TightVNC.\nPlease visit the Web site for more information on our products.", IDC_STATIC, 13, 81, 283, 18, SS_LEFT
+    DEFPUSHBUTTON   "Visit the Web Site", IDC_VISIT_WEB_SITE_BUTTON, 7, 108, 94, 15, WS_GROUP
+    PUSHBUTTON      "Commercial Licensing", IDC_ORDER_SUPPORT_BUTTON, 107, 108, 94, 15
+    PUSHBUTTON      "Close This Window", IDCANCEL, 207, 108, 94, 15
 }
 
 
@@ -237,7 +237,7 @@ FONT 8, "Ms Shell Dlg"
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 IDD_CONTROL_AUTH DIALOG 0, 0, 186, 78
 STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_VISIBLE | WS_BORDER | WS_CAPTION | WS_DLGFRAME | WS_POPUP | WS_SYSMENU
-CAPTION "TightVNC Control Auhentication"
+CAPTION "TightVNC Control Authentication"
 FONT 8, "Ms Shell Dlg 2"
 {
     LTEXT           "This operation requires authentication on the TightVNC Server.  Please enter the administrative password as set in the server's configuration.", IDC_STATIC, 7, 7, 172, 26, SS_LEFT
@@ -296,7 +296,7 @@ FONT 8, "MS Shell Dlg"
     LTEXT           "Here you can attach a TightVNC Viewer running in the Listening Mode.\nThis is called a reverse connection, since the server connects to a client.", IDC_STATIC, 7, 7, 243, 18, SS_LEFT
     LTEXT           "To specify a TCP port, append it after two colons (myhost::443).  A number up to 99 after just one colon specifies an offset from the default port 5500.", IDC_STATIC, 7, 27, 240, 18, NOT WS_GROUP | SS_LEFT
     LTEXT           "Host name or IP address of the viewer:", IDC_STATIC, 7, 51, 127, 10, NOT WS_GROUP | SS_LEFT
-    COMBOBOX        IDC_HOSTNAME_COMBO, 138, 49, 110, 55, WS_GROUP | WS_TABSTOP | WS_TABSTOP | CBS_DROPDOWN | CBS_HASSTRINGS
+    COMBOBOX        IDC_HOSTNAME_COMBO, 138, 49, 110, 55, WS_GROUP | WS_TABSTOP | WS_TABSTOP | CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_HASSTRINGS
     AUTOCHECKBOX    "Restricted view-only access", IDC_VIEW_ONLY_CHECKBOX, 77, 67, 108, 10, WS_GROUP
     DEFPUSHBUTTON   "&Attach", IDOK, 75, 85, 50, 15, WS_GROUP
     PUSHBUTTON      "&Cancel", IDCANCEL, 132, 85, 50, 15
@@ -389,7 +389,7 @@ STRINGTABLE
     IDS_AUTO_ACCEPT_CONNECTION_FORMAT "Connection will be accepted automatically in %d seconds."
     IDS_AUTO_REJECT_CONNECTION_FORMAT "Connection will be rejected automatically in %d seconds."
     IDS_INVALID_CONTROL_PASSWORD  "The specified administrative password is invalid."
-    IDS_TIGHTVNC_SUPPORT_URL      "http://www.tightvnc.com/support.php"
+    IDS_TIGHTVNC_LICENSING_URL    "http://www.tightvnc.com/licensing/"
     IDS_TIGHTVNC_URL              "http://www.tightvnc.com/"
     IDS_SERVICE_STOP_TIMEOUT      "Timed out waiting for service shutdown"
     IDS_SERVICE_START_TIMEOUT     "Timed out waiting for service startup"
@@ -414,6 +414,7 @@ STRINGTABLE
     IDS_1073_ERROR_DESCRIPTION    "Service is already registered"
     IDS_SHUTDOWN_NOTIFICATION_FORMAT "This will disconnect all clients and they will not be able to reconnect until the TightVNC Server is restarted.\n\nAre you sure you want to shutdown the %s?"
     IDS_NO_AUTH_STATUS            " (no auth!)"
+    IDS_LICENSING_INFO            "Licensing Terms: GNU General Public License version 2"
 }
 
 
@@ -439,8 +440,8 @@ IDI_IDLE           ICON           ".\\res\\idle.ico"
 //
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 1 VERSIONINFO
-    FILEVERSION     1,99,104,0
-    PRODUCTVERSION  1,99,104,0
+    FILEVERSION     2,0,3,0
+    PRODUCTVERSION  2,0,3,0
     FILEOS          VOS_NT
     FILETYPE        VFT_UNKNOWN
 {
@@ -450,12 +451,12 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
         {
             VALUE "CompanyName", "GlavSoft LLC."
             VALUE "FileDescription", "TightVNC Server for Windows"
-            VALUE "FileVersion", "2.0beta4"
+            VALUE "FileVersion", "2.0.3.0"
             VALUE "InternalName", "tvnserver"
-            VALUE "LegalCopyright", "Copyright (C) 2008-2010 GlavSoft LLC."
+            VALUE "LegalCopyright", "Copyright (C) 2008-2011 GlavSoft LLC."
             VALUE "OriginalFilename", "tvnserver.exe"
             VALUE "ProductName", "TightVNC"
-            VALUE "ProductVersion", "2.0"
+            VALUE "ProductVersion", "2.0.3.0"
         }
     }
     BLOCK "VarFileInfo"

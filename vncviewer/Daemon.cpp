@@ -216,12 +216,15 @@ LRESULT CALLBACK Daemon::WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lPa
 				Control ctrlThis;
 				ctrlThis.setWindow(_this->m_hwnd);
 
+				ConnectionConfig conConf;
+				ConnectionConfigSM ccsm(_T(".listen"));
+				conConf.loadFromStorage(&ccsm);
+
 				ConnectionConfigDialog conConfDialog;
 				conConfDialog.setParent(&ctrlThis);
-				conConfDialog.setConnectionConfig(&_this->m_conConf);
+				conConfDialog.setConnectionConfig(&conConf);
 				if (conConfDialog.showModal() == IDOK) {
-					ConnectionConfigSM ccsm(_T(".listen"));
-					_this->m_conConf.saveToStorage(&ccsm);
+					conConf.saveToStorage(&ccsm);
 				}
 			}
 			break;

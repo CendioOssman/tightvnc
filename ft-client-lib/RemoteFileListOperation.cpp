@@ -58,7 +58,7 @@ void RemoteFileListOperation::onLastRequestFailedReply()
 
   StringStorage message;
 
-  message.format(_T("Error: failed to get file list of remote '%s' folder"),
+  message.format(_T("Error: failed to get file list in remote folder '%s'"),
                  m_remotePath.getString());
 
   notifyError(message.getString());

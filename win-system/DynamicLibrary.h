@@ -33,7 +33,10 @@ class DynamicLibrary
 {
 public:
   DynamicLibrary(const TCHAR *filename) throw(Exception);
+  DynamicLibrary();
   virtual ~DynamicLibrary();
+
+  void init(const TCHAR *filename);
 
   FARPROC getProcAddress(const char *procName);
 

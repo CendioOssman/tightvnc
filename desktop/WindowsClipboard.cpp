@@ -60,6 +60,16 @@ bool WindowsClipboard::writeToClipBoard(const TCHAR *text)
       SetClipboardData(CF_UNICODETEXT, hglb);
 #else
       SetClipboardData(CF_TEXT, hglb);
+
+      HGLOBAL hmemLocale = GlobalAlloc(GMEM_MOVEABLE, sizeof(LCID));
+      if (hmemLocale != NULL) {
+        LCID *pLocale = (LCID *)GlobalLock(hmemLocale);
+        *pLocale = GetSystemDefaultLCID(); 
+        GlobalUnlock(hmemLocale);
+        if (SetClipboardData(CF_LOCALE, hmemLocale) == NULL) {
+          GlobalFree(hmemLocale);
+        }
+      }
 #endif
     }
 
@@ -71,16 +81,23 @@ bool WindowsClipboard::writeToClipBoard(const TCHAR *text)
 
 void WindowsClipboard::readFromClipBoard(StringStorage *clipDest) const
 {
+#ifdef _UNICODE
+  const UINT CF_TCTEXT = CF_UNICODETEXT;
+#else
+  const UINT CF_TCTEXT = CF_TEXT;
+#endif
+
   clipDest->setString(_T(""));
-  if (!IsClipboardFormatAvailable(CF_TEXT) || !OpenClipboard(m_hwnd)) {
+  if (!IsClipboardFormatAvailable(CF_TCTEXT) || !OpenClipboard(m_hwnd)) {
     return;
   }
 
-  HANDLE hglb = GetClipboardData(CF_TEXT);
+  HANDLE hglb = GetClipboardData(CF_TCTEXT);
   if (hglb != NULL) {
-    LPSTR lpstr = (LPSTR)GlobalLock(hglb);
-    if (lpstr !=0 ) {
-      clipDest->fromAnsiString(lpstr);
+    const TCHAR *lpstr = (const TCHAR *)GlobalLock(hglb);
+    if (lpstr != 0) {
+      clipDest->setString(lpstr);
+      GlobalUnlock(hglb);
     }
   }
   CloseClipboard();

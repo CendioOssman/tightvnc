@@ -141,9 +141,15 @@ bool WindowsMouseGrabber::grabPixels(PixelFormat *pixelFormat)
   memcpy(pixels->getBuffer(), buffer, pixels->getBufferSize());
 
   if (!isColorShape) {
-    fixCursorShape(pixels, mask, mask + widthBytes * height);
+    winMonoShapeToRfb(pixels, mask, mask + widthBytes * height);
   } else {
-    inverse(mask, widthBytes * height);
+    if (pixels->getBitsPerPixel() == 32) {
+      if (winColorShapeToRfb<UINT32>(pixels, mask)) {
+        fixAlphaChannel(pixels, mask);
+      }
+    } else if (pixels->getBitsPerPixel() == 16) {
+      winColorShapeToRfb<UINT16>(pixels, mask);
+    }
   }
 
   m_cursorShape.assignMaskFromWindows(mask);
@@ -175,8 +181,8 @@ void WindowsMouseGrabber::inverse(char *bits, int count)
   }
 }
 
-void WindowsMouseGrabber::fixCursorShape(const FrameBuffer *pixels,
-                                         char *maskAND, char *maskXOR)
+void WindowsMouseGrabber::winMonoShapeToRfb(const FrameBuffer *pixels,
+                                            char *maskAND, char *maskXOR)
 {
   char *pixelsBuffer = (char *)pixels->getBuffer();
   char *pixel;
@@ -209,12 +215,103 @@ void WindowsMouseGrabber::fixCursorShape(const FrameBuffer *pixels,
 
   inverse(maskAND, widthInBytes * fbHeight);
   for (int i = 0; i < widthInBytes * fbHeight; i++) {
-    *(maskAND +i) |= *(maskXOR + i);
+    *(maskAND + i) |= *(maskXOR + i);
   }
+}
+
+template< typename T >
+bool WindowsMouseGrabber::winColorShapeToRfb(const FrameBuffer *pixels,
+                                             char *maskAND)
+{
+  char *pixelsBuffer = (char *)pixels->getBuffer();
+  PixelFormat pf = pixels->getPixelFormat();
+  T *pixel;
+
+  int fbWidth = pixels->getDimension().width;
+  int fbHeight = pixels->getDimension().height;
+  int widthInBytes = ((fbWidth + 15) / 16) * 2;
+
+  bool hasAlphaChannel = false;
+  UINT32 alphaMask = getAlphaMask(&pf);
+
+  for (int iRow = 0; iRow < fbHeight; iRow++) {
+    for (int iCol = 0; iCol < fbWidth; iCol++) {
+      pixel = (T *)pixelsBuffer + iRow * fbWidth + iCol;
+
+      size_t iMaskAnd = iRow * widthInBytes + iCol / 8;
+      char byteAnd = maskAND[iMaskAnd];
+      bool maskANDBit = testBit(byteAnd, iCol % 8);
+
+      if (!maskANDBit) { 
+        maskAND[iMaskAnd] = maskAND[iMaskAnd] | 128 >> (iCol % 8);
+      } else if ((*pixel >> pf.redShift & pf.redMax) == 0 &&
+                 (*pixel >> pf.greenShift & pf.greenMax) == 0 &&
+                 (*pixel >> pf.blueShift & pf.blueMax) == 0) { 
+        maskAND[iMaskAnd] = maskAND[iMaskAnd] & ~(128 >> (iCol % 8));
+      } else { 
+        maskAND[iMaskAnd] = maskAND[iMaskAnd] | 128 >> (iCol % 8);
+        *pixel &= ~((T)pf.redMax << pf.redShift);
+        *pixel &= ~((T)pf.greenMax << pf.greenShift);
+        *pixel &= ~((T)pf.blueMax << pf.blueShift);
+
+        hasAlphaChannel = hasAlphaChannel || (*pixel & alphaMask) != 0;
+      }
+    }
+  }
+  return hasAlphaChannel;
 }
 
 bool WindowsMouseGrabber::testBit(char byte, int index)
 {
   char dummy = 128 >> index;
   return (dummy & byte) != 0;
+}
+
+void WindowsMouseGrabber::fixAlphaChannel(const FrameBuffer *pixels,
+                                          char *maskAND)
+{
+  PixelFormat pf = pixels->getPixelFormat();
+  if (pf.bitsPerPixel != 32) {
+    return;
+  }
+  UINT32 alphaMax = getAlphaMask(&pf);
+  UINT16 alphaShift = 0;
+  for (alphaShift = 0; alphaShift < 32 && (alphaMax % 2) == 0 ; alphaShift++) {
+    alphaMax = alphaMax >> 1;
+  }
+  if (alphaShift > 24) { 
+    return;
+  }
+
+  UINT32 *pixelBuffer = (UINT32 *)pixels->getBuffer();
+  int pixelSize = pixels->getBytesPerPixel();
+
+  int fbWidth = pixels->getDimension().width;
+  int fbHeight = pixels->getDimension().height;
+  int widthInBytes = ((fbWidth + 15) / 16) * 2;
+
+  for (int iRow = 0; iRow < fbHeight; iRow++) {
+    for (int iCol = 0; iCol < fbWidth; iCol++) {
+      UINT32 *pixel = &pixelBuffer[iRow * fbWidth + iCol];
+      bool transparent = ((*pixel >> alphaShift) & alphaMax) < 128;
+      if (transparent) {
+        char *byteAnd = &maskAND[iRow * widthInBytes + iCol / 8];
+        unsigned char curBit = 128 >> iCol % 8;
+        curBit = ~curBit;
+        *byteAnd = *byteAnd & curBit;
+      }
+    }
+  }
+}
+
+UINT32 WindowsMouseGrabber::getAlphaMask(const PixelFormat *pf)
+{
+  if (pf->bitsPerPixel == 32) {
+    UINT32 alphaMax = pf->redMax << pf->redShift |
+                      pf->greenMax << pf->greenShift |
+                      pf->blueMax << pf->blueShift;
+    return ~alphaMax;
+  } else {
+    return 0;
+  }
 }

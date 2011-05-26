@@ -246,8 +246,8 @@ void IpAccessRule::getIpRange(const TCHAR *ip, const TCHAR *netmask,
   char *ipAnsi = new char[ipAnsiLength + 1];
   char *netmaskAnsi = new char[netmaskAnsiLength + 1];
 
-  ipStorage.toAnsiString(ipAnsi, ipAnsiLength);
-  netmaskStorage.toAnsiString(netmaskAnsi, netmaskAnsiLength);
+  ipStorage.toAnsiString(ipAnsi, ipAnsiLength + 1);
+  netmaskStorage.toAnsiString(netmaskAnsi, netmaskAnsiLength + 1);
 
   unsigned long ipAddr = inet_addr(ipAnsi);
   unsigned long netmaskAddr = inet_addr(netmaskAnsi);

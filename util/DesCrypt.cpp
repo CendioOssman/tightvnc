@@ -60,11 +60,6 @@ DesCrypt::~DesCrypt()
 {
 }
 
-void DesCrypt::clearKey()
-{
-  memset(m_knL, 0, sizeof(m_knL));
-}
-
 void DesCrypt::encrypt(UINT8 *dst, const UINT8 *src, size_t dataLen,
                        const UINT8 *key)
 {
@@ -85,7 +80,12 @@ void DesCrypt::decrypt(UINT8 *dst, const UINT8 *src, size_t dataLen,
   clearKey();
 }
 
-void DesCrypt::deskey(const UINT8 hexKey[8], CodeMode mode)
+void DesCrypt::clearKey()
+{
+  memset(m_knL, 0, sizeof(m_knL));
+}
+
+void DesCrypt::deskey(const UINT8 hexKey[8], OperationMode mode)
 {
   int i, j, l, m, n;
   UINT8 pc1m[56], pcr[56];

@@ -33,6 +33,7 @@
 #define IDC_ALLOW_LOOPBACK_CONNECTIONS          1002
 #define IDC_LOG_FILEPATH_EDIT                   1002
 #define IDC_PORT_EDIT                           1002
+#define IDC_STATIC_LICENSING                    1002
 #define IDC_UNSET_READONLY_PASSWORD_BUTTON      1002
 #define IDC_VIDEO_RECOGNITION_INTERVAL          1002
 #define IDC_APPLY                               1003
@@ -167,7 +168,7 @@
 #define IDS_AUTO_ACCEPT_CONNECTION_FORMAT       40060
 #define IDS_AUTO_REJECT_CONNECTION_FORMAT       40061
 #define IDS_INVALID_CONTROL_PASSWORD            40062
-#define IDS_TIGHTVNC_SUPPORT_URL                40063
+#define IDS_TIGHTVNC_LICENSING_URL              40063
 #define IDS_TIGHTVNC_URL                        40064
 #define IDS_SERVICE_STOP_TIMEOUT                40065
 #define IDS_SERVICE_START_TIMEOUT               40066
@@ -195,3 +196,4 @@
 #define IDS_1073_ERROR_DESCRIPTION              40085
 #define IDS_SHUTDOWN_NOTIFICATION_FORMAT        40086
 #define IDS_NO_AUTH_STATUS                      40087
+#define IDS_LICENSING_INFO                      40088

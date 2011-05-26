@@ -54,6 +54,7 @@ WinDesktop *RfbClientManager::onClientAuth(RfbClient *client)
   updateIpInBan(&ip, true);
 
   AutoLock al(&m_clientListLocker);
+
   ServerConfig *servConf = Configurator::getInstance()->getServerConfig();
   bool isAlwaysShared = servConf->isAlwaysShared();
   bool isNeverShared = servConf->isNeverShared();

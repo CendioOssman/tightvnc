@@ -83,7 +83,8 @@ void ControlClient::execute()
       UINT32 messageId = m_gate->readUInt32();
       UINT32 messageSize = m_gate->readUInt32();
 
-      Log::info(_T("Recieved %d control message with %d size"), messageId, messageSize);
+      Log::detail(_T("Recieved control message ID %u, size %u"),
+                  (unsigned int)messageId, (unsigned int)messageSize);
 
       bool requiresControlAuth = false;
 
@@ -98,7 +99,7 @@ void ControlClient::execute()
 
       try {
         if (requiresControlAuth && !m_authPassed) {
-          Log::info(_T("Message requires control authentication"));
+          Log::detail(_T("Message requires control authentication"));
 
           m_gate->skipBytes(messageSize);
           m_gate->writeUInt32(ControlProto::REPLY_AUTH_NEEDED);
@@ -108,55 +109,56 @@ void ControlClient::execute()
 
         switch (messageId) {
         case ControlProto::AUTH_MSG_ID:
-          Log::message(_T("Control authentication requested"));
+          Log::detail(_T("Control authentication requested"));
           authMsgRcdv();
           break;
         case ControlProto::RELOAD_CONFIG_MSG_ID:
-          Log::message(_T("Config reload command requested"));
+          Log::detail(_T("Command requested: Reload configuration"));
           reloadConfigMsgRcvd();
           break;
         case ControlProto::DISCONNECT_ALL_CLIENTS_MSG_ID:
-          Log::message(_T("Disconnect all clients command requested"));
+          Log::detail(_T("Command requested: Disconnect all clients command requested"));
           disconnectAllMsgRcvd();
           break;
         case ControlProto::SHUTDOWN_SERVER_MSG_ID:
-          Log::message(_T("Shutdown TightVNC command requested"));
+          Log::detail(_T("Command requested: Shutdown command requested"));
           shutdownMsgRcvd();
           break;
         case ControlProto::ADD_CLIENT_MSG_ID:
-          Log::message(_T("Outgoing connection command requested"));
+          Log::detail(_T("Command requested: Attach listening viewer"));
           addClientMsgRcvd();
           break;
         case ControlProto::GET_SERVER_INFO_MSG_ID:
-          Log::info(_T("Get server info command requested"));
+          Log::detail(_T("Control client requests server info"));
           getServerInfoMsgRcvd();
           break;
         case ControlProto::GET_CLIENT_LIST_MSG_ID:
-          Log::info(_T("Get client list command requested"));
+          Log::detail(_T("Control client requests client list"));
           getClientsListMsgRcvd();
           break;
         case ControlProto::SET_CONFIG_MSG_ID:
-          Log::message(_T("Set server config message requested"));
+          Log::detail(_T("Control client sends new server config"));
           setServerConfigMsgRcvd();
           break;
         case ControlProto::GET_CONFIG_MSG_ID:
-          Log::message(_T("Get server config message requested"));
+          Log::detail(_T("Control client requests server config"));
           getServerConfigMsgRcvd();
           break;
         case ControlProto::GET_SHOW_TRAY_ICON_FLAG:
-          Log::message(_T("Get run tvncontrol flag message requested"));
+          Log::detail(_T("Control client requests tray icon visibility flag"));
           getShowTrayIconFlagMsgRcvd();
           break;
         case ControlProto::UPDATE_TVNCONTROL_PROCESS_ID_MSG_ID:
-          Log::message(_T("Update tvncontrol process id message recieved"));
+          Log::detail(_T("Control client sends process ID"));
           updateTvnControlProcessIdMsgRcvd();
           break;
         default:
           m_gate->skipBytes(messageSize);
-          Log::warning(_T("Control message is not supported."));
+          Log::warning(_T("Received unsupported message from control client"));
         } 
       } catch (ControlException &controlEx) {
-        Log::error(_T("Exception during processing control request: \"%s\""), controlEx.getMessage());
+        Log::error(_T("Exception while processing control client's request: \"%s\""),
+                   controlEx.getMessage());
 
         sendError(controlEx.getMessage());
       }
@@ -274,7 +276,9 @@ void ControlClient::addClientMsgRcvd()
 
   char connectStringAnsi[1024];
 
-  connectString.toAnsiString(connectStringAnsi, 1024);
+  if (!connectString.toAnsiString(connectStringAnsi, 1024)) {
+    return;
+  }
 
   HostPath hp(connectStringAnsi, 5500);
 
@@ -282,7 +286,8 @@ void ControlClient::addClientMsgRcvd()
     return;
   }
 
-  StringStorage host; host.fromAnsiString(hp.getVncHost());
+  StringStorage host;
+  host.fromAnsiString(hp.getVncHost());
 
   OutgoingRfbConnectionThread *newConnectionThread =
                                new OutgoingRfbConnectionThread(host.getString(),

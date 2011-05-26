@@ -32,36 +32,40 @@ HotKeys::HotKeys()
 	int i = 0;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x4f;	// "O"
+	accel[i].key = 'O';
 	accel[i++].cmd = IDC_OPTIONBUTTON;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x49;	// "I"
+	accel[i].key = 'I';
 	accel[i++].cmd = ID_CONN_ABOUT;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x46;	// "F"
+	accel[i].key = 'F';
 	accel[i++].cmd = ID_FULLSCREEN;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x52;	// "R"
+	accel[i].key = 'R';
 	accel[i++].cmd = ID_REQUEST_REFRESH;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x4e;	// "N"
+	accel[i].key = 'N';
 	accel[i++].cmd = ID_NEWCONN;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x53;	// "S"
+	accel[i].key = 'S';
 	accel[i++].cmd = ID_CONN_SAVE_AS;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x54;	// "T"
+	accel[i].key = 'T';
 	accel[i++].cmd = ID_TOOLBAR;
 
 	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
-	accel[i].key = 0x45;	// "E"
+	accel[i].key = 'E';
 	accel[i++].cmd = IDD_FILETRANSFER;
+
+	accel[i].fVirt = FVIRTKEY | FALT | FCONTROL | FSHIFT | FNOINVERT;
+	accel[i].key = VK_DELETE;
+	accel[i++].cmd = ID_CONN_CTLALTDEL;
 
 	int numKeys = i;
 	assert(numKeys <= MAX_ACCELS);

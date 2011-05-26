@@ -44,7 +44,7 @@ void RemoteFolderCreateOperation::start()
 {
   StringStorage message;
 
-  message.format(_T("Creating remote '%s' folder"),
+  message.format(_T("Creating remote folder '%s'"),
                  m_pathToTargetFile.getString());
 
   notifyInformation(message.getString());
@@ -63,7 +63,7 @@ void RemoteFolderCreateOperation::onLastRequestFailedReply()
 {
   StringStorage message;
 
-  message.format(_T("Error: failed to create remote '%s' folder"),
+  message.format(_T("Error: failed to create remote folder '%s'"),
                  m_pathToTargetFile.getString());
 
   notifyError(message.getString());

@@ -225,10 +225,15 @@ bool WindowsScreenGrabber::applyNewPixelFormat()
 
 bool WindowsScreenGrabber::applyNewFullScreenRect()
 {
+  BMI bmi;
+  if (!getBMI(&bmi)) {
+    return false;
+  }
+
   m_fullScreenRect.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
   m_fullScreenRect.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-  m_fullScreenRect.setWidth(GetSystemMetrics(SM_CXVIRTUALSCREEN));
-  m_fullScreenRect.setHeight(GetSystemMetrics(SM_CYVIRTUALSCREEN));
+  m_fullScreenRect.setWidth(bmi.bmiHeader.biWidth);
+  m_fullScreenRect.setHeight(bmi.bmiHeader.biHeight);
 
   setWorkRect(&m_fullScreenRect);
 

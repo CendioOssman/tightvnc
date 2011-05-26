@@ -57,7 +57,9 @@ public:
   void toUTF8String(char *buffer, int *sizeInBytes);
 
   void fromUTF8String(char *buffer, int sizeInBytes);
+
   void fromAnsiString(const char *string);
+  void fromUnicodeString(const WCHAR *string);
 
   void appendString(const TCHAR *string);
 

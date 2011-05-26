@@ -19,7 +19,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="&quot;$(SolutionDir)$(ConfigurationName)\$(ProjectName)&quot;"
+			IntermediateDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
@@ -60,7 +60,7 @@
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Updating BuildTime"
-				CommandLine="cl /MTd /Fo$(IntDir)\  /nologo /D_UNICODE /c BuildTime.cpp"
+				CommandLine="cl /MTd /Fo&quot;$(IntDir)\\&quot;  /nologo /D_UNICODE /c BuildTime.cpp"
 			/>
 			<Tool
 				Name="VCLinkerTool"
@@ -76,6 +76,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="$(ProjectDir)DPIAware.manifest;$(ProjectDir)ComonControls.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -96,7 +97,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="&quot;$(SolutionDir)$(ConfigurationName)\$(ProjectName)&quot;"
+			IntermediateDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -138,7 +139,7 @@
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Updating BuildTime"
-				CommandLine="cl /MT /Fo$(IntDir)\  /nologo /D_UNICODE /c BuildTime.cpp"
+				CommandLine="cl /MT /Fo&quot;$(IntDir)\\&quot; /nologo /D_UNICODE /c BuildTime.cpp"
 			/>
 			<Tool
 				Name="VCLinkerTool"
@@ -156,6 +157,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="$(ProjectDir)DPIAware.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -176,7 +178,7 @@
 		<Configuration
 			Name="DebugNoUnicode|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="&quot;$(SolutionDir)$(ConfigurationName)\$(ProjectName)&quot;"
+			IntermediateDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="0"
 			>
@@ -217,7 +219,7 @@
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Updating BuildTime"
-				CommandLine="cl /MTd /Fo$(IntDir)\  /nologo /c BuildTime.cpp"
+				CommandLine="cl /MTd /Fo&quot;$(IntDir)\\&quot;  /nologo /c BuildTime.cpp"
 			/>
 			<Tool
 				Name="VCLinkerTool"
@@ -233,6 +235,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="$(ProjectDir)DPIAware.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -253,7 +256,7 @@
 		<Configuration
 			Name="ReleaseNoUnicode|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="&quot;$(SolutionDir)$(ConfigurationName)\$(ProjectName)&quot;"
+			IntermediateDirectory="$(SolutionDir)$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="0"
 			WholeProgramOptimization="1"
@@ -295,7 +298,7 @@
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Updating BuildTime"
-				CommandLine="cl /MT /Fo$(IntDir)\  /nologo /c BuildTime.cpp"
+				CommandLine="cl /MT /Fo&quot;$(IntDir)\\&quot;  /nologo /c BuildTime.cpp"
 			/>
 			<Tool
 				Name="VCLinkerTool"
@@ -313,6 +316,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				AdditionalManifestFiles="$(ProjectDir)DPIAware.manifest"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"

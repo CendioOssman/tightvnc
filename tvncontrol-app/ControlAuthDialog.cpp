@@ -25,8 +25,7 @@
 #include "ControlAuthDialog.h"
 
 #include "tvnserver/resource.h"
-
-#include "gui/TextBox.h"
+#include "server-config-lib/ServerConfig.h"
 
 ControlAuthDialog::ControlAuthDialog()
 : BaseDialog(IDD_CONTROL_AUTH)
@@ -46,8 +45,12 @@ BOOL ControlAuthDialog::onInitDialog()
 {
   m_password.setString(0);
 
-  SetForegroundWindow(m_ctrlThis.getWindow());
-  SetFocus(GetDlgItem(m_ctrlThis.getWindow(), IDC_PASSWORD_EDIT));
+  HWND hwnd = m_ctrlThis.getWindow();
+  m_passwordTextBox.setWindow(GetDlgItem(hwnd, IDC_PASSWORD_EDIT));
+  m_passwordTextBox.setTextLengthLimit(VNC_PASSWORD_SIZE);
+
+  SetForegroundWindow(hwnd);
+  m_passwordTextBox.setFocus();
 
   return TRUE;
 }
@@ -61,12 +64,10 @@ BOOL ControlAuthDialog::onCommand(UINT controlID, UINT notificationID)
 {
   switch (controlID) {
   case IDOK:
+    m_passwordTextBox.getText(&m_password);
+    kill(controlID);
+    break;
   case IDCANCEL:
-    {
-      TextBox passwordTB;
-      passwordTB.setWindow(GetDlgItem(m_ctrlThis.getWindow(), IDC_PASSWORD_EDIT));
-      passwordTB.getText(&m_password);
-    }
     kill(controlID);
     break;
   }

@@ -56,7 +56,6 @@ ListViewItem ListView::getItem(int index)
 
   ListView_GetItem(m_hwnd, &lvI);
 
-  item.caption = lvI.pszText;
   item.index = lvI.iItem;
   item.tag = lvI.lParam;
 
@@ -142,9 +141,7 @@ ListViewItem ListView::getSelectedItem()
   if (index == -1) {
     item.index = -1;
     item.tag = NULL;
-    item.caption = _T("");
-  }
-  else {
+  } else {
     item = getItem(index);
   }
   return item;

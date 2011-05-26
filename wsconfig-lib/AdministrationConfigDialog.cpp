@@ -129,10 +129,7 @@ bool AdministrationConfigDialog::validateInput()
 
 void AdministrationConfigDialog::updateUI()
 {
-  TCHAR tempBuf[32];
-  _itot(m_config->getLogLevel(), &tempBuf[0], 10);
-
-  m_logLevel.setText(tempBuf);
+  m_logLevel.setSignedInt(m_config->getLogLevel());
 
   m_useControlAuth.check(m_config->isControlAuthEnabled());
 

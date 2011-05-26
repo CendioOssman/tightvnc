@@ -95,6 +95,19 @@ void RfbClient::getPeerHost(StringStorage *host)
   }
 }
 
+void RfbClient::getLocalIpAddress(StringStorage *address)
+{
+  SocketAddressIPv4 addr;
+
+  if (m_socket->getLocalAddr(&addr)) {
+    addr.toString(address);
+  } else {
+    _ASSERT(FALSE);
+
+    address->setString(_T("unknown"));
+  }
+}
+
 void RfbClient::getSocketAddr(SocketAddressIPv4 *addr) const
 {
   m_socket->getPeerAddr(addr);
@@ -225,12 +238,14 @@ void RfbClient::execute()
   }
 
   disconnect();
+
   notifyAbStateChanging(IN_PENDING_TO_REMOVE);
 
   if (fileTransfer)         delete fileTransfer;
   if (m_clipboardExchange)  delete m_clipboardExchange;
   if (m_clientInputHandler) delete m_clientInputHandler;
   if (m_updateSender)       delete m_updateSender;
+
   notifyAbStateChanging(IN_READY_TO_REMOVE);
 }
 

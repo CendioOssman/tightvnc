@@ -55,19 +55,22 @@ void ClientConnection::ProcessLocalClipboardChange()
 		omni_mutex_lock l(m_clipMutex);
 		
 		if (OpenClipboard(m_hwnd)) { 
-			HGLOBAL hglb = GetClipboardData(CF_TEXT); 
+			HGLOBAL hglb = GetClipboardData(CF_UNICODETEXT);
 			if (hglb == NULL) {
 				CloseClipboard();
 			} else {
-				LPSTR lpstr = (LPSTR) GlobalLock(hglb);  
-				
-				char *contents = new char[strlen(lpstr) + 1];
-				char *unixcontents = new char[strlen(lpstr) + 1];
-				strcpy(contents,lpstr);
-				GlobalUnlock(hglb); 
-				CloseClipboard();       		
-				
+				WCHAR *str = (WCHAR *)GlobalLock(hglb);
+				StringStorage text;
+				text.fromUnicodeString(str);
+				GlobalUnlock(hglb);
+				CloseClipboard();
+
+				size_t bufSize = text.getLength() + 1;
+				char *contents = new char[bufSize];
+				text.toAnsiString(contents, bufSize);
+
 				// Translate to Unix-format lines before sending
+				char *unixcontents = new char[bufSize];
 				int j = 0;
 				for (int i = 0; contents[i] != '\0'; i++) {
 					if (contents[i] != '\x0d') {
@@ -122,15 +125,32 @@ void ClientConnection::UpdateLocalClipboard(char *buf, size_t len) {
 	        throw WarningException("Failed to empty clipboard\n");
         }
 
+#ifndef _UNICODE
+        // Store locale information in the clipboard.
+        HGLOBAL hmemLocale = GlobalAlloc(GMEM_MOVEABLE, sizeof(LCID));
+        if (hmemLocale != NULL) {
+            LCID *pLocale = (LCID *)GlobalLock(hmemLocale);
+            *pLocale = GetUserDefaultLCID();
+            GlobalUnlock(hmemLocale);
+            if (SetClipboardData(CF_LOCALE, hmemLocale) == NULL) {
+                GlobalFree(hmemLocale);
+            }
+        }
+#endif
+
         // Allocate a global memory object for the text. 
-        HGLOBAL hglbCopy = GlobalAlloc(GMEM_DDESHARE, (len +1) * sizeof(TCHAR));
+        HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len +1) * sizeof(TCHAR));
         if (hglbCopy != NULL) { 
 	        // Lock the handle and copy the text to the buffer.  
 	        LPTSTR lptstrCopy = (LPTSTR) GlobalLock(hglbCopy); 
 	        memcpy(lptstrCopy, wincontents, len * sizeof(TCHAR)); 
 	        lptstrCopy[len] = (TCHAR) 0;    // null character 
 	        GlobalUnlock(hglbCopy);          // Place the handle on the clipboard.  
-	        SetClipboardData(CF_TEXT, hglbCopy); 
+#ifndef _UNICODE
+            SetClipboardData(CF_TEXT, hglbCopy);
+#else
+            SetClipboardData(CF_UNICODETEXT, hglbCopy);
+#endif
         }
 
         delete [] wincontents;

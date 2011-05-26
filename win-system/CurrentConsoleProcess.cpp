@@ -88,15 +88,27 @@ void CurrentConsoleProcess::startImpersonated()
   STARTUPINFO sti;
   getStartupInfo(&sti);
 
+  Log::debug(_T("sti: cb = %d, hStdError = %p, hStdInput = %p,")
+             _T(" hStdOutput = %p, dwFlags = %u"),
+             (unsigned int)sti.cb,
+             (void *)sti.hStdError,
+             (void *)sti.hStdInput,
+             (void *)sti.hStdOutput,
+             (unsigned int)sti.dwFlags);
+
   HANDLE procHandle = GetCurrentProcess();
 
   HANDLE token, userToken;
 
   try {
+    Log::debug(_T("Try OpenProcessToken(%p, , )"),
+               (void *)procHandle);
     if (OpenProcessToken(procHandle, TOKEN_DUPLICATE, &token) == 0) {
       throw SystemException();
     }
 
+    Log::debug(_T("Try DuplicateTokenEx(%p, , , , , )"),
+               (void *)token);
     if (DuplicateTokenEx(token,
       MAXIMUM_ALLOWED,
       0,
@@ -106,6 +118,8 @@ void CurrentConsoleProcess::startImpersonated()
         throw SystemException();
     }
 
+    Log::debug(_T("Try SetTokenInformation(%p, , , )"),
+               (void *)userToken);
     if (SetTokenInformation(userToken,
       (TOKEN_INFORMATION_CLASS) TokenSessionId,
       &sessionId,
@@ -115,6 +129,10 @@ void CurrentConsoleProcess::startImpersonated()
 
     StringStorage commandLine = getCommandLineString();
 
+    Log::debug(_T("Try CreateProcessAsUser(%p, 0, %s, 0, 0, %d, NORMAL_PRIORITY_CLASS, 0, 0,")
+               _T(" sti, pi)"),
+               (void *)userToken, commandLine.getString(),
+               (int)m_handlesIsInherited);
     if (CreateProcessAsUser(userToken, 0, (LPTSTR) commandLine.getString(),
       0, 0, m_handlesIsInherited, NORMAL_PRIORITY_CLASS, 0, 0, &sti,
       &pi) == 0) {

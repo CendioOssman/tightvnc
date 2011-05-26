@@ -46,7 +46,9 @@ public:
 
   virtual void setEnabled(bool enabled);
 
-  virtual void setText(const TCHAR * text);
+  virtual void setText(const TCHAR *text);
+  virtual void setSignedInt(int value);
+  virtual void setUnsignedInt(unsigned int value);
 
   void setTextVerticalAlignment(VerticalAlignment align);
 

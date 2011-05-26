@@ -50,7 +50,7 @@ void AboutDialog::onCloseButtonClick()
 
 void AboutDialog::onOrderSupportButtonClock()
 {
-  openUrl(StringTable::getString(IDS_TIGHTVNC_SUPPORT_URL));
+  openUrl(StringTable::getString(IDS_TIGHTVNC_LICENSING_URL));
 }
 
 void AboutDialog::onVisitSiteButtonClick()
@@ -76,32 +76,31 @@ void AboutDialog::openUrl(const TCHAR *url)
 
 BOOL AboutDialog::onInitDialog()
 {
-
-  Control versionLabel;
-
-  versionLabel.setWindow(GetDlgItem(m_ctrlThis.getWindow(), IDC_STATIC_VERSION));
-
-  StringStorage binaryPath;
-  StringStorage versionText;
   StringStorage versionString(_T("unknown"));
-
-  Environment::getCurrentModulePath(&binaryPath);
-
   try {
+    StringStorage binaryPath;
+    Environment::getCurrentModulePath(&binaryPath);
     VersionInfo productInfo(binaryPath.getString());
     versionString.setString(productInfo.getProductVersionString());
   } catch (SystemException &ex) {
     MessageBox(m_ctrlThis.getWindow(),
-      ex.getMessage(),
-      StringTable::getString(IDS_MBC_TVNCONTROL),
-      MB_OK | MB_ICONEXCLAMATION);
+               ex.getMessage(),
+               StringTable::getString(IDS_MBC_TVNCONTROL),
+               MB_OK | MB_ICONEXCLAMATION);
   }
 
+  StringStorage versionText;
   versionText.format(StringTable::getString(IDS_PRODUCT_VERSION_FORMAT),
-    versionString.getString(),
-    BuildTime::DATE);
+                     versionString.getString(),
+                     BuildTime::DATE);
 
+  Control versionLabel;
+  versionLabel.setWindow(GetDlgItem(m_ctrlThis.getWindow(), IDC_STATIC_VERSION));
   versionLabel.setText(versionText.getString());
+
+  Control licensingLabel;
+  licensingLabel.setWindow(GetDlgItem(m_ctrlThis.getWindow(), IDC_STATIC_LICENSING));
+  licensingLabel.setText(StringTable::getString(IDS_LICENSING_INFO));
 
   return FALSE;
 }

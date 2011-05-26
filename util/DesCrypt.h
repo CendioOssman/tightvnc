@@ -27,27 +27,27 @@
 
 #include "util/inttypes.h"
 
-enum CodeMode
-{
-  ENCRYPT,
-  DECRYPT
-};
-
 class DesCrypt
 {
 public:
   DesCrypt();
   virtual ~DesCrypt();
 
-  void clearKey();
-
   void encrypt(UINT8 *dst, const UINT8 *src, size_t dataLen,
                const UINT8 *key);
+
   void decrypt(UINT8 *dst, const UINT8 *src, size_t dataLen,
                const UINT8 *key);
 
 private:
-  void deskey(const UINT8 hexKey[8], CodeMode mode);
+  enum OperationMode {
+    ENCRYPT,
+    DECRYPT
+  };
+
+  void clearKey();
+
+  void deskey(const UINT8 hexKey[8], OperationMode mode);
 
   void des(const unsigned char from[8], unsigned char to[8]);
 

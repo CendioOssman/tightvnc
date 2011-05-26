@@ -149,8 +149,6 @@ void IpAccessControlDialog::updateUI()
     m_list.addItem(m_list.getCount(), _T(""), (LPARAM)ip);
     setListViewItemText(i, ip);
   }
-  TCHAR tempBuf[10];
-  _itot((int)m_config->getQueryTimeout(), &tempBuf[0], 10);
 
   m_allowLoopbackConnections.check(m_config->isLoopbackConnectionsAllowed());
   m_onlyLoopbackConnections.check(m_config->isOnlyLoopbackConnectionsAllowed());
@@ -161,7 +159,8 @@ void IpAccessControlDialog::updateUI()
     m_defaultActionAccept.check(false);
     m_defaultActionRefuse.check(true);
   }
-  m_queryTimeout.setText(tempBuf);
+  m_queryTimeout.setUnsignedInt(m_config->getQueryTimeout());
+
   updateCheckBoxesState();
 }
 
@@ -264,8 +263,8 @@ void IpAccessControlDialog::onRemoveButtonClick()
   }
   {
     AutoLock al(m_config);
-   IpAccessRule *ip = (IpAccessRule *)m_list.getItemData(m_list.getSelectedIndex());
-   for (IpAccessControl::iterator it = m_container->begin(); it != m_container->end(); it++) {
+    IpAccessRule *ip = (IpAccessRule *)m_list.getItemData(m_list.getSelectedIndex());
+    for (IpAccessControl::iterator it = m_container->begin(); it != m_container->end(); it++) {
       IpAccessRule *ip2 = *it;
       if (ip == ip2) {
         m_container->erase(it);
@@ -371,8 +370,8 @@ void IpAccessControlDialog::onIpCheckUpdate()
     return;
   }
 
-  size_t ansiBufferLength = ipStorage.getLength();
-  char *ansiBuffer = new char[ansiBufferLength + 1];
+  size_t ansiBufferLength = ipStorage.getLength() + 1;
+  char *ansiBuffer = new char[ansiBufferLength];
   ipStorage.toAnsiString(ansiBuffer, ansiBufferLength);
   unsigned int addr = inet_addr(ansiBuffer);
   delete[] ansiBuffer;

@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Encoders">
+      <UniqueIdentifier>{94030695-2e9d-4930-9a8a-b50badb5941d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AuthDefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CursorShape.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HostPath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MsgDefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelFormat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RfbKeySym.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VendorDefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EncodeOptions.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="Encoder.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="EncoderStore.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="EncodingDefs.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="HextileEncoder.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="JpegCompressor.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="JpegEncoder.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelConverter.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="TightEncoder.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+    <ClCompile Include="TightPalette.cpp">
+      <Filter>Encoders</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AuthDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CursorShape.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HostPath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="keysymdef.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MsgDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelFormat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RfbKeySym.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RfbKeySymListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VendorDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EncodeOptions.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="Encoder.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="EncoderStore.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="EncodingDefs.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="HextileEncoder.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="HextileTile.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="JpegCompressor.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="JpegEncoder.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelConverter.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="TightEncoder.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+    <ClInclude Include="TightPalette.h">
+      <Filter>Encoders</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

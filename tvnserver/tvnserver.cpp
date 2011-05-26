@@ -40,10 +40,13 @@
 #include "tvncontrol-app/ControlCommandLine.h"
 
 #include "tvnserver/resource.h"
+#include "win-system/CrashHook.h"
 
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                        LPTSTR lpCmdLine, int nCmdShow)
 {
+  CrashHook crashHook;
+
   ResourceLoader resourceLoaderSingleton(hInstance);
 
   CommandLineFormat format[] = {
@@ -79,20 +82,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   if (firstKey.isEqualTo(TvnService::SERVICE_COMMAND_LINE_KEY)) {
     TvnService tvnService;
     try {
+      crashHook.setHklmRoot();
       tvnService.run();
     } catch (Exception &) {
       return 1;
     }
     return 0;
   } else if (firstKey.isEqualTo(ControlCommandLine::CONFIG_APPLICATION) ||
-    firstKey.isEqualTo(ControlCommandLine::CONFIG_SERVICE) ||
-    firstKey.isEqualTo(ControlCommandLine::SET_CONTROL_PASSWORD) ||
-    firstKey.isEqualTo(ControlCommandLine::SET_PRIMARY_VNC_PASSWORD) ||
-    firstKey.isEqualTo(ControlCommandLine::CONTROL_SERVICE) ||
-    firstKey.isEqualTo(ControlCommandLine::CONTROL_APPLICATION)) {
+             firstKey.isEqualTo(ControlCommandLine::CONFIG_SERVICE) ||
+             firstKey.isEqualTo(ControlCommandLine::SET_CONTROL_PASSWORD) ||
+             firstKey.isEqualTo(ControlCommandLine::SET_PRIMARY_VNC_PASSWORD) ||
+             firstKey.isEqualTo(ControlCommandLine::CONTROL_SERVICE) ||
+             firstKey.isEqualTo(ControlCommandLine::CONTROL_APPLICATION)) {
+    crashHook.setGuiEnabled();
     try {
       ControlApplication tvnControl(hInstance, lpCmdLine);
-
       return tvnControl.run();
     } catch (Exception &fatalException) {
       MessageBox(0,
@@ -103,15 +107,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
   } else if (firstKey.isEqualTo(AdditionalActionApplication::LOCK_WORKSTATION_KEY) ||
     firstKey.isEqualTo(AdditionalActionApplication::LOGOUT_KEY)) {
+    crashHook.setGuiEnabled();
     try {
       AdditionalActionApplication actionApp(hInstance, lpCmdLine);
-
       return actionApp.run();
     } catch (SystemException &ex) {
       return ex.getErrorCode();
     }
   } else if (firstKey.isEqualTo(DesktopServerCommandLine::DESKTOP_SERVER_KEY)) {
     try {
+      crashHook.setHklmRoot();
       DesktopServerApplication desktopServerApp(hInstance, lpCmdLine);
 
       return desktopServerApp.run();
@@ -119,23 +124,24 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       return 1;
     }
   } else if (firstKey.isEqualTo(QueryConnectionCommandLine::QUERY_CONNECTION)) {
+    crashHook.setGuiEnabled();
     try {
       QueryConnectionApplication app(hInstance, lpCmdLine);
-
       return app.run();
     } catch (...) {
       return 1;
     }
   } else if (firstKey.isEqualTo(ServiceControlCommandLine::INSTALL_SERVICE) ||
-    firstKey.isEqualTo(ServiceControlCommandLine::REMOVE_SERVICE) ||
-    firstKey.isEqualTo(ServiceControlCommandLine::REINSTALL_SERVICE) ||
-    firstKey.isEqualTo(ServiceControlCommandLine::START_SERVICE) ||
-    firstKey.isEqualTo(ServiceControlCommandLine::STOP_SERVICE)) {
+             firstKey.isEqualTo(ServiceControlCommandLine::REMOVE_SERVICE) ||
+             firstKey.isEqualTo(ServiceControlCommandLine::REINSTALL_SERVICE) ||
+             firstKey.isEqualTo(ServiceControlCommandLine::START_SERVICE) ||
+             firstKey.isEqualTo(ServiceControlCommandLine::STOP_SERVICE)) {
+    crashHook.setGuiEnabled();
     ServiceControlApplication tvnsc(hInstance, lpCmdLine);
-
     return tvnsc.run();
   }
 
+  crashHook.setGuiEnabled();
   TvnServerApplication tvnServer(hInstance, lpCmdLine);
 
   return tvnServer.run();

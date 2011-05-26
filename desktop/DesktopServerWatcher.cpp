@@ -65,6 +65,7 @@ DesktopServerWatcher::~DesktopServerWatcher()
   terminate();
   wait();
   delete m_process;
+  delete m_sharedMem;
 }
 
 void DesktopServerWatcher::execute()

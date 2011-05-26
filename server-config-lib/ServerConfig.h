@@ -183,10 +183,6 @@ public:
 
   bool isLoopbackConnectionsAllowed();
 
-  void disableTrayIcon(bool disabled);
-
-  bool isTrayIconDisabled();
-
   StringVector *getVideoClassNames();
 
   unsigned int getVideoRecognitionInterval();
@@ -254,8 +250,6 @@ protected:
 
   IpAccessControl m_accessControlContainer;
   bool m_allowLoopbackConnections;
-
-  bool m_isTrayIconDisabled;
 
   StringVector m_videoClassNames;
   

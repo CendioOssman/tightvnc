@@ -64,6 +64,7 @@ public:
 
   unsigned int getId() const;
   void getPeerHost(StringStorage *address);
+  void getLocalIpAddress(StringStorage *address);
   void getSocketAddr(SocketAddressIPv4 *addr) const;
 
   bool isOutgoing() const;

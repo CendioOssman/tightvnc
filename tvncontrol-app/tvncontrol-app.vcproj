@@ -360,6 +360,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ReloadConfigCommand.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\RemoteException.cpp"
 				>
 			</File>
@@ -479,6 +483,10 @@
 			</File>
 			<File
 				RelativePath=".\OutgoingConnectionDialog.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ReloadConfigCommand.h"
 				>
 			</File>
 			<File

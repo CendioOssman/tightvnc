@@ -39,7 +39,7 @@ ServerConfig::ServerConfig()
   m_disconnectClients(true), m_pollingInterval(1000), m_localInputPriorityTimeout(3),
   m_blockLocalInput(false), m_blockRemoteInput(false), m_localInputPriority(false),
   m_defaultActionAccept(false), m_queryTimeout(30),
-  m_isTrayIconDisabled(false), m_allowLoopbackConnections(false),
+  m_allowLoopbackConnections(false),
   m_videoRecognitionInterval(3000), m_grabTransparentWindows(true),
   m_saveLogToAllUsersPath(false), m_hasControlPassword(false),
   m_showTrayIcon(true)
@@ -90,7 +90,6 @@ void ServerConfig::serialize(DataOutputStream *output)
   m_accessControlContainer.serialize(output);
 
   output->writeInt8(m_allowLoopbackConnections ? 1 : 0);
-  output->writeInt8(m_isTrayIconDisabled ? 1 : 0);
 
   output->writeUInt32(m_videoClassNames.size());
   for (size_t i = 0; i < m_videoClassNames.size(); i++) {
@@ -146,7 +145,6 @@ void ServerConfig::deserialize(DataInputStream *input)
   m_accessControlContainer.deserialize(input);
 
   m_allowLoopbackConnections = input->readInt8() == 1;
-  m_isTrayIconDisabled = input->readInt8() == 1;
 
   m_videoClassNames.clear();
   size_t count = input->readUInt32();
@@ -658,18 +656,6 @@ bool ServerConfig::isLoopbackConnectionsAllowed()
   AutoLock l(&m_objectCS);
 
   return m_allowLoopbackConnections;
-}
-
-void ServerConfig::disableTrayIcon(bool disabled)
-{
-  AutoLock lock(&m_objectCS);
-  m_isTrayIconDisabled = disabled;
-}
-
-bool ServerConfig::isTrayIconDisabled()
-{
-  AutoLock lock(&m_objectCS);
-  return m_isTrayIconDisabled;
 }
 
 StringVector *ServerConfig::getVideoClassNames()

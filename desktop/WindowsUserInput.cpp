@@ -43,6 +43,16 @@ WindowsUserInput::~WindowsUserInput(void)
 
 void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
 {
+
+  if (GetSystemMetrics(SM_SWAPBUTTON))
+  {
+    UINT8 left = keyFlag & 1;
+    UINT8 right = keyFlag & 4;
+    keyFlag &= 0xFA;
+    keyFlag |= (right & 4)  >> 2;
+    keyFlag |= left << 2;
+  }
+
   DWORD dwFlags = 0;
   dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
 
@@ -118,7 +128,7 @@ void WindowsUserInput::setNewClipboard(const StringStorage *newClipboard)
 void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
 {
   try {
-    Log::info(_T("Received the %#4.4x keysym"), keySym);
+    Log::info(_T("Received the %#4.4x keysym, down = %d"), keySym, (int)down);
     m_keyEvent.generate(keySym, !down);
   } catch (Exception &someEx) {
     Log::error(_T("Exception while processing key event: %s"), someEx.getMessage());
@@ -128,6 +138,6 @@ void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
 void WindowsUserInput::getCurrentUserInfo(StringStorage *desktopName,
                                           StringStorage *userName)
 {
-  DesktopSelector::getCurrentDesktopName(desktopName);
-  Environment::getCurrentUserName(userName);
+  DesktopSelector::getCurrentDesktopName(desktopName); 
+  Environment::getCurrentUserName(userName); 
 }

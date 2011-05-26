@@ -35,8 +35,8 @@
 class ControlAuth
 {
 public:
-  ControlAuth(ControlGate *gate, const TCHAR *vncPassword)
-  throw(IOException, ControlAuthException, Exception);
+  ControlAuth(ControlGate *gate, const TCHAR *password)
+    throw(IOException, ControlAuthException, Exception);
 
   virtual ~ControlAuth();
 
@@ -46,7 +46,7 @@ protected:
 protected:
   ControlGate *m_gate;
 
-  UINT8 m_vncPassword[VNC_PASSWORD_SIZE];
+  UINT8 m_password[VNC_PASSWORD_SIZE];
 };
 
 #endif

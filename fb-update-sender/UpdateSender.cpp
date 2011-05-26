@@ -231,13 +231,15 @@ void UpdateSender::sendNewFBSize(Dimension *dim)
   sendRectHeader(&r, PseudoEncDefs::DESKTOP_SIZE);
 }
 
-void UpdateSender::sendBlankScreen(const EncodeOptions *encodeOptions,
-                                   const Dimension *dim,
-                                   const PixelFormat *pf)
+void UpdateSender::sendFbInClientDim(const EncodeOptions *encodeOptions,
+                                     const FrameBuffer *fb,
+                                     const Dimension *dim,
+                                     const PixelFormat *pf)
 {
   FrameBuffer blankFrameBuffer;
   blankFrameBuffer.setProperties(dim, pf);
   blankFrameBuffer.setColor(0, 0, 0);
+  blankFrameBuffer.copyFrom(fb, 0, 0);
 
   Region region(&dim->getRect());
   std::vector<Rect> rects;
@@ -440,8 +442,8 @@ void UpdateSender::sendUpdate()
       m_updateKeeper->dazzleChangedReg();
     } else {
       Log::debug(_T("Desktop resize is disabled, sending blank screen"));
-      sendBlankScreen(&encodeOptions, &clientDim,
-                      &frameBuffer->getPixelFormat());
+      sendFbInClientDim(&encodeOptions, frameBuffer, &clientDim,
+                        &frameBuffer->getPixelFormat());
       Log::debug(_T("Dazzle changed region"));
       m_updateKeeper->dazzleChangedReg();
     }
@@ -626,7 +628,11 @@ void UpdateSender::readUpdateRequest(RfbInputGate *io)
     }
   }
 
-  Log::detail(_T("update requested by client (client #%d)"), m_id);
+  Log::detail(_T("update requested (%d, %d, %dx%d, incremental = %d)")
+              _T(" by client (client #%d)"),
+              reqRect.left, reqRect.top,
+              reqRect.getWidth(), reqRect.getHeight(), (int)incremental,
+              m_id);
 
   _ASSERT(m_updReqListener != 0);
   m_updReqListener->onUpdateRequest(&reqRect, incremental);

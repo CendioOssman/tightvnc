@@ -200,14 +200,10 @@ SocketIPv4 *SocketIPv4::accept()
 
   accepted->m_socket = result;
 
-  accepted->m_peerAddr = new SocketAddressIPv4(*(struct sockaddr_in *)&addr);
-
-  AutoLock l2(&m_mutex);
-
-  if (m_localAddr) {
-    sockaddr_in tsa = m_localAddr->getSockAddr();
-
-    accepted->m_localAddr = new SocketAddressIPv4(*(struct sockaddr_in*)&tsa);
+  accepted->m_peerAddr = new SocketAddressIPv4(addr);
+  struct sockaddr_in localAddr;
+  if (getsockname(result, (struct sockaddr *)&localAddr, &addrlen) == 0) {
+    accepted->m_localAddr = new SocketAddressIPv4(localAddr);
   }
 
   return accepted; 

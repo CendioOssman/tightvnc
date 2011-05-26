@@ -128,22 +128,25 @@ void StringStorage::trim()
 
 bool StringStorage::toAnsiString(char *buffer, size_t size) const
 {
-  size_t neededSize = getSize();
-
 #ifdef _UNICODE
-  neededSize = WideCharToMultiByte(CP_ACP, 0, m_buffer, m_length, NULL, 0, NULL, NULL);
+  size_t requiredSize =
+    WideCharToMultiByte(CP_ACP, 0, m_buffer, m_length + 1,
+                        NULL, 0, NULL, NULL);
+#else
+  size_t requiredSize = m_length + 1;
 #endif
 
-  if (size < neededSize) {
+  if (size < requiredSize) {
     return false;
   }
 
 #ifdef _UNICODE
-  WideCharToMultiByte(CP_ACP, 0, m_buffer, m_length, (LPSTR)buffer, size, NULL, NULL);
-  buffer[m_length] = '\0';
+  WideCharToMultiByte(CP_ACP, 0, m_buffer, m_length + 1,
+                      (LPSTR)buffer, size, NULL, NULL);
 #else
-  memcpy(buffer, m_buffer, neededSize);
+  memcpy(buffer, m_buffer, requiredSize);
 #endif
+
   return true;
 }
 
@@ -234,6 +237,23 @@ void StringStorage::fromAnsiString(const char *string)
   setString(unicodeBuffer);
 
   delete[] unicodeBuffer;
+#endif
+}
+
+void StringStorage::fromUnicodeString(const WCHAR *string)
+{
+#ifndef _UNICODE
+  size_t length = wcslen(string);
+  size_t numBytes = WideCharToMultiByte(CP_ACP, 0, string, length + 1,
+                                        NULL, 0, NULL, NULL);
+
+  char *buffer = new char[numBytes];
+  WideCharToMultiByte(CP_ACP, 0, string, length + 1,
+                      (LPSTR)buffer, numBytes, NULL, NULL);
+  setString(buffer);
+  delete[] buffer;
+#else
+  setString(string);
 #endif
 }
 

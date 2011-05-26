@@ -28,7 +28,7 @@
 class RfbKeySymListener
 {
 public:
-  virtual void onRfbKeySymEvent(unsigned short rfbKeySym, bool down) = 0;
+  virtual void onRfbKeySymEvent(unsigned int rfbKeySym, bool down) = 0;
 };
 
 #endif 

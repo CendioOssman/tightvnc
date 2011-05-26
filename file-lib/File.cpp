@@ -97,17 +97,15 @@ void File::getName(StringStorage *name) const
   }
 
   const TCHAR *buffer = m_pathName.getString();
-  bool separatorFound = false;
-  size_t i = 0;
+  size_t i = m_pathName.getLength();
 
-  for (i = m_pathName.getLength() - 1; i >= 0; i--) {
-    if (buffer[i] == File::s_separatorChar) {
-      separatorFound = true;
+  for (; i > 0; i--) {
+    if (buffer[i - 1] == File::s_separatorChar) {
       break;
     } 
   } 
 
-  m_pathName.getSubstring(name, i + 1, m_pathName.getLength() - 1);
+  m_pathName.getSubstring(name, i, m_pathName.getLength() - 1);
 }
 
 void File::getFileExtension(StringStorage *ext) const

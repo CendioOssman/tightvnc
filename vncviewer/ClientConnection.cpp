@@ -436,7 +436,7 @@ void ClientConnection::Run()
 		GetConnectDetails();
 	} else {
 		if (m_pApp->m_options.m_listening) {
-			ConnectionConfigSM ccsm(&m_opts.m_display[0]);
+			ConnectionConfigSM ccsm(_T(".listen"));
 			m_conConf.loadFromStorage(&ccsm);
 		}
 	}
@@ -633,33 +633,33 @@ void ClientConnection::CreateDisplay()
 		bool save_item_flags = (m_serverInitiated) ? MF_GRAYED : 0;
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING, IDC_OPTIONBUTTON,
-				   _T("Connection &options...\tCtrl-Alt-Shift-O"));
+				   _T("Connection &options...\tCtrl+Alt+Shift+O"));
 		AppendMenu(hsysmenu, MF_STRING, ID_CONN_ABOUT,
-				   _T("Connection &info\tCtrl-Alt-Shift-I"));
+				   _T("Connection &info\tCtrl+Alt+Shift+I"));
 		AppendMenu(hsysmenu, MF_STRING, ID_REQUEST_REFRESH,
-				   _T("Request screen &refresh\tCtrl-Alt-Shift-R"));
+				   _T("Request screen &refresh\tCtrl+Alt+Shift+R"));
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING, ID_FULLSCREEN,
-				   _T("&Full screen\tCtrl-Alt-Shift-F"));
+				   _T("&Full screen\tCtrl+Alt+Shift+F"));
 		AppendMenu(hsysmenu, MF_STRING, ID_TOOLBAR,
-				   _T("Show &toolbar\tCtrl-Alt-Shift-T"));
+				   _T("Show &toolbar\tCtrl+Alt+Shift+T"));
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING, ID_CONN_CTLALTDEL,
-				   _T("Send Ctrl-Alt-&Del"));
+				   _T("Send Ctrl+Alt+&Del\tCtrl+Alt+Shift+Del"));
 		AppendMenu(hsysmenu, MF_STRING, ID_CONN_CTLESC,
-				   _T("Send Ctrl-Esc"));
+				   _T("Send Ctrl+Esc"));
 		AppendMenu(hsysmenu, MF_STRING, ID_CONN_CTLDOWN,
 				   _T("Ctrl key down"));
 		AppendMenu(hsysmenu, MF_STRING, ID_CONN_ALTDOWN,
 				   _T("Alt key down"));
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING | MF_GRAYED, IDD_FILETRANSFER,
-				   _T("Transf&er files...\tCtrl-Alt-Shift-E"));
+				   _T("Transf&er files...\tCtrl+Alt+Shift+E"));
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING, ID_NEWCONN,
-				   _T("&New connection...\tCtrl-Alt-Shift-N"));
+				   _T("&New connection...\tCtrl+Alt+Shift+N"));
 		AppendMenu(hsysmenu, save_item_flags, ID_CONN_SAVE_AS,
-				   _T("&Save connection info as...\tCtrl-Alt-Shift-S"));
+				   _T("&Save connection info as...\tCtrl+Alt+Shift+S"));
 #ifdef ENABLE_VIDEO_CONTROLS
 		AppendMenu(hsysmenu, MF_SEPARATOR, NULL, NULL);
 		AppendMenu(hsysmenu, MF_STRING | MF_CHECKED | MF_GRAYED,
@@ -909,12 +909,6 @@ void ClientConnection::SwitchOffKey()
 					(LPARAM)MAKELONG(TBSTATE_ENABLED, 0));
 	SendMessage(m_hToolbar, TB_SETSTATE, (WPARAM)ID_CONN_ALTDOWN,
 					(LPARAM)MAKELONG(TBSTATE_ENABLED, 0));
-	SendKeyEvent(XK_Alt_L,     false);
-	SendKeyEvent(XK_Control_L, false);
-	SendKeyEvent(XK_Shift_L,   false);
-	SendKeyEvent(XK_Alt_R,     false);
-	SendKeyEvent(XK_Control_R, false);
-	SendKeyEvent(XK_Shift_R,   false);
 }
 
 void ClientConnection::GetConnectDetails()
@@ -1902,6 +1896,7 @@ void ClientConnection::KillThread()
 void ClientConnection::CopyOptions(ClientConnection *source)
 {
 	this->m_opts = source->m_opts;
+	this->m_conConf = source->m_conConf;
 }
 
 ClientConnection::~ClientConnection()
@@ -2077,7 +2072,8 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 		case SC_MINIMIZE:
 			_this->SetDormant(true);
 			break;
-		case SC_RESTORE:			
+		case SC_MAXIMIZE:
+		case SC_RESTORE:
 			_this->SetDormant(false);
 			break;
 		case ID_NEWCONN:
@@ -2170,23 +2166,18 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 			_this->SendFullFramebufferUpdateRequest();
 			return 0;
 		case ID_CONN_CTLESC:
-			_this->SendKeyEvent(XK_Control_L, true);
-			_this->SendKeyEvent(XK_Escape,     true);
-			_this->SendKeyEvent(XK_Escape,     false);
-			_this->SendKeyEvent(XK_Control_L, false);
+			_this->sendModifier(VK_CONTROL, true);
+			_this->sendModifier(VK_ESCAPE, true);
+			_this->sendModifier(VK_ESCAPE, false);
+			_this->sendModifier(VK_CONTROL, false);
 			return 0;
 		case ID_CONN_CTLALTDEL:
-			_this->SendKeyEvent(XK_Control_L, true);
-			_this->SendKeyEvent(XK_Alt_L,     true);
-			_this->SendKeyEvent(XK_Delete,    true);
-			_this->SendKeyEvent(XK_Delete,    false);
-			_this->SendKeyEvent(XK_Alt_L,     false);
-			_this->SendKeyEvent(XK_Control_L, false);
+			_this->m_rfbKeySym->sendCtrlAltDel();
 			return 0;
 		case ID_CONN_CTLDOWN:
 			if (GetMenuState(GetSystemMenu(_this->m_hwnd1, FALSE),
 				ID_CONN_CTLDOWN, MF_BYCOMMAND) == MF_CHECKED) {
-				_this->SendKeyEvent(XK_Control_L, false);
+				_this->sendModifier(VK_CONTROL, false);
 				CheckMenuItem(GetSystemMenu(_this->m_hwnd1, FALSE),
 					ID_CONN_CTLDOWN, MF_BYCOMMAND|MF_UNCHECKED);
 				SendMessage(_this->m_hToolbar, TB_SETSTATE, (WPARAM)ID_CONN_CTLDOWN,
@@ -2196,13 +2187,13 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 					ID_CONN_CTLDOWN, MF_BYCOMMAND|MF_CHECKED);
 				SendMessage(_this->m_hToolbar, TB_SETSTATE, (WPARAM)ID_CONN_CTLDOWN,
 					(LPARAM)MAKELONG(TBSTATE_CHECKED|TBSTATE_ENABLED, 0));
-				_this->SendKeyEvent(XK_Control_L, true);
+				_this->sendModifier(VK_CONTROL, true);
 			}
 			return 0;
 		case ID_CONN_ALTDOWN:
 			if(GetMenuState(GetSystemMenu(_this->m_hwnd1, FALSE),
 				ID_CONN_ALTDOWN,MF_BYCOMMAND) == MF_CHECKED) {
-				_this->SendKeyEvent(XK_Alt_L, false);
+				_this->sendModifier(VK_MENU, false);
 				CheckMenuItem(GetSystemMenu(_this->m_hwnd1, FALSE),
 					ID_CONN_ALTDOWN, MF_BYCOMMAND|MF_UNCHECKED);
 				SendMessage(_this->m_hToolbar, TB_SETSTATE, (WPARAM)ID_CONN_ALTDOWN,
@@ -2212,7 +2203,7 @@ LRESULT CALLBACK ClientConnection::WndProc1(HWND hwnd, UINT iMsg,
 					ID_CONN_ALTDOWN, MF_BYCOMMAND|MF_CHECKED);
 				SendMessage(_this->m_hToolbar, TB_SETSTATE, (WPARAM)ID_CONN_ALTDOWN,
 					(LPARAM)MAKELONG(TBSTATE_CHECKED|TBSTATE_ENABLED, 0));
-				_this->SendKeyEvent(XK_Alt_L, true);
+				_this->sendModifier(VK_MENU, true);
 			}
 			return 0;
 #ifdef ENABLE_VIDEO_CONTROLS
@@ -2454,6 +2445,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 				SetWindowPos(_this->m_hwnd1, hwndafter, 0,0,100,100, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 			Log::info(_T("Losing focus - cancelling modifiers\n"));
+			_this->m_rfbKeySym->processFocusLoss();
 			return 0;
 		}	
     case WM_QUERYNEWPALETTE:
@@ -2528,7 +2520,7 @@ LRESULT CALLBACK ClientConnection::WndProc(HWND hwnd, UINT iMsg,
 	return DefWindowProc(hwnd, iMsg, wParam, lParam);
 }
 
-void ClientConnection::onRfbKeySymEvent(unsigned short rfbKeySym, bool down)
+void ClientConnection::onRfbKeySymEvent(unsigned int rfbKeySym, bool down)
 {
   SendKeyEvent(rfbKeySym, down);
 }
@@ -2692,112 +2684,8 @@ ClientConnection::SendPointerEvent(int x, int y, int buttonMask)
 }
 
 //
-// ProcessKeyEvent
-//
-// Normally a single Windows key event will map onto a single RFB
-// key message, but this is not always the case.  Much of the stuff
-// here is to handle AltGr (=Ctrl-Alt) on international keyboards.
-// Example cases:
-//
-//    We want Ctrl-F to be sent as:
-//      Ctrl-Down, F-Down, F-Up, Ctrl-Up.
-//    because there is no keysym for ctrl-f, and because the ctrl
-//    will already have been sent by the time we get the F.
-//
-//    On German keyboards, @ is produced using AltGr-Q, which is
-//    Ctrl-Alt-Q.  But @ is a valid keysym in its own right, and when
-//    a German user types this combination, he doesn't mean Ctrl-@.
-//    So for this we will send, in total:
-//
-//      Ctrl-Down, Alt-Down,   
-//                 (when we get the AltGr pressed)
-//
-//      Alt-Up, Ctrl-Up, @-Down, Ctrl-Down, Alt-Down 
-//                 (when we discover that this is @ being pressed)
-//
-//      Alt-Up, Ctrl-Up, @-Up, Ctrl-Down, Alt-Down
-//                 (when we discover that this is @ being released)
-//
-//      Alt-Up, Ctrl-Up
-//                 (when the AltGr is released)
-
-inline void ClientConnection::ProcessKeyEvent(int virtkey, DWORD keyData)
-{
-    bool down = ((keyData & 0x80000000l) == 0);
-
-    // if virtkey found in mapping table, send X equivalent
-    // else
-    //   try to convert directly to ascii
-    //   if result is in range supported by X keysyms,
-    //      raise any modifiers, send it, then restore mods
-    //   else
-    //      calculate what the ascii would be without mods
-    //      send that
-
-#ifdef _DEBUG
-#ifdef UNDER_CE
-	char *keyname = "";
-#else
-    char keyname[32];
-    if (GetKeyNameText(  keyData,keyname, 31)) {
-        Log::message(_T("Process key: %s (keyData %04x): "), keyname, keyData);
-    };
-#endif
-#endif
-
-	try {
-		KeyActionSpec kas = m_keymap.PCtoX(virtkey, keyData);    
-		
-		if (kas.releaseModifiers & KEYMAP_LCONTROL) {
-			SendKeyEvent(XK_Control_L, false );
-			Log::info(_T("fake L Ctrl raised\n"));
-		}
-		if (kas.releaseModifiers & KEYMAP_LALT) {
-			SendKeyEvent(XK_Alt_L, false );
-			Log::info(_T("fake L Alt raised\n"));
-		}
-		if (kas.releaseModifiers & KEYMAP_RCONTROL) {
-			SendKeyEvent(XK_Control_R, false );
-			Log::info(_T("fake R Ctrl raised\n"));
-		}
-		if (kas.releaseModifiers & KEYMAP_RALT) {
-			SendKeyEvent(XK_Alt_R, false );
-			Log::info(_T("fake R Alt raised\n"));
-		}
-		
-		for (int i = 0; kas.keycodes[i] != XK_VoidSymbol && i < MaxKeysPerKey; i++) {
-			SendKeyEvent(kas.keycodes[i], down );
-			Log::message(_T("Sent keysym %04x (%s)\n"), 
-				kas.keycodes[i], down ? _T("press") : _T("release"));
-		}
-		
-		if (kas.releaseModifiers & KEYMAP_RALT) {
-			SendKeyEvent(XK_Alt_R, true );
-			Log::info(_T("fake R Alt pressed\n"));
-		}
-		if (kas.releaseModifiers & KEYMAP_RCONTROL) {
-			SendKeyEvent(XK_Control_R, true );
-			Log::info(_T("fake R Ctrl pressed\n"));
-		}
-		if (kas.releaseModifiers & KEYMAP_LALT) {
-			SendKeyEvent(XK_Alt_L, false );
-			Log::info(_T("fake L Alt pressed\n"));
-		}
-		if (kas.releaseModifiers & KEYMAP_LCONTROL) {
-			SendKeyEvent(XK_Control_L, false );
-			Log::info(_T("fake L Ctrl pressed\n"));
-		}
-	} catch (VncViewerException &e) {
-		e.Report();
-		PostMessage(m_hwnd1, WM_CLOSE, 0, 0);
-	}
-
-}
-
-//
 // SendKeyEvent
 //
-
 inline void
 ClientConnection::SendKeyEvent(CARD32 key, bool down)
 {
@@ -2809,6 +2697,11 @@ ClientConnection::SendKeyEvent(CARD32 key, bool down)
     WriteExact((char *)&ke, sz_rfbKeyEventMsg);
     Log::info(_T("SendKeyEvent: key = x%04x status = %s\n"), key, 
         down ? _T("down") : _T("up"));
+}
+
+void ClientConnection::sendModifier(unsigned char virtKey, bool down)
+{
+  m_rfbKeySym->sendModifier(virtKey, down);
 }
 
 #ifndef UNDER_CE

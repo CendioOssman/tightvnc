@@ -38,15 +38,24 @@ public:
 
   virtual bool isCursorShapeChanged();
 
-protected:
+private:
   bool grabPixels(PixelFormat *pixelFormat);
 
   HCURSOR getHCursor();
 
   static void inverse(char *bits, int count);
-  static void fixCursorShape(const FrameBuffer *pixels,
-                             char *maskAND, char *maskXOR);
+  void fixAlphaChannel(const FrameBuffer *pixels,
+                       char *maskAND);
   static bool testBit(char byte, int index);
+
+  static void winMonoShapeToRfb(const FrameBuffer *pixels,
+                                char *maskAND, char *maskXOR);
+
+  template< typename T >
+  bool winColorShapeToRfb(const FrameBuffer *pixels,
+                          char *maskAND);
+
+  UINT32 getAlphaMask(const PixelFormat *pf);
 
   HCURSOR m_lastHCursor;
 };

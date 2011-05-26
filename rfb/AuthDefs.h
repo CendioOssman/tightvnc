@@ -41,9 +41,11 @@ class AuthDefs
 public:
   static const UINT32 NONE = 1;
   static const UINT32 VNC = 2;
+  static const UINT32 EXTERNAL = 130;
 
   static const char *const SIG_NONE;
   static const char *const SIG_VNC;
+  static const char *const SIG_EXTERNAL;
 
   static UINT32 convertFromSecurityType(UINT32 securityType);
 };

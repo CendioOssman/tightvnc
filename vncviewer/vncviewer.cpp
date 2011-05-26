@@ -77,7 +77,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	std::list<HWND>::iterator iter;
 
 	try {
-		while (GetMessage(&msg, NULL, 0, 0)) {
+		while (GetMessageW(&msg, NULL, 0, 0)) {
 			if ( !hotkeys.TranslateAccel(&msg) &&
 				 !help.TranslateMsg(&msg) &&
 				 !app.ProcessDialogMessage(&msg) ) {

@@ -27,7 +27,7 @@
 #include "ControlTrayIcon.h"
 #include "ControlPipeName.h"
 #include "ControlCommand.h"
-#include "UpdateRemoteConfigCommand.h"
+#include "ReloadConfigCommand.h"
 #include "DisconnectAllCommand.h"
 #include "ControlAuth.h"
 #include "ConnectCommand.h"
@@ -151,7 +151,7 @@ int ControlApplication::run()
     if (cmdLineParser.hasKillAllFlag()) {
       command = new DisconnectAllCommand(m_serverControl);
     } else if (cmdLineParser.hasReloadFlag()) {
-      command = new UpdateRemoteConfigCommand(m_serverControl);
+      command = new ReloadConfigCommand(m_serverControl);
     } else if (cmdLineParser.hasConnectFlag()) {
       StringStorage hostName;
       cmdLineParser.getConnectHostName(&hostName);
@@ -334,11 +334,18 @@ int ControlApplication::runConfigurator(bool configService, bool isRunAsRequeste
 
 void ControlApplication::getCryptedPassword(UINT8 cryptedPass[8], const TCHAR *plainTextPassString)
 {
-  UINT8 textPlainPass[8];
-  memset(textPlainPass, 0, 8);
-  char plainTextPassANSI[9];
-  StringStorage plainTextPassTCHAR(plainTextPassString);
-  plainTextPassTCHAR.toAnsiString(plainTextPassANSI, 9);
-  memcpy(textPlainPass, plainTextPassANSI, strlen(plainTextPassANSI));
-  VncPassCrypt::getEncryptedPass(cryptedPass, textPlainPass);
+  StringStorage plainTextPass(plainTextPassString);
+  plainTextPass.getSubstring(&plainTextPass, 0, 7);
+
+  char ansiRepresentation[9];
+  bool success = plainTextPass.toAnsiString(ansiRepresentation, 9);
+  _ASSERT(success);
+
+  UINT8 byteArray[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  if (success) {
+    size_t len = strlen(ansiRepresentation);
+    memcpy(byteArray, ansiRepresentation, len);
+  }
+
+  VncPassCrypt::getEncryptedPass(cryptedPass, byteArray);
 }

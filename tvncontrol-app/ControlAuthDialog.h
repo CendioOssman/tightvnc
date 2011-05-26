@@ -26,6 +26,7 @@
 #define _CONTROL_AUTH_DIALOG_H_
 
 #include "gui/BaseDialog.h"
+#include "gui/TextBox.h"
 
 class ControlAuthDialog : public BaseDialog
 {
@@ -41,6 +42,7 @@ protected:
   virtual BOOL onDestroy();
 private:
   StringStorage m_password;
+  TextBox m_passwordTextBox;
 };
 
 #endif

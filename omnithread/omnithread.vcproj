@@ -4,6 +4,7 @@
 	Version="9,00"
 	Name="omnithread"
 	ProjectGUID="{2D948CAF-9622-495C-AB44-6337A6A9D440}"
+	RootNamespace="omnithread"
 	SccLocalPath="."
 	TargetFrameworkVersion="131072"
 	>

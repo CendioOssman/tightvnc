@@ -30,7 +30,7 @@
 class Keymap
 {
 public:
-  bool keySymToVirtualCode(UINT32 keySym, BYTE *vkCode);
+  bool keySymToVirtualCode(UINT32 keySym, BYTE *vkCode, bool *extended);
   bool virtualCodeToKeySym(UINT32 *keySym, BYTE vkCode);
 
   bool keySymToUnicodeChar(UINT32 keySym, WCHAR *ch);

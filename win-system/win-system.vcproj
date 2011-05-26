@@ -298,6 +298,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CrashHook.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CtrlAltDelSimulator.cpp"
 				>
 			</File>
@@ -433,6 +437,10 @@
 			</File>
 			<File
 				RelativePath=".\AutoImpersonator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CrashHook.h"
 				>
 			</File>
 			<File

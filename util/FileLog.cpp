@@ -109,16 +109,19 @@ void FileLog::backupLogFile(const TCHAR *pathToLogFile, int currentBackupIndex)
   }
 
   StringStorage backupPath;
-
   getBackupFileName(pathToLogFile, currentBackupIndex, &backupPath);
+  const TCHAR *backupPathString = backupPath.getString();
 
-  File backupLogFile(backupPath.getString());
-
+  File backupLogFile(backupPathString);
   if (backupLogFile.exists()) {
-    FileLog::backupLogFile(backupPath.getString(), currentBackupIndex + 1);
+    FileLog::backupLogFile(backupPathString, currentBackupIndex + 1);
   }
 
-  MoveFile(pathToLogFile, backupPath.getString());
+  bool wasError = MoveFile(pathToLogFile, backupPathString) == 0;
+  if (wasError && GetLastError() == ERROR_ALREADY_EXISTS) {
+    DeleteFile(backupPathString);
+    MoveFile(pathToLogFile, backupPathString);
+  }
 }
 
 void FileLog::getBackupFileName(const TCHAR *pathToLogFile, int backupNumber,

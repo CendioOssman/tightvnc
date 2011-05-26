@@ -34,13 +34,20 @@ public:
   RfbKeySym(RfbKeySymListener *extKeySymListener);
   virtual ~RfbKeySym();
 
+  void sendModifier(unsigned char virtKey, bool down);
+
   void processKeyEvent(unsigned short virtKey, unsigned int addKeyData);
   void processCharEvent(WCHAR charCode, unsigned int addKeyData);
   void processFocusRestoration();
+  void processFocusLoss();
+
+  void sendCtrlAltDel();
 
 private:
   void clearKeyState();
 
+  void releaseMeta();
+  void restoreMeta();
   void releaseModifier(unsigned char modifier);
   void restoreModifier(unsigned char modifier);
   void releaseModifiers();
@@ -48,15 +55,22 @@ private:
 
   bool isPressed(unsigned char virtKey);
 
+  unsigned char distinguishLeftRightModifier(unsigned char virtKey,
+                                             bool isRightHint);
+
   void checkAndSendDiff(unsigned char virtKey, unsigned char state);
 
-  virtual void sendKeySymEvent(unsigned short rfbKeySym, bool down);
+  virtual void sendKeySymEvent(unsigned int rfbKeySym, bool down);
+
+  virtual void sendVerbatimKeySymEvent(unsigned int rfbKeySym, bool down);
 
   RfbKeySymListener *m_extKeySymListener;
 
   unsigned char m_viewerKeyState[256];
 
   unsigned char m_serverKeyState[256];
+  bool m_leftMetaIsPressed;
+  bool m_rightMetaIsPressed;
 
   Keymap m_keyMap;
   bool m_allowProcessCharEvent;

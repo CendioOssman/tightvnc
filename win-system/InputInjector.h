@@ -33,11 +33,14 @@ class InputInjector
 {
 public:
   InputInjector(bool ctrlAltDelEnabled);
+
+  void resetModifiers();
+
   void injectKeyPress(BYTE vkCode);
 
   void injectKeyRelease(BYTE vkCode);
 
-  void injectKeyEvent(BYTE vkCode, bool release) throw(SystemException);
+  void injectKeyEvent(BYTE vkCode, bool release, bool extended = false);
 
   void injectCharEvent(WCHAR ch, bool release) throw(SystemException);
 
@@ -46,9 +49,14 @@ private:
 
   bool isDeadKey(SHORT scanResult, HKL keyboardLayout);
 
+  bool isOneKeyEventChar(WCHAR ch, SHORT scanResult, HKL keyboardLayout);
+
+  bool isDifferentWith(BYTE modifier, BYTE modStateValueOfOn,
+                       BYTE virtKey, HKL keyboardLayout);
+
   bool isInvariantToShift(BYTE virtKey, HKL keyboardLayout);
 
-  bool isExtendedKey(BYTE vkCode);
+  bool isResistantToCaps(BYTE virtKey, HKL keyboardLayout);
 
   bool isAscii(WCHAR ch);
 
@@ -62,6 +70,7 @@ private:
   bool m_menuIsPressed;
   bool m_deleteIsPressed;
   bool m_shiftIsPressed;
+  bool m_winIsPressed;
   bool m_ctrlAltDelEnabled;
 };
 

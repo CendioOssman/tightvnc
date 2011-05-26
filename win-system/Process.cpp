@@ -29,7 +29,11 @@
 Process::Process(const TCHAR *path, const TCHAR *args)
 : m_hProcess(0),
   m_hThread(0),
-  m_handlesIsInherited(false)
+  m_handlesIsInherited(false),
+  m_hStopWait(0),
+  m_stdIn(0),
+  m_stdOut(0),
+  m_stdErr(0)
 {
   setFilename(path);
   setArguments(args);

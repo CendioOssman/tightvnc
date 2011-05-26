@@ -117,7 +117,7 @@ bool LocalFilesDeleteOperation::deleteFile(File *file)
     } else {
       StringStorage message;
 
-      message.format(_T("Error: failed to get file list of local '%s' folder"),
+      message.format(_T("Error: failed to get file list in local folder '%s'"),
                      pathToTargetFile.getString());
 
       notifyError(message.getString());

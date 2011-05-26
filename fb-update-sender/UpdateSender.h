@@ -93,9 +93,10 @@ protected:
   void sendRectHeader(UINT16 x, UINT16 y, UINT16 w, UINT16 h,
                       INT32 encodingType);
   void sendNewFBSize(Dimension *dim);
-  void sendBlankScreen(const EncodeOptions *encodeOptions,
-                       const Dimension *dim,
-                       const PixelFormat *pf);
+  void sendFbInClientDim(const EncodeOptions *encodeOptions,
+                         const FrameBuffer *fb,
+                         const Dimension *dim,
+                         const PixelFormat *pf);
   void sendCursorShapeUpdate(const PixelFormat *fmt);
   void sendCursorPosUpdate();
   void sendCopyRect(const std::vector<Rect> *rects, const Point *source);

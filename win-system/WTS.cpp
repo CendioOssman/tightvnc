@@ -73,12 +73,14 @@ void WTS::queryConsoleUserToken(HANDLE *token) throw(SystemException)
     if (!m_WTSQueryUserToken(sessionId, token)) {
       throw SystemException();
     }
-    return;
   } else {
     if (m_userProcessToken == 0) {
       throw SystemException(_T("No console user process id specified"));
     }
-    *token = m_userProcessToken;
+    if (!DuplicateTokenEx(m_userProcessToken, 0, NULL, SecurityImpersonation,
+                          TokenPrimary, token)) {
+      throw SystemException(_T("Could not duplicate token"));
+    }
   }
 }
 

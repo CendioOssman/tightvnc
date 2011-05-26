@@ -202,14 +202,9 @@ bool ServerConfigDialog::validateInput()
 
 void ServerConfigDialog::updateUI()
 {
-  TCHAR tempBuf[32];
-
-  _itot(m_config->getRfbPort(), &tempBuf[0], 10);
-  m_rfbPort.setText(tempBuf);
-  _itot(m_config->getHttpPort(), &tempBuf[0], 10);
-  m_httpPort.setText(tempBuf);
-  _itot(m_config->getPollingInterval(), &tempBuf[0], 10);
-  m_pollingInterval.setText(tempBuf);
+  m_rfbPort.setSignedInt(m_config->getRfbPort());
+  m_httpPort.setSignedInt(m_config->getHttpPort());
+  m_pollingInterval.setUnsignedInt(m_config->getPollingInterval());
 
   m_enableFileTransfers.check(m_config->isFileTransfersEnabled());
   m_removeWallpaper.check(m_config->isRemovingDesktopWallpaperEnabled());
@@ -232,15 +227,13 @@ void ServerConfigDialog::updateUI()
   m_enableAppletParamInUrl.check(m_config->isAppletParamInUrlEnabled());
   m_useAuthentication.check(m_config->isUsingAuthentication());
 
-  _itot(m_config->getLocalInputPriorityTimeout(), &tempBuf[0], 10);
-
   m_blockLocalInput.check(m_config->isBlockingLocalInput());
   m_blockRemoteInput.check(m_config->isBlockingRemoteInput());
   m_localInputPriority.check(m_config->isLocalInputPriorityEnabled());
   if (m_config->isLocalInputPriorityEnabled()) {
     m_localInputPriorityTimeout.setEnabled(true);
   }
-  m_localInputPriorityTimeout.setText(tempBuf);
+  m_localInputPriorityTimeout.setUnsignedInt(m_config->getLocalInputPriorityTimeout());
 
   m_grabTransparentWindows.check(m_config->getGrabTransparentWindowsFlag());
 

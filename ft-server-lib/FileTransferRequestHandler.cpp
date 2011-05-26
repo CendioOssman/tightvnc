@@ -219,7 +219,8 @@ void FileTransferRequestHandler::fileListRequested()
     m_input->readUTF8(&fullPathName);
   }
 
-  Log::message(_T("file list of \"%s\" folder requested"), fullPathName.getString());
+  Log::message(_T("File list of folder '%s' requested"),
+               fullPathName.getString());
 
   checkAccess();
 
@@ -383,7 +384,8 @@ void FileTransferRequestHandler::dirSizeRequested()
     m_input->readUTF8(&fullPathName);
   } 
 
-  Log::message(_T("size of \"%s\" folder requested"), fullPathName.getString());
+  Log::message(_T("Size of folder '%s\' requested"),
+               fullPathName.getString());
 
   checkAccess();
 

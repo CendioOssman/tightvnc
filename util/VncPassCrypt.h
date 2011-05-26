@@ -26,6 +26,7 @@
 #define __VNCPASSCRYPT_H__
 
 #include "util/inttypes.h"
+#include <vector>
 
 class VncPassCrypt
 {
@@ -47,7 +48,7 @@ public:
 
 private:
   static const UINT8 m_key[];
-  UINT8 m_plainPassword[8];
+  std::vector<UINT8> m_plainPassword;
 };
 
 #endif 

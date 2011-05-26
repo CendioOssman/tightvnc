@@ -36,11 +36,12 @@ KeyEvent::KeyEvent(bool ctrlAltDelEnabled)
 void KeyEvent::generate(UINT32 keySym, bool release)
 {
   BYTE vkCode;
+  bool extended;
 
   WCHAR ch;
 
-  if (m_keyMap.keySymToVirtualCode(keySym, &vkCode)) {
-    m_inputInjector.injectKeyEvent(vkCode, release);
+  if (m_keyMap.keySymToVirtualCode(keySym, &vkCode, &extended)) {
+    m_inputInjector.injectKeyEvent(vkCode, release, extended);
   } else if (m_keyMap.keySymToUnicodeChar(keySym, &ch)) {
     m_inputInjector.injectCharEvent(ch, release);
   } else {

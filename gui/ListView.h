@@ -31,7 +31,6 @@
 
 typedef struct
 {
-  TCHAR * caption;
   int index;
   LPARAM tag;
 } ListViewItem;

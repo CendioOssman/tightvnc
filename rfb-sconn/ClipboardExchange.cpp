@@ -81,8 +81,10 @@ void ClipboardExchange::onRequest(UINT32 reqCode, RfbInputGate *input)
 void ClipboardExchange::sendClipboard(const StringStorage *newClipboard)
 {
   AutoLock al(&m_storedClipMut);
-  m_storedClip = *newClipboard;
-  m_newClipWaiter.notify();
+  if (!m_storedClip.isEqualTo(newClipboard)) {
+    m_storedClip = *newClipboard;
+    m_newClipWaiter.notify();
+  }
 }
 
 void ClipboardExchange::onTerminate()

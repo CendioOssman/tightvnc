@@ -25,23 +25,20 @@
 #include "InputInjector.h"
 #include "Keyboard.h"
 #include "win-system/Environment.h"
+#include "util/Log.h"
 #include <vector>
 
 #include <crtdbg.h>
-
-const BYTE InputInjector::EXTENDED_KEYS[] = { VK_MENU, VK_CONTROL, VK_INSERT, VK_DELETE, VK_HOME, VK_END,
-                                              VK_PRIOR, VK_NEXT, VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, VK_NUMLOCK,
-                                              VK_CANCEL, VK_RETURN, VK_DIVIDE, VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2,
-                                              VK_NUMPAD3, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD6, VK_NUMPAD7, VK_NUMPAD7,
-                                              VK_NUMPAD8, VK_NUMPAD9 };
 
 InputInjector::InputInjector(bool ctrlAltDelEnabled)
 : m_controlIsPressed(false),
   m_menuIsPressed(false),
   m_deleteIsPressed(false),
   m_shiftIsPressed(false),
+  m_winIsPressed(false),
   m_ctrlAltDelEnabled(ctrlAltDelEnabled)
 {
+  resetModifiers();
 }
 
 void InputInjector::injectKeyPress(BYTE vkCode)
@@ -54,8 +51,25 @@ void InputInjector::injectKeyRelease(BYTE vkCode)
   injectKeyEvent(vkCode, true);
 }
 
-void InputInjector::injectKeyEvent(BYTE vkCode, bool release)
+void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
 {
+  Log::debug(_T("Prepare to inject the key event:")
+             _T(" vkCode = %d, release = %d, extended = %d"),
+             (int)vkCode,
+             (int)release,
+             (int)extended);
+  Log::debug(_T("The modifier states before:")
+             _T(" m_controlIsPressed = %d;")
+             _T(" m_menuIsPressed = %d;")
+             _T(" m_deleteIsPressed = %d;")
+             _T(" m_shiftIsPressed = %d;")
+             _T(" m_winIsPressed = %d;"),
+             (int)m_controlIsPressed,
+             (int)m_menuIsPressed,
+             (int)m_deleteIsPressed,
+             (int)m_shiftIsPressed,
+             (int)m_winIsPressed);
+
   if (vkCode == VK_CONTROL || vkCode == VK_RCONTROL || vkCode == VK_LCONTROL) {
     m_controlIsPressed = !release;
   }
@@ -68,11 +82,29 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release)
   if (vkCode == VK_SHIFT || vkCode == VK_RSHIFT || vkCode == VK_LSHIFT) {
     m_shiftIsPressed = !release;
   }
+  if (vkCode == VK_LWIN || vkCode == VK_RWIN) {
+    m_winIsPressed = !release;
+  }
+  Log::debug(_T("The modifier states after:")
+             _T(" m_controlIsPressed = %d;")
+             _T(" m_menuIsPressed = %d;")
+             _T(" m_deleteIsPressed = %d;")
+             _T(" m_shiftIsPressed = %d;")
+             _T(" m_winIsPressed = %d;"),
+             (int)m_controlIsPressed,
+             (int)m_menuIsPressed,
+             (int)m_deleteIsPressed,
+             (int)m_shiftIsPressed,
+             (int)m_winIsPressed);
 
-  if (m_controlIsPressed && m_menuIsPressed && m_deleteIsPressed) {
+  if (m_controlIsPressed && m_menuIsPressed && m_deleteIsPressed &&
+      !m_winIsPressed && !m_shiftIsPressed) {
     if (m_ctrlAltDelEnabled) {
+      Log::debug(_T("Try simulate the Ctrl+Alt+Del combination"));
       Environment::simulateCtrlAltDel();
-    } 
+    } else {
+      Log::debug(_T("The Ctrl+Alt+Del combination is disabled. Ignore the Del key pressing"));
+    }
   } else {
     INPUT keyEvent = {0};
 
@@ -84,7 +116,7 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release)
       keyEvent.ki.dwFlags = KEYEVENTF_KEYUP;
     }
 
-    if (isExtendedKey(vkCode)) {
+    if (extended) {
       keyEvent.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
     }
 
@@ -101,14 +133,23 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release)
 
 void InputInjector::injectCharEvent(WCHAR ch, bool release)
 {
+  Log::debug(_T("Try insert a char event: char = %d, release = %d"),
+             (int)ch, (int)release);
+
   bool ctrlOrAltPressed = m_controlIsPressed || m_menuIsPressed;
   SHORT vkKeyScanResult = 0;
   HKL hklCurrent = (HKL)0x04090409;
   try {
     hklCurrent = getCurrentKbdLayout();
+    Log::debug(_T("Current keyboard layout = %x"), (int)hklCurrent);
     vkKeyScanResult = searchVirtKey(ch, hklCurrent);
+    Log::debug(_T("The virtual code scan result = %d"), (int)vkKeyScanResult);
   } catch (...) {
+    Log::detail(_T("Can't insert the char by simulating a key press event,")
+              _T(" therefore try insert it as an unicode symbol"));
     if (ctrlOrAltPressed) {
+      Log::warning(_T("Can't insert the char by an unicode symbol because")
+                   _T(" a modifier is pressed"));
       throw;
     }
     INPUT keyEvent = {0};
@@ -133,10 +174,13 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
   } else {
     controlSym = false;
   }
-
+  bool resistantToCaps = isResistantToCaps((BYTE)vkKeyScanResult, hklCurrent);
   bool invariantToShift = isInvariantToShift((BYTE)vkKeyScanResult, hklCurrent);
 
-  bool shiftedKey = (vkKeyScanResult >> 8 & 1) != 0 && !capsToggled();
+  bool shiftedKey = (vkKeyScanResult >> 8 & 1) != 0;
+  shiftedKey = shiftedKey && !capsToggled() ||
+               shiftedKey && capsToggled() && resistantToCaps ||
+               !shiftedKey && capsToggled() && !resistantToCaps;
   bool shiftPressNeeded = shiftedKey && !m_shiftIsPressed && !release &&
                           !controlSym;
   bool shiftUpNeeded = !shiftedKey && m_shiftIsPressed && !release &&
@@ -147,8 +191,27 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
                         !release;
   if ((ctrlPressNeeded || altPressNeeded) &&
       (m_controlIsPressed || m_menuIsPressed)) {
+    Log::error(_T("Received a control combination that we doesn't know how it can be made"));
     return;
   }
+
+  Log::debug(_T("Variable states before generate key events to get the char:")
+             _T(" controlSym = %d;")
+             _T(" resistantToCaps = %d;")
+             _T(" invariantToShift = %d;")
+             _T(" shiftedKey = %d;")
+             _T(" shiftPressNeeded = %d;")
+             _T(" shiftUpNeeded = %d;")
+             _T(" ctrlPressNeeded = %d;")
+             _T(" altPressNeeded = %d;"),
+             (int)controlSym,
+             (int)resistantToCaps,
+             (int)invariantToShift,
+             (int)shiftedKey,
+             (int)shiftPressNeeded,
+             (int)shiftUpNeeded,
+             (int)ctrlPressNeeded,
+             (int)altPressNeeded);
 
   if (ctrlPressNeeded) {
     injectKeyEvent(VK_CONTROL, false);
@@ -173,16 +236,6 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
   if (ctrlPressNeeded) {
     injectKeyEvent(VK_CONTROL, true);
   }
-}
-
-bool InputInjector::isExtendedKey(BYTE vkCode) {
-  int i = sizeof(EXTENDED_KEYS);
-  while (i-- > 0) {
-    if (EXTENDED_KEYS[i] == vkCode) {
-      return true;
-    }
-  }
-  return false;
 }
 
 bool InputInjector::isAscii(WCHAR ch)
@@ -216,6 +269,20 @@ SHORT InputInjector::searchVirtKey(WCHAR ch, HKL hklCurrent)
   if (isDeadKey(vkKeyScanResult, hklCurrent)) {
     throw Exception(_T("Special dead symbol must be inserted")
                     _T(" only as unicode character"));
+  }
+  if (!isOneKeyEventChar(ch, vkKeyScanResult, hklCurrent)) {
+    StringStorage errMess;
+    errMess.format(_T("Can't get the %d character by one keyboard event"),
+                   (unsigned int)ch);
+    throw Exception(errMess.getString());
+  }
+  if (!modifiersPressed) {
+    if (((unsigned int)hklCurrent & 0xffff0000) == 0xf0010000 &&
+        ch == _T('6')) {
+      throw Exception(_T("Special case for the '6' character on the USA")
+                      _T(" international keyboard, it will be inserted as")
+                      _T(" an unicode"));
+    }
   }
   return vkKeyScanResult;
 }
@@ -251,6 +318,32 @@ bool InputInjector::isDeadKey(SHORT scanResult, HKL keyboardLayout)
   return result;
 }
 
+bool InputInjector::isOneKeyEventChar(WCHAR ch, SHORT scanResult,
+                                      HKL keyboardLayout)
+{
+  unsigned char kbdState[256];
+  memset(kbdState, 0, sizeof(kbdState));
+  WCHAR outBuff[20];
+  bool withShift = (scanResult >> 8 & 1) != 0;
+  bool withCtrl  = (scanResult >> 9 & 1) != 0;
+  bool withAlt   = (scanResult >> 10 & 1) != 0;
+
+  kbdState[VK_SHIFT]   = withShift ? 128 : 0;
+  kbdState[VK_CONTROL] = withCtrl  ? 128 : 0;
+  kbdState[VK_MENU]    = withAlt   ? 128 : 0;
+
+  unsigned char virtKey = scanResult & 255;
+
+  int count = ToUnicodeEx(virtKey, 0, kbdState, outBuff,
+                          sizeof(outBuff) / sizeof(WCHAR),
+                          0, keyboardLayout);
+  if (count == 1) {
+    return outBuff[0] == ch;
+  } else {
+    return false;
+  }
+}
+
 HKL InputInjector::getCurrentKbdLayout()
 {
   HWND hwnd = GetForegroundWindow();
@@ -262,7 +355,8 @@ HKL InputInjector::getCurrentKbdLayout()
   return GetKeyboardLayout(threadId);
 }
 
-bool InputInjector::isInvariantToShift(BYTE virtKey, HKL keyboardLayout)
+bool InputInjector::isDifferentWith(BYTE modifier, BYTE modStateValueOfOn,
+                                    BYTE virtKey, HKL keyboardLayout)
 {
   unsigned char kbdState[256];
   memset(kbdState, 0, sizeof(kbdState));
@@ -272,7 +366,7 @@ bool InputInjector::isInvariantToShift(BYTE virtKey, HKL keyboardLayout)
                            sizeof(outBuff1) / sizeof(WCHAR),
                            0, keyboardLayout);
 
-  kbdState[VK_SHIFT] = 128;
+  kbdState[modifier & 255] = modStateValueOfOn;
   int count2 = ToUnicodeEx(virtKey, 0, kbdState, outBuff2,
                           sizeof(outBuff2) / sizeof(WCHAR),
                           0, keyboardLayout);
@@ -282,4 +376,30 @@ bool InputInjector::isInvariantToShift(BYTE virtKey, HKL keyboardLayout)
   } else {
     return true;
   }
+}
+
+bool InputInjector::isInvariantToShift(BYTE virtKey, HKL keyboardLayout)
+{
+  return isDifferentWith(VK_SHIFT, 128, virtKey, keyboardLayout);
+}
+
+bool InputInjector::isResistantToCaps(BYTE virtKey, HKL keyboardLayout)
+{
+  return isDifferentWith(VK_CAPITAL, 1, virtKey, keyboardLayout);
+}
+
+void InputInjector::resetModifiers()
+{
+  injectKeyEvent(VK_MENU, true);
+  injectKeyEvent(VK_LMENU, true);
+  injectKeyEvent(VK_RMENU, true);
+  injectKeyEvent(VK_SHIFT, true);
+  injectKeyEvent(VK_LSHIFT, true);
+  injectKeyEvent(VK_RSHIFT, true);
+  injectKeyEvent(VK_CONTROL, true);
+  injectKeyEvent(VK_LCONTROL, true);
+  injectKeyEvent(VK_RCONTROL, true);
+  injectKeyEvent(VK_LWIN, true);
+  injectKeyEvent(VK_RWIN, true);
+  injectKeyEvent(VK_DELETE, true);
 }

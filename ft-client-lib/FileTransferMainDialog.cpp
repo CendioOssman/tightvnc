@@ -538,14 +538,14 @@ void FileTransferMainDialog::onMkDirLocalButtonClick()
 
     StringStorage message;
 
-    message.format(_T("Creating local '%s' folder"), pathToFile.getString());
+    message.format(_T("Creating local folder '%s'"), pathToFile.getString());
 
     insertMessageIntoComboBox(message.getString());
 
     File file(pathToFile.getString());
 
     if (pathToFile.isEmpty() || !file.mkdir()) {
-      message.format(_T("Error: failed to create local '%s' folder'"),
+      message.format(_T("Error: failed to create local folder '%s'"),
                      pathToFile.getString());
 
       insertMessageIntoComboBox(message.getString());
@@ -904,7 +904,7 @@ void FileTransferMainDialog::tryListLocalFolder(const TCHAR *pathToFile)
   if (!fl.list()) {
     StringStorage message;
 
-    message.format(_T("Error: failed to get file list from local '%s' folder"),
+    message.format(_T("Error: failed to get file list in local folder '%s'"),
                    pathToFile);
 
     insertMessageIntoComboBox(message.getString());

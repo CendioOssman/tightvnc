@@ -78,7 +78,7 @@ public:
 	HWND m_hSess;
 
 private:
-	virtual void onRfbKeySymEvent(unsigned short rfbKeySym, bool down);
+	virtual void onRfbKeySymEvent(unsigned int rfbKeySym, bool down);
 
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK WndProc1(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
@@ -139,8 +139,8 @@ private:
 	void ProcessPointerEvent(int x, int y, DWORD keyflags, UINT msg);
  	void SubProcessPointerEvent(int x, int y, DWORD keyflags);
 	void SendPointerEvent(int x, int y, int buttonMask);
-    void ProcessKeyEvent(int virtkey, DWORD keyData);
 	void SendKeyEvent(CARD32 key, bool down);
+	void sendModifier(unsigned char virtKey, bool down);
 	void SwitchOffKey();
 
 	void sendEnableVideoHandling(bool enable);

@@ -50,7 +50,6 @@ protected:
 	UINT m_timer;
 	NOTIFYICONDATA m_nid;
 	char netbuf[1024];
-	ConnectionConfig m_conConf;
 };
 
 #endif // DAEMON_H__

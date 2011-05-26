@@ -516,9 +516,6 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
   if (!sm->setUINT(_T("PollingInterval"), m_serverConfig.getPollingInterval())) {
     saveResult = false;
   }
-  if (!sm->setBoolean(_T("DisableTrayIcon"), m_serverConfig.isTrayIconDisabled())) {
-    saveResult = false;
-  }
   if (!sm->setBoolean(_T("AllowLoopback"), m_serverConfig.isLoopbackConnectionsAllowed())) {
     saveResult = false;
   }
@@ -669,12 +666,6 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.setPollingInterval(uintVal);
-  }
-  if (!sm->getBoolean(_T("DisableTrayIcon"), &boolVal)) {
-    loadResult = false;
-  } else {
-    m_isConfigLoadedPartly = true;
-    m_serverConfig.disableTrayIcon(boolVal);
   }
   if (!sm->getBoolean(_T("AllowLoopback"), &boolVal)) {
     loadResult = false;
