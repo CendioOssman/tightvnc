@@ -56,7 +56,7 @@ CAPTION "About TightVNC Viewer"
 FONT 8, "MS Shell Dlg"
 {
     CONTROL         IDB_VNCBITMAP, IDC_STATIC_LOGO, WC_STATIC, WS_GROUP | SS_BITMAP | SS_NOTIFY | SS_SUNKEN, 7, 7, 87, 80
-    LTEXT           "TightVNC Viewer version 1.5.3", IDC_STATIC_VERSION, 104, 7, 181, 10, SS_LEFT
+    LTEXT           "TightVNC Viewer version 1.5.4", IDC_STATIC_VERSION, 104, 7, 181, 10, SS_LEFT
     LTEXT           "[build time unknown]", IDC_BUILDTIME, 104, 19, 181, 10, SS_LEFT
     LTEXT           "Copyright (C) 2000-2006 Constantin Kaplinsky\nCopyright (C) 2000-2009 TightVNC Group\nCopyright (C) 2008-2011 GlavSoft LLC.", IDC_STATIC_COPYRIGHTS, 104, 33, 181, 27, SS_LEFT
     LTEXT           "Based on VNC software\nCopyright (C) 1999-2001 AT&&T Laboratories Cambridge\nCopyright (C) 2002-2003 RealVNC Ltd.", IDC_STATIC_BASEDON, 104, 63, 181, 29, SS_LEFT
@@ -417,8 +417,8 @@ IDR_TRAY           ICON           "idr_tray.ico"
 //
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 1 VERSIONINFO
-    FILEVERSION     1,5,3,0
-    PRODUCTVERSION  1,5,3,0
+    FILEVERSION     1,5,4,0
+    PRODUCTVERSION  1,5,4,0
     FILEOS          VOS_UNKNOWN
     FILETYPE        VFT_UNKNOWN
 {
@@ -429,14 +429,14 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
             VALUE "Comments", "Based on VNC by AT&T Research Labs Cambridge, RealVNC Ltd.\0"
             VALUE "CompanyName", "TightVNC Group\0"
             VALUE "FileDescription", "vncviewer\0"
-            VALUE "FileVersion", "1.5.3.0\0"
+            VALUE "FileVersion", "1.5.4.0\0"
             VALUE "InternalName", "vncviewer\0"
             VALUE "LegalCopyright", "Copyright (C) 2000-2011 TightVNC Group\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "vncviewer.exe\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "TightVNC Win32 Viewer\0"
-            VALUE "ProductVersion", "1.5.3.0\0"
+            VALUE "ProductVersion", "1.5.4.0\0"
             VALUE "SpecialBuild", "\0"
         }
     }

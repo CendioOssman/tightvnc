@@ -25,11 +25,13 @@
 #include "ControlServer.h"
 #include "ControlClient.h"
 #include "util/Log.h"
+#include "tvncontrol-app/NamedPipeTransport.h"
 
-ControlServer::ControlServer(Transport *serverTransport,
+ControlServer::ControlServer(PipeServer *pipeServer,
                              RfbClientManager *rfbClientManager)
 : m_authenticator(30000, 3),
-  m_serverTransport(serverTransport), m_rfbClientManager(rfbClientManager)
+  m_pipeServer(pipeServer),
+  m_rfbClientManager(rfbClientManager)
 {
   Log::message(_T("%s"), _T("Control server started"));
 
@@ -44,12 +46,12 @@ ControlServer::~ControlServer()
   wait();
 
   try {
-    m_serverTransport->close();
+    m_pipeServer->close();
   } catch (Exception &ex) {
     Log::error(_T("Failed to destroy control server transport with '%s' reason"), ex.getMessage());
   }
 
-  delete m_serverTransport;
+  delete m_pipeServer;
 
   m_authenticator.breakAndDisableAuthentications();
 
@@ -60,11 +62,13 @@ void ControlServer::execute()
 {
   try {
     while (!isTerminating()) {
-      Transport *transport = m_serverTransport->accept();
+      Pipe *pipe = m_pipeServer->accept();
+      Transport *transport = new NamedPipeTransport(pipe);
 
       ControlClient *clientThread = new ControlClient(transport,
                                                       m_rfbClientManager,
-                                                      &m_authenticator);
+                                                      &m_authenticator,
+                                                      pipe->getPipeHandle());
 
       clientThread->resume();
 
@@ -77,5 +81,5 @@ void ControlServer::execute()
 
 void ControlServer::onTerminate()
 {
-  try { m_serverTransport->close(); } catch (...) { }
+  try { m_pipeServer->close(); } catch (...) { }
 }

@@ -148,3 +148,8 @@ size_t Pipe::read(void *buffer, size_t len)
   }
   return result;
 }
+
+HANDLE Pipe::getPipeHandle()
+{
+  return m_hPipe;
+}

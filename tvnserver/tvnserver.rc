@@ -440,8 +440,8 @@ IDI_IDLE           ICON           ".\\res\\idle.ico"
 //
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 1 VERSIONINFO
-    FILEVERSION     2,0,3,0
-    PRODUCTVERSION  2,0,3,0
+    FILEVERSION     2,0,4,0
+    PRODUCTVERSION  2,0,4,0
     FILEOS          VOS_NT
     FILETYPE        VFT_UNKNOWN
 {
@@ -451,12 +451,12 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
         {
             VALUE "CompanyName", "GlavSoft LLC."
             VALUE "FileDescription", "TightVNC Server for Windows"
-            VALUE "FileVersion", "2.0.3.0"
+            VALUE "FileVersion", "2.0.4.0"
             VALUE "InternalName", "tvnserver"
             VALUE "LegalCopyright", "Copyright (C) 2008-2011 GlavSoft LLC."
             VALUE "OriginalFilename", "tvnserver.exe"
             VALUE "ProductName", "TightVNC"
-            VALUE "ProductVersion", "2.0.3.0"
+            VALUE "ProductVersion", "2.0.4.0"
         }
     }
     BLOCK "VarFileInfo"

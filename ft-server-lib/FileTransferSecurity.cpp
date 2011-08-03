@@ -25,6 +25,7 @@
 #include "FileTransferSecurity.h"
 
 #include "server-config-lib/Configurator.h"
+#include "util/Log.h"
 
 FileTransferSecurity::FileTransferSecurity(WinDesktop *desktop)
 : m_hasAccess(false), m_desktop(desktop)
@@ -59,7 +60,9 @@ void FileTransferSecurity::beginMessageProcessing()
       impersonateAsLoggedUser();
 
       m_hasAccess = true;
-    } catch (...) {
+    } catch (Exception &e) {
+      Log::error(_T("Access denied to the file transfer: %s"),
+                 e.getMessage());
       m_hasAccess = false;
     } 
   } 

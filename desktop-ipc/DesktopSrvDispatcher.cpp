@@ -28,9 +28,9 @@
 #include "util/Log.h"
 
 DesktopSrvDispatcher::DesktopSrvDispatcher(BlockingGate *gate,
-                               AnEventListener *extTerminationListener)
+                               AnEventListener *extErrorListener)
 : m_gate(gate),
-  m_extTerminationListener(extTerminationListener)
+  m_extErrorListener(extErrorListener)
 {
 }
 
@@ -43,13 +43,12 @@ DesktopSrvDispatcher::~DesktopSrvDispatcher()
 
 void DesktopSrvDispatcher::onTerminate()
 {
-  m_pause.notify();
 }
 
-void DesktopSrvDispatcher::notifyAbTermination()
+void DesktopSrvDispatcher::notifyOnError()
 {
-  if (m_extTerminationListener) {
-    m_extTerminationListener->onAnObjectEvent();
+  if (m_extErrorListener) {
+    m_extErrorListener->onAnObjectEvent();
   }
 }
 
@@ -72,18 +71,14 @@ void DesktopSrvDispatcher::execute()
     } catch (Exception &e) {
       Log::error(_T("The DesktopServerApplication dispatcher has ")
                  _T("failed with error: %s"), e.getMessage());
-      notifyAbTermination();
-      m_pause.waitForEvent(1000);
+      notifyOnError();
+      terminate();
     }
   }
+  Log::message(_T("The DesktopServerApplication dispatcher has been stopped"));
 }
 
 void DesktopSrvDispatcher::registerNewHandle(UINT8 code, ClientListener *listener)
 {
   m_handlers[code] = listener;
-}
-
-void DesktopSrvDispatcher::unregisterHandle(UINT8 code)
-{
-  m_handlers.erase(code);
 }

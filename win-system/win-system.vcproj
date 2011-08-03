@@ -342,6 +342,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PipeImpersonatedThread.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\PipeServer.cpp"
 				>
 			</File>
@@ -481,6 +485,10 @@
 			</File>
 			<File
 				RelativePath=".\PipeClient.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PipeImpersonatedThread.h"
 				>
 			</File>
 			<File

@@ -78,6 +78,7 @@ void PixelConverter::convert(const Rect *rect, FrameBuffer *dstFb,
         }
       }
     } else if (m_convertMode == CONVERT_FROM_32) {
+      bool bigEndianDiffs = dstPf.bigEndian != srcPf.bigEndian;
       UINT32 srcRedMax = srcPf.redMax;
       UINT32 srcGrnMax = srcPf.greenMax;
       UINT32 srcBluMax = srcPf.blueMax;
@@ -96,8 +97,15 @@ void PixelConverter::convert(const Rect *rect, FrameBuffer *dstFb,
                                        srcPf.blueShift & srcBluMax];
           if (dstPixelSize == 4) {
             *(UINT32 *)dstPixP = dstPixel;
+            if (bigEndianDiffs) {
+              *(UINT32 *)dstPixP = rotateUint32(*(UINT32 *)dstPixP);
+            }
           } else if (dstPixelSize == 2) {
             *(UINT16 *)dstPixP = dstPixel;
+            if (bigEndianDiffs) {
+              *(UINT16 *)dstPixP = *(UINT16 *)dstPixP << 8 |
+                                   *(UINT16 *)dstPixP >> 8;
+            }
           } else if (dstPixelSize == 1) {
             *(UINT8 *)dstPixP = dstPixel;
           }
@@ -214,6 +222,9 @@ void PixelConverter::fillHexBitsTable(const PixelFormat *dstPf,
     UINT32 dstGrn = (srcGrn * dstGrnMax / srcGrnMax) << dstGrnShift;
     UINT32 dstBlu = (srcBlu * dstBluMax / srcBluMax) << dstBluShift;
     m_hexBitsTable[i] = dstRed | dstGrn | dstBlu;
+    if (dstPf->bigEndian != srcPf->bigEndian) {
+      m_hexBitsTable[i] = rotateUint32(m_hexBitsTable[i]);
+    }
   }
 }
 
@@ -245,4 +256,17 @@ void PixelConverter::fill32BitsTable(const PixelFormat *dstPf,
   for (UINT32 i = 0; i <= srcBluMax; i++) {
     m_bluTable[i] = ((i * dstBluMax + srcBluMax / 2) / srcBluMax) << dstBluShift;
   }
+}
+
+UINT32 PixelConverter::rotateUint32(UINT32 value) const
+{
+  UINT32 result;
+  char *src = (char *)&value;
+  char *dst = (char *)&result;
+  dst[0] = src[3];
+  dst[1] = src[2];
+  dst[2] = src[1];
+  dst[3] = src[0];
+
+  return result;
 }

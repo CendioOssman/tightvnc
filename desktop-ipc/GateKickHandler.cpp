@@ -25,14 +25,12 @@
 #include "GateKickHandler.h"
 
 GateKickHandler::GateKickHandler(DesktopSrvDispatcher *dispatcher)
-: IpcServer(dispatcher)
 {
-  m_dispatcher->registerNewHandle(255, this);
+  dispatcher->registerNewHandle(255, this);
 }
 
 GateKickHandler::~GateKickHandler()
 {
-  m_dispatcher->unregisterHandle(255);
 }
 
 void GateKickHandler::onRequest(UINT8 reqCode, BlockingGate *backGate)

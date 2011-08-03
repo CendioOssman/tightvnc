@@ -28,10 +28,9 @@
 #include "DesktopServerProto.h"
 #include "desktop/LocalUpdateHandler.h"
 #include "DesktopSrvDispatcher.h"
-#include "IpcServer.h"
 
 class UpdateHandlerServer: public DesktopServerProto, public ClientListener,
-                           public UpdateListener, public IpcServer
+                           public UpdateListener
 {
 public:
   UpdateHandlerServer(BlockingGate *forwGate,

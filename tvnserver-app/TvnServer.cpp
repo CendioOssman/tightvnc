@@ -289,13 +289,15 @@ void TvnServer::restartControlServer()
   Log::message(_T("Starting control server"));
 
   try {
-    Transport *transport = 0;
-
     StringStorage pipeName;
     ControlPipeName::createPipeName(isRunningAsService(), &pipeName);
-    transport = TransportFactory::createPipeServerTransport(pipeName.getString());
 
-    m_controlServer = new ControlServer(transport, m_rfbClientManager);
+    SecurityAttributes *pipeSecurity = new SecurityAttributes();
+    pipeSecurity->setInheritable();
+    pipeSecurity->shareToAllUsers();
+
+    PipeServer *pipeServer = new PipeServer(pipeName.getString(), pipeSecurity);
+    m_controlServer = new ControlServer(pipeServer , m_rfbClientManager);
   } catch (Exception &ex) {
     Log::error(_T("Failed to start control server: \"%s\""), ex.getMessage());
   }

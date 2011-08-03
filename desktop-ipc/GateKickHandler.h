@@ -26,9 +26,8 @@
 #define __GATEKICKHANDLER_H__
 
 #include "DesktopSrvDispatcher.h"
-#include "desktop-ipc/IpcServer.h"
 
-class GateKickHandler : public ClientListener, public IpcServer
+class GateKickHandler : public ClientListener
 {
 public:
   GateKickHandler(DesktopSrvDispatcher *dispatcher);

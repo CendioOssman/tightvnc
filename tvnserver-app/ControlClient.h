@@ -44,7 +44,8 @@ class ControlClient : public Thread
 public:
   ControlClient(Transport *transport,
                 RfbClientManager *rfbClientManager,
-                ControlAppAuthenticator *authenticator);
+                ControlAppAuthenticator *authenticator,
+                HANDLE pipeHandle);
   virtual ~ControlClient();
 
 protected:
@@ -73,6 +74,7 @@ private:
   Channel *m_stream;
 
   ControlGate *m_gate;
+  HANDLE m_pipeHandle;
 
   RfbClientManager *m_rfbClientManager;
 

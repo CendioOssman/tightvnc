@@ -43,6 +43,11 @@ MouseShapeDetector::~MouseShapeDetector(void)
   wait();
 }
 
+void MouseShapeDetector::onTerminate()
+{
+  m_sleepTimer.notify();
+}
+
 void MouseShapeDetector::execute()
 {
   Log::info(_T("mouse shape detector thread id = %d"), getThreadId());
@@ -57,6 +62,6 @@ void MouseShapeDetector::execute()
       m_updateKeeper->setCursorShapeChanged();
       doUpdate();
     }
-    Sleep(SLEEP_TIME);
+    m_sleepTimer.waitForEvent(SLEEP_TIME);
   }
 }

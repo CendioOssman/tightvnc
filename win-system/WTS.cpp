@@ -24,19 +24,20 @@
 
 #include "WTS.h"
 
-#include "DynamicLibrary.h"
 #include "SystemException.h"
-
+#include "util/Log.h"
 #include "thread/AutoLock.h"
-
+#include "PipeImpersonatedThread.h"
 #include <crtdbg.h>
 
+DynamicLibrary *WTS::m_kernel32Library = 0;
+DynamicLibrary *WTS::m_wtsapi32Library = 0;
 pWTSGetActiveConsoleSessionId WTS::m_WTSGetActiveConsoleSessionId = 0;
 pWTSQueryUserToken WTS::m_WTSQueryUserToken = 0;
 
 volatile bool WTS::m_initialized = false;
 
-HANDLE WTS::m_userProcessToken = 0;
+HANDLE WTS::m_userProcessToken = INVALID_HANDLE_VALUE;
 
 LocalMutex WTS::m_mutex;
 
@@ -74,7 +75,7 @@ void WTS::queryConsoleUserToken(HANDLE *token) throw(SystemException)
       throw SystemException();
     }
   } else {
-    if (m_userProcessToken == 0) {
+    if (m_userProcessToken == INVALID_HANDLE_VALUE) {
       throw SystemException(_T("No console user process id specified"));
     }
     if (!DuplicateTokenEx(m_userProcessToken, 0, NULL, SecurityImpersonation,
@@ -110,23 +111,70 @@ void WTS::defineConsoleUserProcessId(DWORD userProcessId)
   m_userProcessToken = userProcessToken;
 }
 
+void WTS::duplicatePipeClientToken(HANDLE pipeHandle)
+{
+  PipeImpersonatedThread impThread(pipeHandle);
+  impThread.resume();
+  impThread.waitUntilImpersonated();
+  if (!impThread.getImpersonationSuccess()) {
+    StringStorage faultReason, errMessage;
+    impThread.getFaultReason(&faultReason);
+    errMessage.format(_T("Can't impersonate thread by pipe handle: %s"),
+                      faultReason.getString());
+    throw Exception(errMessage.getString());
+  }
+
+  HANDLE threadHandle = OpenThread(THREAD_QUERY_INFORMATION, FALSE,
+                                   impThread.getThreadId());
+  if (threadHandle == 0) {
+    throw SystemException(_T("Can't open thread to duplicate")
+                          _T(" impersonate token"));
+  }
+  try {
+    HANDLE userThreadToken;
+    if (OpenThreadToken(threadHandle, TOKEN_ALL_ACCESS, TRUE, &userThreadToken) == 0) {
+      throw SystemException(_T("Can't open process token to duplicate")
+                            _T(" impersonate token"));
+    }
+    try {
+      HANDLE userThreadDuplicatedToken;
+      if (DuplicateTokenEx(userThreadToken, 0, 0, SecurityImpersonation,
+                           TokenPrimary, &userThreadDuplicatedToken) == 0) {
+        throw SystemException(_T("Can't duplicate token from impersonated")
+                              _T(" to a named pipe client token"));
+      }
+      if (m_userProcessToken != INVALID_HANDLE_VALUE) {
+        CloseHandle(m_userProcessToken);
+      }
+      m_userProcessToken = userThreadDuplicatedToken;
+    } catch (...) {
+      CloseHandle(userThreadToken);
+      throw;
+    }
+    CloseHandle(userThreadToken);
+  } catch (...) {
+    CloseHandle(threadHandle);
+    throw;
+  }
+  CloseHandle(threadHandle);
+}
+
 void WTS::initialize()
 {
   _ASSERT(!m_initialized);
 
   try {
-    DynamicLibrary kernel32(_T("Kernel32.dll"));
-
-    m_WTSGetActiveConsoleSessionId = (pWTSGetActiveConsoleSessionId)kernel32.getProcAddress("WTSGetActiveConsoleSessionId");
-  } catch (SystemException &) {
-    _ASSERT(FALSE);
+    m_kernel32Library = new DynamicLibrary(_T("Kernel32.dll"));
+    m_WTSGetActiveConsoleSessionId = (pWTSGetActiveConsoleSessionId)m_kernel32Library->getProcAddress("WTSGetActiveConsoleSessionId");
+  } catch (Exception &e) {
+    Log::error(_T("Can't load the Kernel32.dll library: %s"), e.getMessage());
   }
-
   try {
-    DynamicLibrary 	wtsapi32(_T("Wtsapi32.dll"));
-
-    m_WTSQueryUserToken = (pWTSQueryUserToken)wtsapi32.getProcAddress("WTSQueryUserToken");
-  } catch (SystemException &) { }
+    m_wtsapi32Library = new DynamicLibrary(_T("Wtsapi32.dll"));
+    m_WTSQueryUserToken = (pWTSQueryUserToken)m_wtsapi32Library->getProcAddress("WTSQueryUserToken");
+  } catch (Exception &e) {
+    Log::error(_T("Can't load the Wtsapi32.dll library: %s"), e.getMessage());
+  }
 
   m_initialized = true;
 }

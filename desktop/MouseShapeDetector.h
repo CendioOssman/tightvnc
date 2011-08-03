@@ -28,6 +28,7 @@
 #include "UpdateKeeper.h"
 #include "MouseGrabber.h"
 #include "UpdateDetector.h"
+#include "win-system/WindowsEvent.h"
 
 class MouseShapeDetector : public UpdateDetector
 {
@@ -40,9 +41,11 @@ public:
 
 protected:
   virtual void execute();
+  virtual void onTerminate();
 
   MouseGrabber *m_mouseGrabber;
   LocalMutex *m_mouseGrabLocMut;
+  WindowsEvent m_sleepTimer;
 };
 
 #endif 

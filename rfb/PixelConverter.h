@@ -52,6 +52,7 @@ protected:
 
   void fillHexBitsTable(const PixelFormat *dstPf, const PixelFormat *srcPf);
   void fill32BitsTable(const PixelFormat *dstPf, const PixelFormat *srcPf);
+  UINT32 rotateUint32(UINT32 value) const;
 
   enum ConvertMode
   {

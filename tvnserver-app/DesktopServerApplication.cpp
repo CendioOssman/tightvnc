@@ -138,12 +138,12 @@ void DesktopServerApplication::freeResources()
 
   if (m_sessionChangesWatcher) delete m_sessionChangesWatcher;
 
+  if (m_dispatcher) delete m_dispatcher;
+
   if (m_gateKickHandler) delete m_gateKickHandler;
   if (m_cfgServer) delete m_cfgServer;
   if (m_uiSrv) delete m_uiSrv;
   if (m_updHandlerSrv) delete m_updHandlerSrv;
-
-  if (m_dispatcher) delete m_dispatcher;
 
   if (m_srvToClGate) delete m_srvToClGate;
   if (m_clToSrvGate) delete m_clToSrvGate;

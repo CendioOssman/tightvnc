@@ -29,27 +29,20 @@ UserInputServer::UserInputServer(BlockingGate *forwGate,
                                  DesktopSrvDispatcher *dispatcher,
                                  AnEventListener *extTerminationListener)
 : DesktopServerProto(forwGate),
-  IpcServer(dispatcher),
   m_extTerminationListener(extTerminationListener)
 {
   bool ctrlAltDelEnabled = true;
   m_userInput = new WindowsUserInput(this, ctrlAltDelEnabled);
 
-  m_dispatcher->registerNewHandle(POINTER_POS_CHANGED, this);
-  m_dispatcher->registerNewHandle(CLIPBOARD_CHANGED, this);
-  m_dispatcher->registerNewHandle(KEYBOARD_EVENT, this);
-  m_dispatcher->registerNewHandle(USER_INFO_REQ, this);
-  m_dispatcher->registerNewHandle(USER_INPUT_INIT, this);
+  dispatcher->registerNewHandle(POINTER_POS_CHANGED, this);
+  dispatcher->registerNewHandle(CLIPBOARD_CHANGED, this);
+  dispatcher->registerNewHandle(KEYBOARD_EVENT, this);
+  dispatcher->registerNewHandle(USER_INFO_REQ, this);
+  dispatcher->registerNewHandle(USER_INPUT_INIT, this);
 }
 
 UserInputServer::~UserInputServer()
 {
-  m_dispatcher->unregisterHandle(POINTER_POS_CHANGED);
-  m_dispatcher->unregisterHandle(CLIPBOARD_CHANGED);
-  m_dispatcher->unregisterHandle(KEYBOARD_EVENT);
-  m_dispatcher->unregisterHandle(USER_INFO_REQ);
-  m_dispatcher->unregisterHandle(USER_INPUT_INIT);
-
   delete m_userInput;
 }
 

@@ -52,9 +52,11 @@ const UINT32 ControlClient::REQUIRES_AUTH[] = { ControlProto::ADD_CLIENT_MSG_ID,
 
 ControlClient::ControlClient(Transport *transport,
                              RfbClientManager *rfbClientManager,
-                             ControlAppAuthenticator *authenticator)
+                             ControlAppAuthenticator *authenticator,
+                             HANDLE pipeHandle)
 : m_transport(transport), m_rfbClientManager(rfbClientManager),
-  m_authenticator(authenticator)
+  m_authenticator(authenticator),
+  m_pipeHandle(pipeHandle)
 {
   m_stream = m_transport->getIOStream();
 
@@ -319,8 +321,14 @@ void ControlClient::getShowTrayIconFlagMsgRcvd()
 
 void ControlClient::updateTvnControlProcessIdMsgRcvd()
 {
-  WTS::defineConsoleUserProcessId(m_gate->readUInt32());
+  m_gate->readUInt32();
 
+  try {
+    WTS::duplicatePipeClientToken(m_pipeHandle);
+  } catch (Exception &e) {
+    Log::error(_T("Can't update the control client impersonation token: %s"),
+               e.getMessage());
+  }
   m_gate->writeUInt32(ControlProto::REPLY_OK);
 }
 

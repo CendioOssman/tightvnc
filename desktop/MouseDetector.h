@@ -26,6 +26,7 @@
 #define __MOUSEDETECTOR_H__
 
 #include "UpdateDetector.h"
+#include "win-system/WindowsEvent.h"
 
 class MouseDetector : public UpdateDetector
 {
@@ -38,9 +39,10 @@ public:
 
 protected:
   virtual void execute();
+  virtual void onTerminate();
 
 private:
-  int m_sleepTime;
+  WindowsEvent m_sleepTimer;
   Point m_lastCursorPos;
 };
 

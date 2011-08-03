@@ -40,19 +40,17 @@ public:
   virtual ~DesktopSrvDispatcher();
 
   void registerNewHandle(UINT8 code, ClientListener *listener);
-  void unregisterHandle(UINT8 code);
 
 protected:
   virtual void execute();
   virtual void onTerminate();
-  void notifyAbTermination();
+  void notifyOnError();
 
   BlockingGate *m_gate;
 
   std::map<UINT8, ClientListener *> m_handlers;
 
-  AnEventListener *m_extTerminationListener;
-  WindowsEvent m_pause;
+  AnEventListener *m_extErrorListener;
 };
 
 #endif 

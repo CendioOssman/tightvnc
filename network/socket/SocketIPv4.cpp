@@ -161,7 +161,7 @@ SocketIPv4 *SocketIPv4::accept()
 
   timeval timeout;
   timeout.tv_sec = 0;
-  timeout.tv_usec = 200;
+  timeout.tv_usec = 200000;
 
   while (true) {
     FD_ZERO(&afd);

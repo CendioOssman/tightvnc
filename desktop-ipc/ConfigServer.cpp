@@ -26,17 +26,14 @@
 #include "server-config-lib/Configurator.h"
 
 ConfigServer::ConfigServer(DesktopSrvDispatcher *dispatcher)
-: DesktopServerProto(0),
-  IpcServer(dispatcher)
+: DesktopServerProto(0)
 {
-  m_dispatcher->registerNewHandle(CONFIG_RELOAD_REQ, this);
-  m_dispatcher->registerNewHandle(SOFT_INPUT_ENABLING_REQ, this);
+  dispatcher->registerNewHandle(CONFIG_RELOAD_REQ, this);
+  dispatcher->registerNewHandle(SOFT_INPUT_ENABLING_REQ, this);
 }
 
 ConfigServer::~ConfigServer()
 {
-  m_dispatcher->unregisterHandle(CONFIG_RELOAD_REQ);
-  m_dispatcher->unregisterHandle(SOFT_INPUT_ENABLING_REQ);
 }
 
 void ConfigServer::onRequest(UINT8 reqCode, BlockingGate *backGate)

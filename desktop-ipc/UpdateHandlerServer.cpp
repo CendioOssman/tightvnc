@@ -28,26 +28,19 @@ UpdateHandlerServer::UpdateHandlerServer(BlockingGate *forwGate,
                                          DesktopSrvDispatcher *dispatcher,
                                          AnEventListener *extTerminationListener)
 : DesktopServerProto(forwGate),
-  IpcServer(dispatcher),
   m_extTerminationListener(extTerminationListener)
 {
   m_updateHandler = new LocalUpdateHandler(this);
 
-  m_dispatcher->registerNewHandle(EXTRACT_REQ, this);
-  m_dispatcher->registerNewHandle(SCREEN_PROP_REQ, this);
-  m_dispatcher->registerNewHandle(SET_FULL_UPD_REQ_REGION, this);
-  m_dispatcher->registerNewHandle(SET_EXCLUDING_REGION, this);
-  m_dispatcher->registerNewHandle(FRAME_BUFFER_INIT, this);
+  dispatcher->registerNewHandle(EXTRACT_REQ, this);
+  dispatcher->registerNewHandle(SCREEN_PROP_REQ, this);
+  dispatcher->registerNewHandle(SET_FULL_UPD_REQ_REGION, this);
+  dispatcher->registerNewHandle(SET_EXCLUDING_REGION, this);
+  dispatcher->registerNewHandle(FRAME_BUFFER_INIT, this);
 }
 
 UpdateHandlerServer::~UpdateHandlerServer()
 {
-  m_dispatcher->unregisterHandle(EXTRACT_REQ);
-  m_dispatcher->unregisterHandle(SCREEN_PROP_REQ);
-  m_dispatcher->unregisterHandle(SET_FULL_UPD_REQ_REGION);
-  m_dispatcher->unregisterHandle(SET_EXCLUDING_REGION);
-  m_dispatcher->unregisterHandle(FRAME_BUFFER_INIT);
-
   delete m_updateHandler;
 }
 

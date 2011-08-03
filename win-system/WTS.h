@@ -26,13 +26,11 @@
 #define _WTS_H_
 
 #include "util/winhdr.h"
-
 #include "thread/LocalMutex.h"
-
+#include "DynamicLibrary.h"
 #include "SystemException.h"
 
 typedef DWORD (WINAPI *pWTSGetActiveConsoleSessionId)(void);
-
 typedef BOOL (WINAPI *pWTSQueryUserToken)(ULONG SessionId, PHANDLE phToken);
 
 class WTS
@@ -44,11 +42,15 @@ public:
 
   static void defineConsoleUserProcessId(DWORD userProcessId);
 
+  static void duplicatePipeClientToken(HANDLE pipeHandle);
+
 private:
   WTS();
 
   static void initialize();
 
+  static DynamicLibrary *m_kernel32Library;
+  static DynamicLibrary *m_wtsapi32Library;
   static pWTSGetActiveConsoleSessionId m_WTSGetActiveConsoleSessionId;
   static pWTSQueryUserToken m_WTSQueryUserToken;
 

@@ -31,12 +31,12 @@
 
 #include "network/TcpServer.h"
 
-#include "tvncontrol-app/Transport.h"
+#include "win-system/PipeServer.h"
 
 class ControlServer : private Thread
 {
 public:
-  ControlServer(Transport *serverTransport,
+  ControlServer(PipeServer *pipeServer,
                 RfbClientManager *rfbClientManager) throw(Exception);
   virtual ~ControlServer();
 
@@ -48,7 +48,8 @@ protected:
 private:
   ControlAppAuthenticator m_authenticator;
   ThreadCollector m_threadCollector;
-  Transport *m_serverTransport;
+
+  PipeServer *m_pipeServer;
   RfbClientManager *m_rfbClientManager;
 };
 

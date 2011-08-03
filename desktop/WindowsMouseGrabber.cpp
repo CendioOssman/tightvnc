@@ -253,9 +253,8 @@ bool WindowsMouseGrabber::winColorShapeToRfb(const FrameBuffer *pixels,
         *pixel &= ~((T)pf.redMax << pf.redShift);
         *pixel &= ~((T)pf.greenMax << pf.greenShift);
         *pixel &= ~((T)pf.blueMax << pf.blueShift);
-
-        hasAlphaChannel = hasAlphaChannel || (*pixel & alphaMask) != 0;
       }
+      hasAlphaChannel = hasAlphaChannel || (*pixel & alphaMask) != 0;
     }
   }
   return hasAlphaChannel;

@@ -25,17 +25,23 @@
 #include "MouseDetector.h"
 #include "util/Log.h"
 
-#define MOUSE_SLEEP_TIME 10
+const int MOUSE_SLEEP_TIME = 10;
 
 MouseDetector::MouseDetector(UpdateKeeper *updateKeeper,
                              UpdateListener *updateListener)
 : UpdateDetector(updateKeeper, updateListener)
 {
-  m_sleepTime = MOUSE_SLEEP_TIME;
 }
 
 MouseDetector::~MouseDetector(void)
 {
+  terminate();
+  wait();
+}
+
+void MouseDetector::onTerminate()
+{
+  m_sleepTimer.notify();
 }
 
 Point MouseDetector::getCursorPos() const
@@ -60,6 +66,6 @@ void MouseDetector::execute()
       m_updateKeeper->setCursorPosChanged(&m_lastCursorPos);
       doUpdate();
     }
-    Sleep(m_sleepTime);
+    m_sleepTimer.waitForEvent(MOUSE_SLEEP_TIME);
   }
 }

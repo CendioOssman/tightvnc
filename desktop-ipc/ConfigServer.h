@@ -28,10 +28,8 @@
 #include "DesktopSrvDispatcher.h"
 #include "DesktopServerProto.h"
 #include "desktop/DesktopConfigLocal.h"
-#include "IpcServer.h"
 
-class ConfigServer : public DesktopServerProto, public ClientListener,
-                     public IpcServer
+class ConfigServer : public DesktopServerProto, public ClientListener
 {
 public:
   ConfigServer(DesktopSrvDispatcher *dispatcher);

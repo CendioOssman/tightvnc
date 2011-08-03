@@ -318,10 +318,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\IpcServer.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ReconnectException.cpp"
 				>
 			</File>
@@ -389,10 +385,6 @@
 			</File>
 			<File
 				RelativePath=".\GateKickHandler.h"
-				>
-			</File>
-			<File
-				RelativePath=".\IpcServer.h"
 				>
 			</File>
 			<File

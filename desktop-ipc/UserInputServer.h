@@ -31,10 +31,9 @@
 #include "desktop/WindowsUserInput.h"
 #include "win-system/WindowsEvent.h"
 #include "DesktopSrvDispatcher.h"
-#include "IpcServer.h"
 
 class UserInputServer: public DesktopServerProto, public ClientListener,
-                       public ClipboardListener, public IpcServer
+                       public ClipboardListener
 {
 public:
   UserInputServer(BlockingGate *forwGate,

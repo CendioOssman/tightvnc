@@ -22,18 +22,51 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __IPCSERVER_H__
-#define __IPCSERVER_H__
-#include "DesktopSrvDispatcher.h"
+#include "PipeImpersonatedThread.h"
+#include "Environment.h"
 
-class IpcServer
+PipeImpersonatedThread::PipeImpersonatedThread(HANDLE pipeHandle)
+: m_pipeHandle(pipeHandle),
+  m_success(false)
 {
-public:
-  IpcServer(DesktopSrvDispatcher *dispatcher);
-  virtual ~IpcServer();
+}
 
-protected:
-  DesktopSrvDispatcher *m_dispatcher;
-};
+PipeImpersonatedThread::~PipeImpersonatedThread()
+{
+  terminate();
+  wait();
+}
 
-#endif 
+void PipeImpersonatedThread::onTerminate()
+{
+  m_threadSleeper.notify();
+}
+
+void PipeImpersonatedThread::waitUntilImpersonated()
+{
+  m_impersonationReadyEvent.waitForEvent();
+}
+
+bool PipeImpersonatedThread::getImpersonationSuccess()
+{
+  return m_success;
+}
+
+void PipeImpersonatedThread::getFaultReason(StringStorage *faultReason)
+{
+  *faultReason = m_faultReason;
+}
+
+void PipeImpersonatedThread::execute()
+{
+  m_success = ImpersonateNamedPipeClient(m_pipeHandle) != 0;
+  if (!m_success) {
+    Environment::getErrStr(&m_faultReason);
+  }
+  m_impersonationReadyEvent.notify();
+
+  while (!isTerminating()) {
+    m_threadSleeper.waitForEvent();
+  }
+  RevertToSelf();
+}

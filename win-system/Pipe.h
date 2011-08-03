@@ -40,6 +40,8 @@ public:
   virtual size_t read(void *buffer, size_t len) throw(IOException);
   virtual size_t write(const void *buffer, size_t len) throw(IOException);
 
+  virtual HANDLE getPipeHandle();
+
 protected:
 
   HANDLE m_hPipe;
