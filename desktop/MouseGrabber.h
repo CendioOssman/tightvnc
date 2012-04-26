@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,12 +35,14 @@ public:
 
   virtual bool grab(PixelFormat *pixelFormat) = 0;
 
+  // Returns true if the cursor shape has been changed, false otherwise.
+  // Calling this function resets the state back to unchanged.
   virtual bool isCursorShapeChanged() = 0;
 
-  virtual const CursorShape *getCursorShape() const { return &m_cursorShape; }
+  virtual const CursorShape *getCursorShape() const;
 
 protected:
   CursorShape m_cursorShape;
 };
 
-#endif 
+#endif // __MOUSEGRABBER_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,6 +29,7 @@ Region::Region()
   miRegionInit(&m_reg, NullBox, 0);
 }
 
+// FIXME: Make BoxRec and Rect identical to get rid of conversions.
 Region::Region(const Rect *rect)
 {
   if (!rect->isEmpty()) {
@@ -111,6 +112,8 @@ bool Region::isEmpty() const
 
 bool Region::equals(const Region *other) const
 {
+  // Handle a special case when both regions are empty.
+  // Such regions may be considered different by miRegionsEqual().
   if (this->isEmpty() && other->isEmpty()) {
     return true;
   }
@@ -119,6 +122,7 @@ bool Region::equals(const Region *other) const
                          (RegionPtr)&other->m_reg) == TRUE);
 }
 
+// FIXME: Optimize, make BoxRec and Rect identical to get rid of conversions.
 void Region::getRectVector(std::vector<Rect> *dst) const
 {
   dst->clear();
@@ -132,6 +136,7 @@ void Region::getRectVector(std::vector<Rect> *dst) const
   }
 }
 
+// FIXME: Optimize, make BoxRec and Rect identical to get rid of conversions.
 void Region::getRectList(std::list<Rect> *dst) const
 {
   dst->clear();
@@ -142,4 +147,15 @@ void Region::getRectList(std::list<Rect> *dst) const
     Rect rect(boxPtr[i].x1, boxPtr[i].y1, boxPtr[i].x2, boxPtr[i].y2);
     dst->push_back(rect);
   }
+}
+
+size_t Region::getCount() const
+{
+  return REGION_NUM_RECTS(&m_reg);
+}
+
+Rect Region::getBounds() const
+{
+  const BoxRec *boxPtr = REGION_EXTENTS(&m_reg);
+  return Rect(boxPtr->x1, boxPtr->y1, boxPtr->x2, boxPtr->y2);
 }

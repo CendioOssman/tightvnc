@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,9 +29,22 @@
 #include "thread/Thread.h"
 #include "RfbClientManager.h"
 
+/**
+Thread that makes attempt to connect to listening rfb client in separate thread.
+To use it, you must create instance, call start method, and pass it to zombie killer.
+@remark don't forget to add it to zombie killer after thread is started.
+@author enikey.
+*/
 class OutgoingRfbConnectionThread : public Thread
 {
 public:
+  /**
+  Creates new instance of outgoing rfb connection thread.
+  @param connectHost target host to connect.
+  @param connectPort port to connect.
+  @param viewOnly flag that determinates mode for rfb connection.
+  @param clientManager rfb client manager.
+  */
   OutgoingRfbConnectionThread(const TCHAR *connectHost, unsigned int connectPort,
                               bool viewOnly, RfbClientManager *clientManager);
   virtual ~OutgoingRfbConnectionThread();

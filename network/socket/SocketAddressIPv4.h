@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,6 +33,7 @@
 
 #include "sockdefs.h"
 
+// FIXME: Deprecated method, only for testing of old code.
 void getLocalIPAddrString(char *buffer, int buflen);
 
 class SocketAddressIPv4
@@ -45,6 +46,7 @@ public:
   socklen_t getAddrLen() const;
   struct sockaddr_in getSockAddr() const;
 
+  // Converts socket address to it's string value (ip address as string).
   void toString(StringStorage *address) const;
 
   static SocketAddressIPv4 resolve(const TCHAR *host, unsigned short port) throw(SocketException);

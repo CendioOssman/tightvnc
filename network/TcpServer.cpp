@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,8 +23,6 @@
 //
 
 #include "TcpServer.h"
-
-#include "thread/ZombieKiller.h"
 
 #include "network/socket/SocketAddressIPv4.h"
 
@@ -52,8 +50,10 @@ TcpServer::~TcpServer()
   try { m_listenSocket.shutdown(SD_BOTH); } catch(...) { }
   try { m_listenSocket.close(); } catch (...) { }
 
-  Thread::terminate();
-  Thread::wait();
+  if (isActive()) {
+    Thread::terminate();
+    Thread::wait();
+  }
 }
 
 const TCHAR *TcpServer::getBindHost() const

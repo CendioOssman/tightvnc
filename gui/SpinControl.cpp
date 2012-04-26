@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,19 +27,13 @@
 #include "util/StringParser.h"
 
 SpinControl::SpinControl()
-: m_buddy(NULL), m_limitters(NULL), m_deltas(NULL), m_size(0),
+: m_buddy(NULL),
   m_isAutoAccelerationEnabled(false), m_maxDelta(0)
 {
 }
 
 SpinControl::~SpinControl()
 {
-  if (m_limitters != NULL) {
-    delete[] m_limitters;
-  }
-  if (m_deltas != NULL) {
-    delete[] m_deltas;
-  }
 }
 
 void SpinControl::setBuddy(Control *buddyControl)
@@ -69,38 +63,41 @@ void SpinControl::setAccel(UINT nSec, UINT nInc)
 
 void SpinControl::autoAccelerationHandler(LPNMUPDOWN message)
 {
-  if (m_size == 0 || m_limitters == NULL ||
-      m_deltas == NULL || m_buddy == NULL || !m_isAutoAccelerationEnabled) {
-    return ;
+  if (m_limitters.size() == 0 ||
+      m_buddy == NULL || !m_isAutoAccelerationEnabled) {
+    return;
   }
 
   int currentValue;
   int delta = m_maxDelta;
 
+  // Get buddy textbox value
   StringStorage storage;
   m_buddy->getText(&storage);
   if (!StringParser::parseInt(storage.getString(), &currentValue)) {
-    return ;
+    return;
   }
 
+  size_t size = min(m_limitters.size(), m_deltas.size());
+
   if (message->iDelta < 0) {
-    for (size_t i = 0; i < m_size; i++) {
+    for (size_t i = 0; i < size; i++) {
       if (currentValue <= m_limitters[i]) {
         delta = m_deltas[i];
         break;
-      } 
-    } 
+      } // if
+    } // for
     delta = -delta;
-  } 
+  } // if
 
   if (message->iDelta > 0) {
-    for (size_t i = 0; i < m_size; i++) {
+    for (size_t i = 0; i < size; i++) {
       if (currentValue < m_limitters[i]) {
         delta = m_deltas[i];
         break;
-      } 
-    } 
-  } 
+      } // if
+    } // for
+  } // if
 
   int mod = (currentValue + delta) % delta;
   if (mod != 0) {
@@ -115,18 +112,11 @@ void SpinControl::enableAutoAcceleration(bool enabled)
   m_isAutoAccelerationEnabled = enabled;
 }
 
-void SpinControl::setAutoAccelerationParams(const int *limitters, const int *deltas, size_t size, int maxDelta)
+void SpinControl::setAutoAccelerationParams(const std::vector<int> *limitters,
+                                            const std::vector<int> *deltas,
+                                            int maxDelta)
 {
-  if (m_limitters != NULL) {
-    delete[] m_limitters;
-  }
-  if (m_deltas != NULL) {
-    delete[] m_deltas;
-  }
-  m_size = size;
-  m_limitters = new int[m_size];
-  m_deltas = new int[m_size];
-  memcpy(m_limitters, limitters, sizeof(int) * size);
-  memcpy(m_deltas, deltas, sizeof(int) * size);
+  m_limitters = *limitters;
+  m_deltas = *deltas;
   m_maxDelta = maxDelta;
 }

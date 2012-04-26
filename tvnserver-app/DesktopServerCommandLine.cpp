@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -39,7 +39,7 @@ DesktopServerCommandLine::~DesktopServerCommandLine()
 {
 }
 
-void DesktopServerCommandLine::parse(const TCHAR *cmdLine)
+void DesktopServerCommandLine::parse(const CommandLineArgs *cmdArgs)
 {
   CommandLineFormat format[] = {
     { DESKTOP_SERVER_KEY, NO_ARG },
@@ -48,7 +48,7 @@ void DesktopServerCommandLine::parse(const TCHAR *cmdLine)
     { SHARED_MEMORY_NAME_KEY, NEEDS_ARG } };
 
   if (!CommandLine::parse(format, sizeof(format) /
-                                  sizeof(CommandLineFormat), cmdLine) ||
+                                  sizeof(CommandLineFormat), cmdArgs) ||
       !optionSpecified(DESKTOP_SERVER_KEY) || !optionSpecified(LOG_DIR_KEY) ||
       !optionSpecified(LOG_LEVEL_KEY) ||
       !optionSpecified(SHARED_MEMORY_NAME_KEY)) {

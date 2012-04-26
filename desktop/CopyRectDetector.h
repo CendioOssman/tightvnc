@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -51,13 +51,15 @@ protected:
 
   bool getWinRect(HWND hwnd, Rect *winRect);
 
+  // If window properties successfully was found then function returns
+  // true. Else this function returns false.
   bool findPrevWinProps(HWND hwnd, Rect *rect);
 
   Rect m_copyRect;
   Point m_source;
 
-  std::list<WinProp> *m_lastWinProps;
-  std::list<WinProp> *m_newWinProps;
+  std::list<WinProp> m_lastWinProps;
+  std::list<WinProp> m_newWinProps;
 };
 
-#endif 
+#endif // __COPYRECTDETECTOR_H__

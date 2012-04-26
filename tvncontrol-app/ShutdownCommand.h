@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,14 +29,35 @@
 
 #include "ControlProxy.h"
 
+/**
+ * Command that invokes remote shutdown() method of TightVNC server
+ * using control transport.
+ */
 class ShutdownCommand : public Command
 {
 public:
+  /**
+   * Creates command.
+   * @param serverControl proxy.
+   */
   ShutdownCommand(ControlProxy *serverControl);
+  /**
+   * Destroys command.
+   */
   virtual ~ShutdownCommand();
 
+  /**
+   * Executes command.
+   *
+   * Inhrited from Command abstract class.
+   *
+   * @throws IOException on io error, RemoteException on server side error.
+   */
   virtual void execute() throw(IOException, RemoteException);
 private:
+  /**
+   * Proxy to some of TightVNC server control methods.
+   */
   ControlProxy *m_proxy;
 };
 

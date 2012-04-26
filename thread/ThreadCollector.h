@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,19 +34,26 @@ using namespace std;
 
 typedef list<Thread *> ThreadList;
 
+// Collector threads.
+// ThreadCollector has it's own thread which deletes in infinity loop not
+// active threads.
 class ThreadCollector : private Thread
 {
 public:
   ThreadCollector();
   virtual ~ThreadCollector();
 
+  // Adds thread to a self list.
   void addThread(Thread *thread);
 
+  // Forces terminates all threads, waits until they dies and than
+  // delete them from memory and thread list.
   void destroyAllThreads();
 
 protected:
   virtual void execute();
 
+  // Deletes all dead threads from memory and removes them from self list.
   void deleteDeadThreads();
 
 protected:
@@ -56,4 +63,4 @@ protected:
   WindowsEvent m_timer;
 };
 
-#endif 
+#endif // __THREADCOLLECTOR_H__

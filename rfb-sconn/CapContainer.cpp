@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -47,7 +47,9 @@ void CapContainer::addCap(UINT32 code, const char *vendorSignature,
 
 unsigned int CapContainer::getCapCount() const
 {
-  return m_caps.size();
+  unsigned int capsSize = (unsigned int)m_caps.size();
+  _ASSERT(capsSize == m_caps.size());
+  return capsSize;
 }
 
 void CapContainer::sendCaps(DataOutputStream *output) const

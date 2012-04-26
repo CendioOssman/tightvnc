@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,20 +33,54 @@
 typedef DWORD (WINAPI *pWTSGetActiveConsoleSessionId)(void);
 typedef BOOL (WINAPI *pWTSQueryUserToken)(ULONG SessionId, PHANDLE phToken);
 
+/**
+ * Wrapper over WTS WinAPI functions.
+ *
+ * @author enikey.
+ */
 class WTS
 {
 public:
+  /**
+   * Gets active console session id.
+   * @return active console session id if WTS is avaliable or 0 if 
+   * WinAPI WTSGetActiveConsoleSessionId function not avaliable.
+   */
   static DWORD getActiveConsoleSessionId();
 
+  /**
+   * Queries user token in active console session.
+   * @param token [out] output user token parameter.
+   * @throws SystemException on fail.
+   * @remark if WTSQueryUserToken is avaliable when it will be used with
+   * session id equal to active console session id, if not, then user
+   * process id will be used to get user token (this id can be set by using of
+   * defineConsoleUserProcessId() method).
+   */
   static void queryConsoleUserToken(HANDLE *token) throw(SystemException);
 
+  /**
+   * Defines global (for WTS class) user process that will be used
+   * for getting token of user in active console session if WTSQueryUserToken WinAPI function
+   * is unavaliable (Windows 2000 case).
+   * @param userProcessId user process id.
+   */
   static void defineConsoleUserProcessId(DWORD userProcessId);
 
+  // This function dupplicate token impersonated to named pipe cliend end.
+  // This should work only for win2000 because other windows version have
+  // rdp.
   static void duplicatePipeClientToken(HANDLE pipeHandle);
 
 private:
+  /**
+   * Don't allow instanizing of WTS class.
+   */
   WTS();
 
+  /**
+   * Initializes WTS functions.
+   */
   static void initialize();
 
   static DynamicLibrary *m_kernel32Library;
@@ -54,10 +88,21 @@ private:
   static pWTSGetActiveConsoleSessionId m_WTSGetActiveConsoleSessionId;
   static pWTSQueryUserToken m_WTSQueryUserToken;
 
+  /**
+   * Determinates if WTS library was initialized.
+   */
   static volatile bool m_initialized;
 
+  /**
+   * Token of interactive user process in active console session
+   * that will be used if WTSQueryToken WinAPI function is unavaliable
+   * in queryConsoleUserToken() call.
+   */
   static HANDLE m_userProcessToken;
 
+  /**
+   * Thread-safety.
+   */
   static LocalMutex m_mutex;
 };
 

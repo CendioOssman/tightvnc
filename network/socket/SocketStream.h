@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -39,10 +39,16 @@ public:
   SocketStream(SocketIPv4 *);
   virtual ~SocketStream();
 
+  //
+  // Inherited from Channel.
+  //
+
   virtual size_t read(void *, size_t) throw(IOException);
 
   virtual size_t write(const void *, size_t) throw(IOException);
 
+  // Closes connection and break all blocked operation.
+  // @throw Exception on error.
   virtual void close();
 
 protected:

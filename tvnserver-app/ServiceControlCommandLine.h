@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,6 +28,13 @@
 #include "util/CommandLine.h"
 #include "util/Exception.h"
 
+/**
+ * Service control application command line parser.
+ * Supported keys are:
+ *  -install, -reinstall, -remove, -start, -stop.
+ * @remark only one allowed key can be specified.
+ * @fixme no test for this class.
+ */
 class ServiceControlCommandLine : private CommandLine
 {
 public:
@@ -41,11 +48,28 @@ public:
   static const TCHAR DONT_ELEVATE[];
 
 public:
+  /**
+   * Default constructor.
+   */
   ServiceControlCommandLine();
+  /**
+   * Destructor.
+   */
   virtual ~ServiceControlCommandLine();
 
-  void parse(const TCHAR *commandLine) throw(Exception);
+  /**
+   * Parses command line.
+   * @param commandLine command line string to parse.
+   * @throws Exception on parse error.
+   */
+  void parse(const CommandLineArgs *cmdArgs) throw(Exception);
 
+  /**
+   * Checks if key is specified.
+   * @param key key to check.
+   * @return true if key is specified, false otherwise.
+   * @remark must be called only after call of parse method.
+   */
   bool keySpecified(const TCHAR *key) const;
 
   bool installationRequested() const;

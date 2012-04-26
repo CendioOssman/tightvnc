@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -38,7 +38,7 @@ const TCHAR *StringTable::getString(UINT id)
     if (ResourceLoader::getInstance()->loadString(id, &string)) {
       _cache[id] = string;
     } else {
-      return _T("Requested string from StringTable cannot be recieved");
+      return _T("Requested string from StringTable cannot be received");
     }
   }
   return (*_cache.find(id)).second.getString();

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,6 +34,7 @@ ServerConfig::ServerConfig()
   m_acceptRfbConnections(true), m_useAuthentication(true),
   m_onlyLoopbackConnections(false), m_acceptHttpConnections(true),
   m_enableAppletParamInUrl(true), m_enableFileTransfers(true),
+  m_mirrorDriverAllowed(true),
   m_blankScreen(false), m_removeWallpaper(true), m_hasReadOnlyPassword(false),
   m_hasPrimaryPassword(false), m_alwaysShared(false), m_neverShared(false),
   m_disconnectClients(true), m_pollingInterval(1000), m_localInputPriorityTimeout(3),
@@ -62,6 +63,7 @@ void ServerConfig::serialize(DataOutputStream *output)
   output->writeInt8(m_blankScreen ? 1 : 0);
   output->writeInt8(m_enableFileTransfers ? 1 : 0);
   output->writeInt8(m_removeWallpaper ? 1 : 0);
+  output->writeInt8(m_mirrorDriverAllowed ? 1 : 0);
   output->writeInt32(m_disconnectAction);
   output->writeInt8(m_acceptRfbConnections ? 1 : 0);
   output->writeInt8(m_acceptHttpConnections ? 1 : 0);
@@ -91,7 +93,8 @@ void ServerConfig::serialize(DataOutputStream *output)
 
   output->writeInt8(m_allowLoopbackConnections ? 1 : 0);
 
-  output->writeUInt32(m_videoClassNames.size());
+  _ASSERT((UINT32)m_videoClassNames.size() == m_videoClassNames.size());
+  output->writeUInt32((UINT32)m_videoClassNames.size());
   for (size_t i = 0; i < m_videoClassNames.size(); i++) {
     output->writeUTF8(m_videoClassNames.at(i).getString());
   }
@@ -117,6 +120,7 @@ void ServerConfig::deserialize(DataInputStream *input)
   m_blankScreen = input->readInt8() == 1;
   m_enableFileTransfers = input->readInt8() == 1;
   m_removeWallpaper = input->readInt8() == 1;
+  m_mirrorDriverAllowed = input->readInt8() != 0;
   m_disconnectAction = (ServerConfig::DisconnectAction)input->readInt32();
   m_acceptRfbConnections = input->readInt8() == 1;
   m_acceptHttpConnections = input->readInt8() == 1;
@@ -180,27 +184,14 @@ void ServerConfig::setShowTrayIconFlag(bool val)
   m_showTrayIcon = val;
 }
 
-void ServerConfig::getLogFilePath(StringStorage *logFilePath)
+void ServerConfig::getLogFileDir(StringStorage *logFilePath)
 {
   AutoLock l(this);
 
   *logFilePath = m_logFilePath;
 }
 
-void ServerConfig::getLogFileDirectory(StringStorage *logFileDirectory)
-{
-  AutoLock l(this);
-
-  File logFile(m_logFilePath.getString());
-
-  StringStorage nameNoPath;
-
-  logFile.getName(&nameNoPath);
-
-  m_logFilePath.getSubstring(logFileDirectory, 0, m_logFilePath.getLength() - 1 - nameNoPath.getLength());
-}
-
-void ServerConfig::setLogFilePath(const TCHAR *logFilePath)
+void ServerConfig::setLogFileDir(const TCHAR *logFilePath)
 {
   AutoLock l(this);
 
@@ -321,6 +312,18 @@ ServerConfig::DisconnectAction ServerConfig::getDisconnectAction()
 {
   AutoLock lock(&m_objectCS);
   return m_disconnectAction;
+}
+
+bool ServerConfig::getMirrorIsAllowed()
+{
+  AutoLock lock(&m_objectCS);
+  return m_mirrorDriverAllowed;
+}
+
+void ServerConfig::setMirrorAllowing(bool value)
+{
+  AutoLock lock(&m_objectCS);
+  m_mirrorDriverAllowed = value;
 }
 
 bool ServerConfig::isAcceptingRfbConnections()
@@ -639,6 +642,10 @@ PortMappingContainer *ServerConfig::getPortMappingContainer()
 {
   return &m_portMappings;
 }
+
+//
+// Ip access control config
+//
 
 IpAccessControl *ServerConfig::getAccessControl()
 {

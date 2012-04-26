@@ -74,6 +74,11 @@ SOFTWARE.
 
 #include "x11region.h"
 
+#ifdef WIN32
+// warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data
+#pragma warning(disable : 4244)
+#endif
+
 #if defined (__GNUC__) && !defined (NO_INLINES)
 #define INLINE	__inline
 #else

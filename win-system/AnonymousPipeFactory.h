@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,16 +27,29 @@
 
 #include "AnonymousPipe.h"
 
+// The AnonymousPipeFactory class generates the pair of the AnonymousPipe
+// objects that connected to each other.
 class AnonymousPipeFactory
 {
 public:
   AnonymousPipeFactory();
   virtual ~AnonymousPipeFactory();
 
+  // This function generates the pair of the AnonymousPipe
+  // objects that connected to each other.
+  // @param the fistSide and the secondSide is a pointer to an AnonymousPipe
+  // pointers that receive new the AnonymousPipe objects.
+  // @param If fistSideIsInheritable is true then allows to inherit the
+  // firstSide pipe handles by child('s) processes.
+  // @param If secondSideIsInheritable is true then allows to inherit the
+  // secondSide pipe handles by child('s) processes.
+  // @throw Exception if an error occured.
+  // After use the firstSide and secondSide object the caller must
+  // destroy it by delete operator.
   void generatePipes(AnonymousPipe **firstSide,
                      bool firstSideIsInheritable,
                      AnonymousPipe **secondSide,
                      bool secondSideIsInheritable);
 };
 
-#endif 
+#endif // __ANONYMOUSPIPEFACTORY_H__

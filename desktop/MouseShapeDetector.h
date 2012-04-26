@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -48,4 +48,4 @@ protected:
   WindowsEvent m_sleepTimer;
 };
 
-#endif 
+#endif // __MOUSESHAPEDETECTOR_H__

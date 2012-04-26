@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,6 +26,7 @@
 #define _ZLIB_BASE_H_
 
 #include "zlib/zlib.h"
+#include <vector>
 
 class ZLibBase
 {
@@ -42,7 +43,7 @@ protected:
   const char *m_input;
   size_t m_inputSize;
 
-  char *m_output;
+  std::vector<char> m_output;
   size_t m_outputSize;
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,21 +27,44 @@
 
 #include "win-system/Process.h"
 
+/**
+ * Enables you to start and stop processes in interactive console session.
+ *
+ * Solves problem of starting interactive processes from service.
+ *
+ * @note that created process will have same access rights as caller (parent process).
+ *
+ * @remark this class is needed for executing TightVNC Server system applications
+ * like Desktop Server, Query Application, so it can do "XP Trick"
+ * (force changing current session to session0 and lock workstation after) on WinXP to
+ * avoid 233 'Pipe not connected error' error in CreateProcessAsUser WinAPI function
+ * (It's unfixed Microsoft bug on Windows XP).
+ *
+ * @fixme rename it.
+ */
 class CurrentConsoleProcess : public Process
 {
 public:
-  CurrentConsoleProcess(const TCHAR *path = 0, const TCHAR *args = 0, bool useXpTrick = true);
+  /**
+   * Inherited from superclass (Process class).
+   *
+   * See description of Process constructor.
+   */
+  CurrentConsoleProcess(const TCHAR *path = 0, const TCHAR *args = 0);
+  /**
+   * Destoys instance of class.
+   */
   virtual ~CurrentConsoleProcess();
 
+  /**
+   * Starts process in interactive console session.
+   * @throws SystemException on fail.
+   * @remark can use "XP Trick" to avoid error 233 bug on Windows XP,
+   * read more at remark to CurrentConsoleProcess class.
+   * @remark to detect WinXP bug it uses loop, so before XP trick will be tried,
+   * it will try to start process for some times.
+   */
   virtual void start() throw(SystemException);
-
-protected:
-  void startImpersonated() throw(SystemException);
-
-  static void doXPTrick() throw(SystemException);
-
-private:
-  bool m_useXpTrick;
 };
 
 #endif

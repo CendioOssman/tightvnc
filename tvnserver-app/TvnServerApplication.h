@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,21 +34,63 @@
 #include "TvnServerListener.h"
 #include "WsConfigRunner.h"
 
+/**
+ * Windows TightVNC server application.
+ * Used for running TightVNC server as single windows application.
+ */
 class TvnServerApplication : public WindowsApplication,
                              public TvnServerListener
 {
 public:
-  TvnServerApplication(HINSTANCE hInstance, const TCHAR *commandLine);
+  /**
+   * Creates TightVNC server application instance.
+   * @param hInstance HINSTANCE of application.
+   * @param commaneLine command line string.
+   */
+  TvnServerApplication(HINSTANCE hInstance,
+                       const TCHAR *windowClassName,
+                       const TCHAR *commandLine,
+                       NewConnectionEvents *newConnectionEvents);
+  /**
+   * Deletes TightVNC server application instance.
+   */
   virtual ~TvnServerApplication();
 
+  /**
+   * Runs TightVNC server windows application.
+   *
+   * Makes several things:
+   *   1) Starts TigthVNC server.
+   *   2) Starts TvnControl application.
+   *   3) Enters main windows message loop.
+   *   4) Stops TigthVNC server.
+   *
+   * @return application exit code.
+   */
   virtual int run();
 
+  /**
+   * Inherited from TvnServerListener abstact class.
+   *
+   * Shutdowns WindowsApplication.
+   */
   virtual void onTvnServerShutdown();
 
 private:
+  /**
+   * Command line string.
+   */
   StringStorage m_commandLine;
+  /**
+   * TightVNC server.
+   */
   TvnServer *m_tvnServer;
+  /**
+   * TvnControl application watcher.
+   */
   WsConfigRunner *m_tvnControlRunner;
+
+  NewConnectionEvents *m_newConnectionEvents;
 };
 
 #endif

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,9 @@
 NotifyIconWindow::NotifyIconWindow()
 : m_wph(0)
 {
+  //
+  // Register window class
+  //
 
   WNDCLASS wc;
 
@@ -43,6 +46,10 @@ NotifyIconWindow::NotifyIconWindow()
 
   ATOM atom = RegisterClass(&wc);
 
+  //
+  // Create window
+  //
+
   m_window = CreateWindow((LPCTSTR)atom,
                           (LPCTSTR)_T("NotifyIconWindowTitle"),
                           WS_OVERLAPPED,
@@ -50,13 +57,14 @@ NotifyIconWindow::NotifyIconWindow()
                           CW_USEDEFAULT, CW_USEDEFAULT,
                           NULL, NULL, GetModuleHandle(0), NULL);
 
-  SetWindowLong(m_window, GWL_USERDATA, (LONG)m_wph);
+  SetWindowLongPtr(m_window, GWLP_USERDATA, (LONG_PTR)m_wph);
 }
 
 NotifyIconWindow::~NotifyIconWindow()
 {
   setWindowProcHolder(NULL);
 
+  //DestroyWindow(m_window);
 }
 
 HWND NotifyIconWindow::getWindow()
@@ -68,5 +76,5 @@ void NotifyIconWindow::setWindowProcHolder(WindowProcHolder *wph)
 {
   m_wph = wph;
 
-  SetWindowLong(m_window, GWL_USERDATA, (LONG)m_wph);
+  SetWindowLongPtr(m_window, GWLP_USERDATA, (LONG_PTR)m_wph);
 }

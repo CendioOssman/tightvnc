@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "SasUserInput.h"
 #include "win-system/Environment.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 #define XK_MISCELLANY
 #include "rfb/keysymdef.h"
@@ -87,4 +87,25 @@ void SasUserInput::getCurrentUserInfo(StringStorage *desktopName,
                                          StringStorage *userName)
 {
   m_client->getCurrentUserInfo(desktopName, userName);
+}
+
+void SasUserInput::getPrimaryDisplayCoords(Rect *rect)
+{
+  m_client->getPrimaryDisplayCoords(rect);
+}
+
+void SasUserInput::getDisplayNumberCoords(Rect *rect,
+                                          unsigned char dispNumber)
+{
+  m_client->getDisplayNumberCoords(rect, dispNumber);
+}
+
+void SasUserInput::getWindowCoords(HWND hwnd, Rect *rect)
+{
+  m_client->getWindowCoords(hwnd, rect);
+}
+
+HWND SasUserInput::getWindowHandleByName(const StringStorage *windowName)
+{
+  return m_client->getWindowHandleByName(windowName);
 }

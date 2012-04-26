@@ -10,7 +10,7 @@
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
     <Filter Include="Encoders">
-      <UniqueIdentifier>{94030695-2e9d-4930-9a8a-b50badb5941d}</UniqueIdentifier>
+      <UniqueIdentifier>{1c27e9ab-b4b9-446a-80a9-c2da7d46c537}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -38,34 +38,10 @@
     <ClCompile Include="VendorDefs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EncodeOptions.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
-    <ClCompile Include="Encoder.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
-    <ClCompile Include="EncoderStore.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
     <ClCompile Include="EncodingDefs.cpp">
       <Filter>Encoders</Filter>
     </ClCompile>
-    <ClCompile Include="HextileEncoder.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
-    <ClCompile Include="JpegCompressor.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
-    <ClCompile Include="JpegEncoder.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
     <ClCompile Include="PixelConverter.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
-    <ClCompile Include="TightEncoder.cpp">
-      <Filter>Encoders</Filter>
-    </ClCompile>
-    <ClCompile Include="TightPalette.cpp">
       <Filter>Encoders</Filter>
     </ClCompile>
   </ItemGroup>
@@ -100,37 +76,10 @@
     <ClInclude Include="VendorDefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EncodeOptions.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="Encoder.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="EncoderStore.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
     <ClInclude Include="EncodingDefs.h">
       <Filter>Encoders</Filter>
     </ClInclude>
-    <ClInclude Include="HextileEncoder.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="HextileTile.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="JpegCompressor.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="JpegEncoder.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
     <ClInclude Include="PixelConverter.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="TightEncoder.h">
-      <Filter>Encoders</Filter>
-    </ClInclude>
-    <ClInclude Include="TightPalette.h">
       <Filter>Encoders</Filter>
     </ClInclude>
   </ItemGroup>

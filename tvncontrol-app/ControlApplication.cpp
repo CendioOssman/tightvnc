@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,6 +29,11 @@
 #include "ControlCommand.h"
 #include "ReloadConfigCommand.h"
 #include "DisconnectAllCommand.h"
+#include "SharePrimaryCommand.h"
+#include "ShareDisplayCommand.h"
+#include "ShareWindowCommand.h"
+#include "ShareRectCommand.h"
+#include "ShareFullCommand.h"
 #include "ControlAuth.h"
 #include "ConnectCommand.h"
 #include "ShutdownCommand.h"
@@ -36,12 +41,14 @@
 #include "util/VncPassCrypt.h"
 #include "util/winhdr.h"
 #include "util/StringTable.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include "tvncontrol-app/ControlCommandLine.h"
 #include "tvnserver-app/TvnServerHelp.h"
 
 #include "win-system/Environment.h"
 #include "win-system/Shell.h"
+#include "win-system/WinCommandLineArgs.h"
 
 #include "thread/ZombieKiller.h"
 #include "thread/GlobalMutex.h"
@@ -53,10 +60,20 @@
 #include "tvnserver/resource.h"
 
 #include "wsconfig-lib/ConfigDialog.h"
+#include "util/AnsiStringStorage.h"
+#include "tvnserver-app/NamingDefs.h"
+#include "SetPasswordsDialog.h"
 
-ControlApplication::ControlApplication(HINSTANCE hinst, const TCHAR *commandLine = 0)
- : LocalWindowsApplication(hinst), m_serverControl(0), m_gate(0), m_transport(0),
-   m_trayIcon(0), m_slaveModeEnabled(false)
+ControlApplication::ControlApplication(HINSTANCE hinst,
+                                       const TCHAR *windowClassName,
+                                       const TCHAR *commandLine)
+ : WindowsApplication(hinst, windowClassName),
+   m_serverControl(0),
+   m_gate(0),
+   m_transport(0),
+   m_trayIcon(0),
+   m_slaveModeEnabled(false),
+   m_configurator(false)
 {
   m_commandLine.setString(commandLine);
 
@@ -86,17 +103,25 @@ int ControlApplication::run()
 {
   ControlCommandLine cmdLineParser;
 
+  // Check command line for valid.
   try {
-    cmdLineParser.parse(m_commandLine.getString());
+    WinCommandLineArgs cmdArgs(m_commandLine.getString());
+    cmdLineParser.parse(&cmdArgs);
   } catch (CommandLineFormatException &) {
     TvnServerHelp::showUsage();
     return 1;
   }
 
+  // Run configuration dialog and exit.
   if (cmdLineParser.hasConfigAppFlag() || cmdLineParser.hasConfigServiceFlag()) {
     return runConfigurator(cmdLineParser.hasConfigServiceFlag(), cmdLineParser.hasDontElevateFlag());
   }
 
+  if (cmdLineParser.hasCheckServicePasswords()) {
+    return checkServicePasswords(cmdLineParser.hasDontElevateFlag());
+  }
+
+  // Change passwords and exit.
   if (cmdLineParser.hasSetControlPasswordFlag() || cmdLineParser.hasSetVncPasswordFlag()) {
     Configurator::getInstance()->setServiceFlag(true);
     Configurator::getInstance()->load();
@@ -117,11 +142,15 @@ int ControlApplication::run()
 
   int retCode = 0;
 
+  // If we are in the "-controlservice -slave" mode, make sure there are no
+  // other "service slaves" in this session, exit if there is one already.
+
   GlobalMutex *appGlobalMutex = 0;
 
   if (cmdLineParser.hasControlServiceFlag() && cmdLineParser.isSlave()) {
     try {
-      appGlobalMutex = new GlobalMutex(_T("tvnserverServiceControlSlave"), false, true);
+      appGlobalMutex = new GlobalMutex(
+        ServerApplicationNames::CONTROL_APP_INSTANCE_MUTEX_NAME, false, true);
     } catch (...) {
       return 1;
     }
@@ -129,10 +158,11 @@ int ControlApplication::run()
 
   ZombieKiller zombieKiller;
 
+  // Connect to server.
   try {
     connect(cmdLineParser.hasControlServiceFlag(), cmdLineParser.isSlave());
   } catch (Exception &) {
-    if (!cmdLineParser.isSlave()) {
+    if (!cmdLineParser.isSlave() && !cmdLineParser.hasCheckServicePasswords()) {
       const TCHAR *msg = StringTable::getString(IDS_FAILED_TO_CONNECT_TO_CONTROL_SERVER);
       const TCHAR *caption = StringTable::getString(IDS_MBC_TVNCONTROL);
       MessageBox(0, msg, caption, MB_OK | MB_ICONERROR);
@@ -140,6 +170,7 @@ int ControlApplication::run()
     return 1;
   }
 
+  // Execute command (if specified) and exit.
   if (cmdLineParser.isCommandSpecified()) {
     Command *command = 0;
 
@@ -158,7 +189,22 @@ int ControlApplication::run()
       command = new ConnectCommand(m_serverControl, hostName.getString());
     } else if (cmdLineParser.hasShutdownFlag()) {
       command = new ShutdownCommand(m_serverControl);
+    } else if (cmdLineParser.hasSharePrimaryFlag()) {
+      command = new SharePrimaryCommand(m_serverControl);
+    } else if (cmdLineParser.hasShareDisplay()) {
+      unsigned char displayNumber = cmdLineParser.getShareDisplayNumber();
+      command = new ShareDisplayCommand(m_serverControl, displayNumber);
+    } else if (cmdLineParser.hasShareWindow()) {
+      StringStorage shareWindowName;
+      cmdLineParser.getShareWindowName(&shareWindowName);
+      command = new ShareWindowCommand(m_serverControl, &shareWindowName);
+    } else if (cmdLineParser.hasShareRect()) {
+      Rect shareRect = cmdLineParser.getShareRect();
+      command = new ShareRectCommand(m_serverControl, &shareRect);
+    } else if (cmdLineParser.hasShareFull()) {
+      command = new ShareFullCommand(m_serverControl);
     }
+
 
     retCode = runControlCommand(command);
 
@@ -201,6 +247,7 @@ int ControlApplication::run()
 
 void ControlApplication::connect(bool controlService, bool slave)
 {
+  // Determine the name of pipe to connect to.
   StringStorage pipeName;
   ControlPipeName::createPipeName(controlService, &pipeName);
 
@@ -219,6 +266,7 @@ void ControlApplication::connect(bool controlService, bool slave)
     Sleep(msDelayBetweenTries);
   }
 
+  // We can get here only on successful connection.
   m_gate = new ControlGate(m_transport->getIOStream());
   m_serverControl = new ControlProxy(m_gate);
 }
@@ -245,14 +293,18 @@ void ControlApplication::execute()
   try {
     while (!isTerminating()) {
       Thread::sleep(500);
+      // If we need to show or hide icon.
       bool showIcon = m_serverControl->getShowTrayIconFlag() || !m_slaveModeEnabled;
 
+      // Check if we need to show icon.
       if (showIcon && !m_trayIcon->isVisible()) {
         m_trayIcon->show();
       }
+      // Check if we need to hide icon.
       if (m_trayIcon != 0 && !showIcon) {
         m_trayIcon->hide();
       }
+      // Update tray icon status if icon is set.
       if (m_trayIcon->isVisible()) {
         m_trayIcon->syncStatusWithServer();
       }
@@ -294,7 +346,11 @@ int ControlApplication::runControlCommand(Command *command)
 
 int ControlApplication::runConfigurator(bool configService, bool isRunAsRequested)
 {
+  // If not enough rights to configurate service, then restart application requesting
+  // admin access rights.
   if (configService && (IsUserAnAdmin() == FALSE)) {
+    // If admin rights already requested and application still don't have them,
+    // then show error message and exit.
     if (isRunAsRequested) {
       MessageBox(0,
         StringTable::getString(IDS_ADMIN_RIGHTS_NEEDED),
@@ -302,12 +358,17 @@ int ControlApplication::runConfigurator(bool configService, bool isRunAsRequeste
         MB_OK | MB_ICONERROR);
       return 0;
     }
+    // Path to tvnserver binary.
     StringStorage pathToBinary;
+    // Command line for child process.
     StringStorage childCommandLine;
 
+    // Get path to tvnserver binary.
     Environment::getCurrentModulePath(&pathToBinary);
+    // Set -dontelevate flag to tvncontrol know that admin rights already requested.
     childCommandLine.format(_T("%s -dontelevate"), m_commandLine.getString());
 
+    // Start child.
     try {
       Shell::runAsAdmin(pathToBinary.getString(), childCommandLine.getString());
     } catch (SystemException &sysEx) {
@@ -318,7 +379,7 @@ int ControlApplication::runConfigurator(bool configService, bool isRunAsRequeste
           MB_OK | MB_ICONERROR);
       }
       return 1;
-    } 
+    } // try / catch.
     return 0;
   }
 
@@ -334,18 +395,112 @@ int ControlApplication::runConfigurator(bool configService, bool isRunAsRequeste
 
 void ControlApplication::getCryptedPassword(UINT8 cryptedPass[8], const TCHAR *plainTextPassString)
 {
+  // Get a copy of the password truncated at 8 characters.
   StringStorage plainTextPass(plainTextPassString);
   plainTextPass.getSubstring(&plainTextPass, 0, 7);
+  // Convert from TCHAR[] to char[].
+  // FIXME: Check exception catching.
+  AnsiStringStorage ansiPass(&plainTextPass);
 
-  char ansiRepresentation[9];
-  bool success = plainTextPass.toAnsiString(ansiRepresentation, 9);
-  _ASSERT(success);
-
+  // Convert to a byte array.
   UINT8 byteArray[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  if (success) {
-    size_t len = strlen(ansiRepresentation);
-    memcpy(byteArray, ansiRepresentation, len);
-  }
+  memcpy(byteArray, ansiPass.getString(), ansiPass.getLength());
 
+  // Encrypt with a fixed key.
   VncPassCrypt::getEncryptedPass(cryptedPass, byteArray);
+}
+
+int ControlApplication::checkServicePasswords(bool isRunAsRequested)
+{
+  // FIXME: code duplication.
+  if (IsUserAnAdmin() == FALSE) {
+    // If admin rights already requested and application still don't have them,
+    // then show error message and exit.
+    if (isRunAsRequested) {
+      MessageBox(0,
+        StringTable::getString(IDS_ADMIN_RIGHTS_NEEDED),
+        StringTable::getString(IDS_MBC_TVNCONTROL),
+        MB_OK | MB_ICONERROR);
+      return 1;
+    }
+    // Path to tvnserver binary.
+    StringStorage pathToBinary;
+    // Command line for child process.
+    StringStorage childCommandLine;
+
+    // Get path to tvnserver binary.
+    Environment::getCurrentModulePath(&pathToBinary);
+    // Set -dontelevate flag to tvncontrol know that admin rights already requested.
+    childCommandLine.format(_T("%s -dontelevate"), m_commandLine.getString());
+
+    // Start child.
+    try {
+      Shell::runAsAdmin(pathToBinary.getString(), childCommandLine.getString());
+      return 0;
+    } catch (SystemException &sysEx) {
+      if (sysEx.getErrorCode() != ERROR_CANCELLED) {
+        MessageBox(0,
+          sysEx.getMessage(),
+          StringTable::getString(IDS_MBC_TVNCONTROL),
+          MB_OK | MB_ICONERROR);
+      }
+      return 1;
+    } // try / catch.
+    return 0;
+  }
+  checkServicePasswords();
+  return 0;
+}
+
+void ControlApplication::checkServicePasswords()
+{
+  Configurator::getInstance()->setServiceFlag(true);
+  Configurator::getInstance()->load();
+  ServerConfig *config = Configurator::getInstance()->getServerConfig();
+
+  bool askToChangeRfbAuth = !config->isUsingAuthentication() || !config->hasPrimaryPassword();
+  bool askToChangeAdmAuth = !config->isControlAuthEnabled() || !config->hasControlPassword();
+  if (askToChangeRfbAuth || askToChangeAdmAuth) {
+    SetPasswordsDialog dialog(askToChangeRfbAuth, askToChangeAdmAuth);
+    if (dialog.showModal() == IDOK) {
+      UINT8 cryptedPass[8];
+      bool useRfbAuth = dialog.getUseRfbPass();
+      bool dontUseRfbAuth = dialog.getRfbPassForClear();
+      // Note: The state !useRfbAuth && !dontUseRfbAuth is valid and means "do not change
+      // the auth settings".
+      if (useRfbAuth || dontUseRfbAuth) {
+        StringStorage pass;
+        if (useRfbAuth) {
+          dialog.getRfbPass(&pass);
+        } // else the password will be zeroed
+        getCryptedPassword(cryptedPass, pass.getString());
+        config->setPrimaryPassword(cryptedPass);
+        config->useAuthentication(!dontUseRfbAuth);
+      }
+      bool useAdmAuth = dialog.getUseAdmPass();
+      bool dontUseAdmAuth = dialog.getAdmPassForClear();
+      if (useAdmAuth || dontUseAdmAuth) {
+        StringStorage pass;
+        if (useAdmAuth) {
+          dialog.getAdmPass(&pass);
+        }
+        getCryptedPassword(cryptedPass, pass.getString());
+        config->setControlPassword(cryptedPass);
+        config->useControlAuth(!dontUseAdmAuth);
+      }
+      Configurator::getInstance()->save();
+      reloadConfig();
+    }
+  }
+}
+
+void ControlApplication::reloadConfig()
+{
+  StringStorage pathToBinary;
+  // Get path to tvnserver binary.
+  Environment::getCurrentModulePath(&pathToBinary);
+  try {
+    Shell::runAsAdmin(pathToBinary.getString(), _T("-controlservice -reload"));
+  } catch (SystemException &sysEx) {
+  }
 }

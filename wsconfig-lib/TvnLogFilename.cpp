@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,18 +27,10 @@
 #include "file-lib/File.h"
 
 #include "win-system/Environment.h"
+#include "tvnserver-app/NamingDefs.h"
 
 TvnLogFilename::TvnLogFilename()
 {
-}
-
-void TvnLogFilename::queryLogFilePath(bool forService, bool shareLog, StringStorage *logFilePath)
-{
-  StringStorage root;
-
-  queryLogFileDirectory(forService, shareLog, &root);
-
-  logFilePath->format(_T("%s\\tvnserver.log"), root.getString());
 }
 
 void TvnLogFilename::queryLogFileDirectory(bool forService,
@@ -51,5 +43,7 @@ void TvnLogFilename::queryLogFileDirectory(bool forService,
 
   Environment::getSpecialFolderPath(specialFolderId, &specialFolder);
 
-  logFileDirectory->format(_T("%s\\TightVNC"), specialFolder.getString());
+  logFileDirectory->format(_T("%s\\%s"),
+                           specialFolder.getString(),
+                           LogNames::LOG_DIR_NAME);
 }

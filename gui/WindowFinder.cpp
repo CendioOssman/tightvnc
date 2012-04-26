@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,7 +30,7 @@ struct WindowsParam
   StringVector *classNames;
 };
 
-BOOL CALLBACK WindowFinder::enumFindWindows(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK WindowFinder::findWindowsByClassFunc(HWND hwnd, LPARAM lParam)
 {
   if (IsWindowVisible(hwnd) != 0) {
     WindowsParam *windowsParam = (WindowsParam *)lParam;
@@ -49,7 +49,8 @@ BOOL CALLBACK WindowFinder::enumFindWindows(HWND hwnd, LPARAM lParam)
         }
       }
 
-      EnumChildWindows(hwnd, enumFindWindows, (LPARAM) windowsParam);
+      // Recursion
+      EnumChildWindows(hwnd, findWindowsByClassFunc, (LPARAM) windowsParam);
     }
   }
   return TRUE;
@@ -63,6 +64,45 @@ void WindowFinder::findWindowsByClass(StringVector *classNames,
     WindowsParam windowsParam;
     windowsParam.classNames = classNames;
     windowsParam.hwndVector = hwndVector;
-    EnumWindows(enumFindWindows, (LPARAM)&windowsParam);
+    EnumWindows(findWindowsByClassFunc, (LPARAM)&windowsParam);
+  }
+}
+
+BOOL CALLBACK WindowFinder::findWindowsByNameFunc(HWND hwnd, LPARAM lParam)
+{
+  if (IsWindowVisible(hwnd) != 0) {
+    TCHAR nameChars[256];
+    if (GetWindowText(hwnd, (LPTSTR)&nameChars, sizeof(nameChars)) != 0) {
+      nameChars[sizeof(nameChars) - 1] = 0; // To avoid errors when
+                                            // the string truncates
+      StringStorage winName(nameChars);
+      winName.toLowerCase();
+
+      if (winName.getLength() > 0 && hwnd != 0) {
+        WindowsParam *winParams = (WindowsParam *)lParam;
+        StringStorage *substr = &(*(winParams->classNames)).front();
+        if (_tcsstr(winName.getString(), substr->getString()) != 0) {
+          (*(winParams->hwndVector)).push_back(hwnd);
+          return FALSE;
+        }
+      }
+    }
+  }
+  return TRUE;
+}
+
+HWND WindowFinder::findFirstWindowByName(const StringStorage *windowName)
+{
+  std::vector<HWND> hwndVector;
+  StringVector winNameVector;
+  winNameVector.push_back(*windowName);
+  winNameVector[0].toLowerCase();
+  WindowsParam winParams = { &hwndVector, &winNameVector };
+
+  EnumWindows(findWindowsByNameFunc, (LPARAM)&winParams);
+  if (hwndVector.size() != 0) {
+    return hwndVector[0];
+  } else {
+    return 0;
   }
 }

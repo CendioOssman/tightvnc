@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -50,12 +50,12 @@ void AboutDialog::onCloseButtonClick()
 
 void AboutDialog::onOrderSupportButtonClock()
 {
-  openUrl(StringTable::getString(IDS_TIGHTVNC_LICENSING_URL));
+  openUrl(StringTable::getString(IDS_URL_LICENSING_FSA));
 }
 
 void AboutDialog::onVisitSiteButtonClick()
 {
-  openUrl(StringTable::getString(IDS_TIGHTVNC_URL));
+  openUrl(StringTable::getString(IDS_URL_PRODUCT_FSA));
 }
 
 void AboutDialog::openUrl(const TCHAR *url)
@@ -76,6 +76,7 @@ void AboutDialog::openUrl(const TCHAR *url)
 
 BOOL AboutDialog::onInitDialog()
 {
+  // Update product version string.
   StringStorage versionString(_T("unknown"));
   try {
     StringStorage binaryPath;
@@ -89,15 +90,18 @@ BOOL AboutDialog::onInitDialog()
                MB_OK | MB_ICONEXCLAMATION);
   }
 
+  // Format product version and build time for displaying on the dialog.
   StringStorage versionText;
   versionText.format(StringTable::getString(IDS_PRODUCT_VERSION_FORMAT),
                      versionString.getString(),
                      BuildTime::DATE);
 
+  // Show version info on the dialog.
   Control versionLabel;
   versionLabel.setWindow(GetDlgItem(m_ctrlThis.getWindow(), IDC_STATIC_VERSION));
   versionLabel.setText(versionText.getString());
 
+  // Show licensing info and/or special build info.
   Control licensingLabel;
   licensingLabel.setWindow(GetDlgItem(m_ctrlThis.getWindow(), IDC_STATIC_LICENSING));
   licensingLabel.setText(StringTable::getString(IDS_LICENSING_INFO));

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -53,6 +53,10 @@ void TabControl::addTab(BaseDialog *dialog, const TCHAR *caption)
   _tcscpy(&fixedCaption[0], tab->getCaption());
   tcitem.pszText = fixedCaption;
   if (TabCtrl_InsertItem(getWindow(), m_tabContainer.size() - 1, &tcitem) == FALSE) {
+    //
+    // Handle error
+    // ...
+    //
   }
 }
 

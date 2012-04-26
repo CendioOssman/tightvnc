@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -116,6 +116,66 @@ void ControlProxy::makeOutgoingConnection(const TCHAR *connectString, bool viewO
   msg->writeUTF8(connectString);
   msg->writeUInt8(viewOnly);
 
+  msg->send();
+}
+
+void ControlProxy::makeTcpDispatcherConnection(const TCHAR *connectString,
+                                               const TCHAR *dispatcherName,
+                                               const TCHAR *keyword,
+                                               UINT32 connectionId)
+{
+  AutoLock l(m_gate);
+
+  ControlMessage *msg = createMessage(ControlProto::CONNECT_TO_TCPDISP_MSG_ID);
+
+  msg->writeUTF8(connectString);
+  msg->writeUTF8(dispatcherName);
+  msg->writeUTF8(keyword);
+  msg->writeUInt32(connectionId);
+
+  msg->send();
+}
+
+void ControlProxy::sharePrimary()
+{
+  AutoLock l(m_gate);
+  ControlMessage *msg = createMessage(ControlProto::SHARE_PRIMARY_MSG_ID);
+  msg->send();
+}
+
+void ControlProxy::shareDisplay(unsigned char displayNumber)
+{
+  AutoLock l(m_gate);
+  ControlMessage *msg = createMessage(ControlProto::SHARE_DISPLAY_MSG_ID);
+  msg->writeUInt8(displayNumber);
+  msg->send();
+}
+
+void ControlProxy::shareRect(const Rect *shareRect)
+{
+  AutoLock l(m_gate);
+  ControlMessage *msg = createMessage(ControlProto::SHARE_RECT_MSG_ID);
+
+  msg->writeInt32(shareRect->left);
+  msg->writeInt32(shareRect->top);
+  msg->writeInt32(shareRect->right);
+  msg->writeInt32(shareRect->bottom);
+
+  msg->send();
+}
+
+void ControlProxy::shareWindow(const StringStorage *shareWindowName)
+{
+  AutoLock l(m_gate);
+  ControlMessage *msg = createMessage(ControlProto::SHARE_WINDOW_MSG_ID);
+  msg->writeUTF8(shareWindowName->getString());
+  msg->send();
+}
+
+void ControlProxy::shareFull()
+{
+  AutoLock l(m_gate);
+  ControlMessage *msg = createMessage(ControlProto::SHARE_FULL_MSG_ID);
   msg->send();
 }
 

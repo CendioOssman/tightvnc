@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -47,6 +47,10 @@ public:
 protected:
   void initControls();
   bool isUserDataValid();
+
+  //
+  // Inherited from BaseDialog
+  //
 
   virtual BOOL onInitDialog();
   virtual BOOL onCommand(UINT cID, UINT nID);

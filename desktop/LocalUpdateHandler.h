@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,6 +29,7 @@
 #include "UpdateListener.h"
 #include "util/DateTime.h"
 #include "MouseDetector.h"
+#include "ScreenDriver.h"
 
 class LocalUpdateHandler : public UpdateHandler, public UpdateListener
 {
@@ -59,14 +60,11 @@ protected:
 
   UpdateKeeper *m_updateKeeper;
   UpdateFilter *m_updateFilter;
-  UpdateDetector *m_poller;
-  UpdateDetector *m_consolePoller;
-  UpdateDetector *m_hooks;
   MouseDetector *m_mouseDetector;
   CopyRectDetector m_copyRectDetector;
-  WindowsScreenGrabber m_screenGrabber;
   WindowsMouseGrabber m_mouseGrabber;
   UpdateListener *m_externalUpdateListener;
+  ScreenDriver *m_screenDriver;
 
   UpdateDetector *m_mouseShapeDetector;
   LocalMutex m_mouseGrabLocMut;
@@ -79,4 +77,4 @@ protected:
   bool m_fullUpdateRequested;
 };
 
-#endif 
+#endif // __LOCALUPDATEHANDLER_H__

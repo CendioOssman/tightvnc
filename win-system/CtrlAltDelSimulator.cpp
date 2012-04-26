@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,6 +36,7 @@ CtrlAltDelSimulator::~CtrlAltDelSimulator()
 
 void CtrlAltDelSimulator::execute()
 {
+  // Switch thread desktop to "Winlogon".
   if (DesktopSelector::selectDesktop(&StringStorage(_T("Winlogon")))) {
     HWND hwndCtrlAltDel = FindWindow(_T("SAS window class"), _T("SAS window"));
     if (hwndCtrlAltDel == NULL) {
@@ -43,4 +44,5 @@ void CtrlAltDelSimulator::execute()
     }
     PostMessage(hwndCtrlAltDel, WM_HOTKEY, 0, MAKELONG(MOD_ALT | MOD_CONTROL, VK_DELETE));
   }
+  // Do not restore previous desktop.
 }

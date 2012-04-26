@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,6 +24,8 @@
 
 #include "UserInputServer.h"
 #include "thread/AutoLock.h"
+#include "log-server/Log.h"
+#include "util/BrokenHandleException.h"
 
 UserInputServer::UserInputServer(BlockingGate *forwGate,
                                  DesktopSrvDispatcher *dispatcher,
@@ -38,11 +40,16 @@ UserInputServer::UserInputServer(BlockingGate *forwGate,
   dispatcher->registerNewHandle(CLIPBOARD_CHANGED, this);
   dispatcher->registerNewHandle(KEYBOARD_EVENT, this);
   dispatcher->registerNewHandle(USER_INFO_REQ, this);
+  dispatcher->registerNewHandle(DESKTOP_COORDS_REQ, this);
+  dispatcher->registerNewHandle(WINDOW_COORDS_REQ, this);
+  dispatcher->registerNewHandle(WINDOW_HANDLE_REQ, this);
+  dispatcher->registerNewHandle(DISPLAY_NUMBER_COORDS_REQ, this);
   dispatcher->registerNewHandle(USER_INPUT_INIT, this);
 }
 
 UserInputServer::~UserInputServer()
 {
+  Log::debug(_T("The UserInputServer destructor has been called"));
   delete m_userInput;
 }
 
@@ -50,9 +57,15 @@ void UserInputServer::onClipboardUpdate(const StringStorage *newClipboard)
 {
   AutoLock al(m_forwGate);
   try {
-    m_forwGate->writeUInt8(CLIPBOARD_CHANGED);
-    sendNewClipboard(newClipboard, m_forwGate);
-  } catch (...) {
+    // Send clipboard data
+    if (newClipboard->getLength() != 0) {
+      m_forwGate->writeUInt8(CLIPBOARD_CHANGED);
+      sendNewClipboard(newClipboard, m_forwGate);
+    }
+  } catch (Exception &e) {
+    Log::error(_T("An error has been occurred while sending a")
+               _T(" CLIPBOARD_CHANGED message from UserInputServer: %s"),
+               e.getMessage());
     m_extTerminationListener->onAnObjectEvent();
   }
 }
@@ -71,6 +84,18 @@ void UserInputServer::onRequest(UINT8 reqCode, BlockingGate *backGate)
     break;
   case USER_INFO_REQ:
     ansUserInfo(backGate);
+    break;
+  case DESKTOP_COORDS_REQ:
+    ansDesktopCoords(backGate);
+    break;
+  case WINDOW_COORDS_REQ:
+    ansWindowCoords(backGate);
+    break;
+  case WINDOW_HANDLE_REQ:
+    ansWindowHandle(backGate);
+    break;
+  case DISPLAY_NUMBER_COORDS_REQ:
+    ansDisplayNumberCoords(backGate);
     break;
   case USER_INPUT_INIT:
     serverInit(backGate);
@@ -119,4 +144,40 @@ void UserInputServer::ansUserInfo(BlockingGate *backGate)
 
   m_userInput->getCurrentUserInfo(&desktopName, &userName);
   sendUserInfo(&desktopName, &userName, backGate);
+}
+
+void UserInputServer::ansDesktopCoords(BlockingGate *backGate)
+{
+  Rect rect;
+  m_userInput->getPrimaryDisplayCoords(&rect);
+  sendRect(&rect, backGate);
+}
+
+void UserInputServer::ansWindowCoords(BlockingGate *backGate)
+{
+  Rect rect;
+  HWND hwnd = (HWND)backGate->readUInt64();
+  try {
+    m_userInput->getWindowCoords(hwnd, &rect);
+    sendRect(&rect, backGate);
+  } catch (BrokenHandleException &e) {
+    backGate->writeUInt8(1);
+    backGate->writeUTF8(e.getMessage());
+  }
+}
+
+void UserInputServer::ansWindowHandle(BlockingGate *backGate)
+{
+  StringStorage windowName;
+  backGate->readUTF8(&windowName);
+  HWND hwnd = m_userInput->getWindowHandleByName(&windowName);
+  backGate->writeUInt64((UINT64)hwnd);
+}
+
+void UserInputServer::ansDisplayNumberCoords(BlockingGate *backGate)
+{
+  unsigned char dispNumber = backGate->readUInt8();
+  Rect rect;
+  m_userInput->getDisplayNumberCoords(&rect, dispNumber);
+  sendRect(&rect, backGate);
 }

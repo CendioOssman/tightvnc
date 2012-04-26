@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,7 +25,7 @@
 #include "WTS.h"
 
 #include "SystemException.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "thread/AutoLock.h"
 #include "PipeImpersonatedThread.h"
 #include <crtdbg.h>

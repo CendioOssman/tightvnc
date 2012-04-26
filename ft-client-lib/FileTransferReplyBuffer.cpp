@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,38 +24,26 @@
 
 #include "FileTransferReplyBuffer.h"
 #include "io-lib/ByteArrayInputStream.h"
+#include "thread/AutoLock.h"
 #include <crtdbg.h>
 
-FileTransferReplyBuffer::FileTransferReplyBuffer(InputStream *inputStream, omni_mutex *readMutex)
-: m_isCompressionSupported(false), m_readMutex(readMutex),
-  m_filesInfoCount(0), m_filesInfo(NULL), m_inflater(NULL),
-  m_downloadBufferSize(0), m_downloadBuffer(0),
+FileTransferReplyBuffer::FileTransferReplyBuffer(RfbInputGate *input)
+: m_isCompressionSupported(false),
+  m_filesInfoCount(0), m_filesInfo(NULL),
+  m_downloadBufferSize(0), 
   m_downloadFileFlags(0), m_downloadLastModified(0),
   m_dirSize(0)
 {
   m_lastErrorMessage.setString(_T(""));
 
-  m_inputStream = inputStream;
-  m_dataInputStream = new DataInputStream(m_inputStream);
-
-  m_inflater = new Inflater();
+  m_input = input;
 }
 
 FileTransferReplyBuffer::~FileTransferReplyBuffer()
 {
-  delete m_dataInputStream;
   if (m_filesInfo != NULL) {
     delete[] m_filesInfo;
   }
-  if (m_downloadBuffer != NULL) {
-    delete[] m_downloadBuffer;
-  }
-  delete m_inflater;
-}
-
-void FileTransferReplyBuffer::setInflater(Inflater *inflater)
-{
-  m_inflater = inflater;
 }
 
 void FileTransferReplyBuffer::getLastErrorMessage(StringStorage *storage)
@@ -98,18 +86,16 @@ UINT64 FileTransferReplyBuffer::getDirSize()
   return m_dirSize;
 }
 
-UINT8 *FileTransferReplyBuffer::getDownloadBuffer()
+vector<UINT8> FileTransferReplyBuffer::getDownloadBuffer()
 {
   return m_downloadBuffer;
 }
 
 void FileTransferReplyBuffer::onCompressionSupportReply()
 {
-  omni_mutex_lock l(*m_readMutex);
+  m_isCompressionSupported = (m_input->readUInt8() == 1);
 
-  m_isCompressionSupported = (m_dataInputStream->readUInt8() == 1);
-
-  Log::info(_T("Recieved comppression support reply: %s\n"),
+  Log::info(_T("Received compression support reply: %s\n"),
             m_isCompressionSupported ? _T("supported") : _T("not supported"));
 }
 
@@ -119,56 +105,48 @@ void FileTransferReplyBuffer::onFileListReply()
   UINT32 compressedSize = 0;
   UINT32 uncompressedSize = 0;
 
-  UINT8 *buffer = NULL;
+  vector<UINT8> buffer;
 
   {
-    omni_mutex_lock l(*m_readMutex);
-
-    compressionLevel = m_dataInputStream->readUInt8();
-    compressedSize = m_dataInputStream->readUInt32();
-    uncompressedSize = m_dataInputStream->readUInt32();
+    compressionLevel = m_input->readUInt8();
+    compressedSize = m_input->readUInt32();
+    uncompressedSize = m_input->readUInt32();
 
     buffer = readCompressedDataBlock(compressedSize,
                                      uncompressedSize,
                                      compressionLevel);
   }
 
-  ByteArrayInputStream memoryInputStream((char *)buffer, uncompressedSize);
+  // FIXME: type conversion in C-style
+  ByteArrayInputStream memoryInputStream((const char *)(&buffer.front()),
+                                         uncompressedSize);
   DataInputStream filesInfoReader(&memoryInputStream);
 
   if (m_filesInfo != NULL) {
     delete[] m_filesInfo;
   }
 
-  try {
-    m_filesInfoCount = filesInfoReader.readUInt32();
-    m_filesInfo = new FileInfo[m_filesInfoCount];
+  m_filesInfoCount = filesInfoReader.readUInt32();
+  m_filesInfo = new FileInfo[m_filesInfoCount];
 
-    for (UINT32 i = 0; i < m_filesInfoCount; i++) {
-      FileInfo *fileInfo = &m_filesInfo[i];
+  for (UINT32 i = 0; i < m_filesInfoCount; i++) {
+    FileInfo *fileInfo = &m_filesInfo[i];
 
-      fileInfo->setSize(filesInfoReader.readUInt64());
-      fileInfo->setLastModified(filesInfoReader.readUInt64());
-      fileInfo->setFlags(filesInfoReader.readUInt16());
+    fileInfo->setSize(filesInfoReader.readUInt64());
+    fileInfo->setLastModified(filesInfoReader.readUInt64());
+    fileInfo->setFlags(filesInfoReader.readUInt16());
 
-      StringStorage t;
-      filesInfoReader.readUTF8(&t);
+    StringStorage t;
+    filesInfoReader.readUTF8(&t);
 
-      fileInfo->setFileName(t.getString());
-    } 
-  } catch (IOException &ioEx) {
+    fileInfo->setFileName(t.getString());
+  } // for all newly created file's info
 
-    delete[] buffer;
-
-    throw ioEx;
-  } 
-
-  Log::info(_T("Recieved file list reply: \n")
+  Log::info(_T("Received file list reply: \n")
             _T("\t files count = %d\n")
             _T("\t use compression = %d\n"),
             m_filesInfoCount, compressionLevel);
 
-  delete[] buffer;
 }
 
 void FileTransferReplyBuffer::onMd5DataReply()
@@ -178,40 +156,34 @@ void FileTransferReplyBuffer::onMd5DataReply()
 
 void FileTransferReplyBuffer::onUploadReply()
 {
-  Log::info(_T("Recieved upload reply\n"));
+  Log::info(_T("Received upload reply\n"));
 }
 
 void FileTransferReplyBuffer::onUploadDataReply()
 {
-  Log::info(_T("Recieved upload data reply\n"));
+  Log::info(_T("Received upload data reply\n"));
 }
 
 void FileTransferReplyBuffer::onUploadEndReply()
 {
-  Log::info(_T("Recieved upload end reply\n"));
+  Log::info(_T("Received upload end reply\n"));
 }
 
 void FileTransferReplyBuffer::onDownloadReply()
 {
-  Log::info(_T("Recieved download reply\n"));
+  Log::info(_T("Received download reply\n"));
 }
 
 void FileTransferReplyBuffer::onDownloadDataReply()
 {
-  omni_mutex_lock l(*m_readMutex);
-
-  if (m_downloadBuffer != NULL) {
-    delete[] m_downloadBuffer;
-  }
-
-  UINT8 coLevel = m_dataInputStream->readUInt8();
-  UINT32 coBufferSize = m_dataInputStream->readUInt32();
-  UINT32 uncoBufferSize = m_dataInputStream->readUInt32();
+  UINT8 coLevel = m_input->readUInt8();
+  UINT32 coBufferSize = m_input->readUInt32();
+  UINT32 uncoBufferSize = m_input->readUInt32();
 
   m_downloadBuffer = readCompressedDataBlock(coBufferSize, uncoBufferSize, coLevel);
   m_downloadBufferSize = uncoBufferSize;
 
-  Log::info(_T("Recieved download data reply:\n")
+  Log::info(_T("Received download data reply:\n")
             _T("\tcompressed size: %d\n")
             _T("\tuncompressed size: %d\n")
             _T("\tuse compression: %d\n"),
@@ -220,12 +192,10 @@ void FileTransferReplyBuffer::onDownloadDataReply()
 
 void FileTransferReplyBuffer::onDownloadEndReply()
 {
-  omni_mutex_lock l(*m_readMutex);
+  m_downloadFileFlags = m_input->readUInt8();
+  m_downloadLastModified = m_input->readUInt64();
 
-  m_downloadFileFlags = m_dataInputStream->readUInt8();
-  m_downloadLastModified = m_dataInputStream->readUInt64();
-
-  Log::info(_T("Recieved download end reply:\n")
+  Log::info(_T("Received download end reply:\n")
             _T("\tfile flags: %d\n")
             _T("\tmodification time: %ld\n"),
             m_downloadFileFlags, m_downloadLastModified);
@@ -233,85 +203,68 @@ void FileTransferReplyBuffer::onDownloadEndReply()
 
 void FileTransferReplyBuffer::onMkdirReply()
 {
-  Log::info(_T("Recieved mkdir reply\n"));
+  Log::info(_T("Received mkdir reply\n"));
 }
 
 void FileTransferReplyBuffer::onRmReply()
 {
-  Log::info(_T("Recieved rm reply\n"));
+  Log::info(_T("Received rm reply\n"));
 }
 
 void FileTransferReplyBuffer::onMvReply()
 {
-  Log::info(_T("Recieved rename reply\n"));
+  Log::info(_T("Received rename reply\n"));
 }
 
 void FileTransferReplyBuffer::onDirSizeReply()
 {
-  omni_mutex_lock l(*m_readMutex);
+  m_dirSize = m_input->readUInt64();
 
-  m_dirSize = m_dataInputStream->readUInt64();
-
-  Log::info(_T("Recieved dirsize reply\n"));
+  Log::info(_T("Received dirsize reply\n"));
 }
 
 void FileTransferReplyBuffer::onLastRequestFailedReply()
 {
-  omni_mutex_lock l(*m_readMutex);
+  m_input->readUTF8(&m_lastErrorMessage);
 
-  m_dataInputStream->readUTF8(&m_lastErrorMessage);
-
-  Log::info(_T("Recieved last request failed reply:\n")
+  Log::info(_T("Received last request failed reply:\n")
             _T("\terror message: %s\n"),
             m_lastErrorMessage.getString());
 }
 
-UINT8 *FileTransferReplyBuffer::readCompressedDataBlock(UINT32 compressedSize,
-                                                        UINT32 uncompressedSize,
-                                                        UINT8 compressionLevel)
+vector<UINT8> FileTransferReplyBuffer::readCompressedDataBlock(UINT32 compressedSize,
+                                                               UINT32 uncompressedSize,
+                                                               UINT8 compressionLevel)
 {
+  //
+  // Buffers with compressed and uncompressed data.
+  // When not using compression uncoBuffer = coBuffer.
+  //
 
   UINT32 coSize = compressedSize;
   UINT32 uncoSize = uncompressedSize;
 
-  UINT8 *coBuffer = new UINT8[coSize];
-  UINT8 *uncoBuffer = NULL;
+  vector<UINT8> coBuffer(coSize);
 
-  try {
-    m_dataInputStream->readFully(coBuffer, coSize);
-  } catch (IOException &ioEx) {
+  //
+  // Read compressed data
+  //
 
-    delete[] coBuffer;
+  m_input->readFully(&coBuffer.front(), coSize);
 
-    throw ioEx;
-  } 
+  if (compressionLevel == 0)
+    return coBuffer;
+  
+  vector<UINT8> uncoBuffer(uncoSize);
 
-  if (compressionLevel == 0) {
-    uncoBuffer = coBuffer;
-  } else {
-    _ASSERT(m_inflater != NULL);
+  m_inflater.setUnpackedSize(uncoSize);
+  // FIXME: type conversion in C-style
+  m_inflater.setInput((const char*)&coBuffer.front(), coSize);
 
-    uncoBuffer = new UINT8[uncoSize];
+  m_inflater.inflate();
 
-    m_inflater->setUnpackedSize(uncoSize);
-    m_inflater->setInput((const char *)coBuffer, coSize);
+  _ASSERT(m_inflater.getOutputSize() == uncoSize);
 
-    try {
-      m_inflater->inflate();
-    } catch (ZLibException &zEx) {
-
-      delete[] uncoBuffer;
-      delete[] coBuffer;
-
-      throw zEx;
-    } 
-
-    _ASSERT(m_inflater->getOutputSize() == uncoSize);
-
-    memcpy(uncoBuffer, m_inflater->getOutput(), uncoSize);
-
-    delete[] coBuffer;
-  } 
-
+  memcpy(&uncoBuffer.front(), m_inflater.getOutput(), uncoSize);
   return uncoBuffer;
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,9 +26,10 @@
 #define __POLLER_H__
 
 #include "UpdateDetector.h"
-#include "WindowsScreenGrabber.h"
+#include "ScreenGrabber.h"
 #include "rfb/FrameBuffer.h"
 #include "region/Rect.h"
+#include "win-system/WindowsEvent.h"
 
 #define DEFAULT_SLEEP_TIME 1000
 
@@ -41,7 +42,7 @@ public:
          FrameBuffer *backupFrameBuffer,
          LocalMutex *frameBufferCriticalSection);
 
-  virtual ~Poller(void);
+  virtual ~Poller();
 
 protected:
   virtual void execute();
@@ -55,4 +56,4 @@ private:
   WindowsEvent m_intervalWaiter;
 };
 
-#endif 
+#endif // __POLLER_H__

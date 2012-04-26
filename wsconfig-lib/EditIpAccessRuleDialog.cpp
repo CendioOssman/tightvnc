@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,6 +25,7 @@
 #include "tvnserver/resource.h"
 #include "EditIpAccessRuleDialog.h"
 #include "util/StringParser.h"
+#include "util/AnsiStringStorage.h"
 
 EditIpAccessRuleDialog::EditIpAccessRuleDialog()
 : BaseDialog(IDD_EDIT_IP_ACESS_CONTROL), m_data(NULL), m_isOpenedForEdit(false)
@@ -136,7 +137,7 @@ void EditIpAccessRuleDialog::onOkButtonClick()
     m_data->setFirstIp(firstIp.getString());
     m_data->setLastIp(lastIp.getString());
 
-  } 
+  } // if
   kill(IDOK);
 }
 
@@ -152,10 +153,10 @@ void EditIpAccessRuleDialog::onAccessTypeRadioClick(int num)
     for (int i = 0; i < 3; i++) {
       if (i != num) {
         m_access[i].check(false);
-      } 
-    } 
-  } 
-} 
+      } // if
+    } // for
+  } // if
+} // void
 
 void EditIpAccessRuleDialog::initControls()
 {
@@ -181,7 +182,7 @@ bool EditIpAccessRuleDialog::validateInput()
     m_firstIp.setFocus();
     m_firstIp.showBalloonTip(&m_warningBalloonTip);
     return false;
-  } 
+  } // if
 
   if (lastIp.isEmpty()) {
     return true;
@@ -191,18 +192,13 @@ bool EditIpAccessRuleDialog::validateInput()
     m_lastIp.setFocus();
     m_lastIp.showBalloonTip(&m_warningBalloonTip);
     return false;
-  } 
+  } // if
 
-  char firstIpAnsi[100];
-  char lastIpAnsi[100];
-  size_t firstIpSize = 100;
-  size_t lastIpSize = 100;
+  AnsiStringStorage firstIpAnsi(&firstIp);
+  AnsiStringStorage lastIpAnsi(&lastIp);
 
-  firstIp.toAnsiString(&firstIpAnsi[0], firstIpSize);
-  lastIp.toAnsiString(&lastIpAnsi[0], lastIpSize);
-
-  unsigned long firstIpAddr = inet_addr(&firstIpAnsi[0]);
-  unsigned long lastIpAddr = inet_addr(&lastIpAnsi[0]);
+  unsigned long firstIpAddr = inet_addr(firstIpAnsi.getString());
+  unsigned long lastIpAddr = inet_addr(lastIpAnsi.getString());
 
   if (IpAccessRule::compareIp(firstIpAddr, lastIpAddr) == 1) {
     m_lastIp.setFocus();

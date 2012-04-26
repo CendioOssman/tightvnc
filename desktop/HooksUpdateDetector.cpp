@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,36 +23,29 @@
 //
 
 #include "util/CommonHeader.h"
+#include "tvnserver-app/NamingDefs.h"
 #include "HooksUpdateDetector.h"
 #include "region/Rect.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "win-system/UipiControl.h"
-
-const TCHAR HooksUpdateDetector::LIBRARY_NAME[] = _T("screenhooks.dll");
-const char HooksUpdateDetector::SET_HOOK_FUNCTION_NAME[] = "setHook";
-const char HooksUpdateDetector::UNSET_HOOK_FUNCTION_NAME[] = "unsetHook";
-
-typedef bool (*SetHookFunction)(HWND targedWinHwnd);
-typedef bool (*UnsetHookFunction)();
-const UINT specIpcCode = RegisterWindowMessage(_T("HOOK.MESSAGE.CODE"));
+#include "win-system/Environment.h"
 
 HooksUpdateDetector::HooksUpdateDetector(UpdateKeeper *updateKeeper,
                                          UpdateListener *updateListener)
 : UpdateDetector(updateKeeper, updateListener),
   m_updateTimer(updateListener),
-  m_pSetHook(0),
-  m_pUnSetHook(0),
   m_targetWin(0),
-  m_lib(0)
+  m_hookInstaller(0)
 {
   try {
-    m_lib = new DynamicLibrary(LIBRARY_NAME);
-  } catch (Exception &) {
+    m_hookInstaller = new HookInstaller();
+  } catch (Exception &e) {
     Thread::terminate();
-    Log::error(_T("Failed to load library %s"), LIBRARY_NAME);
+    Log::error(_T("Failed to load the hook library: %s"), e.getMessage());
   }
   HINSTANCE hinst = GetModuleHandle(0);
-  m_targetWin = new Window(hinst, _T("HookTargetWinClassName"));
+  m_targetWin = new MessageWindow(hinst,
+    HookDefinitions::HOOK_TARGET_WIN_CLASS_NAME);
 }
 
 HooksUpdateDetector::~HooksUpdateDetector()
@@ -60,11 +53,11 @@ HooksUpdateDetector::~HooksUpdateDetector()
   terminate();
   wait();
 
+  if (m_hookInstaller != 0) {
+    delete m_hookInstaller;
+  }
   if (m_targetWin != 0) {
     delete m_targetWin;
-  }
-  if (m_lib != 0) {
-    delete m_lib;
   }
 }
 
@@ -76,35 +69,42 @@ void HooksUpdateDetector::onTerminate()
   m_initWaiter.notify();
 }
 
-bool HooksUpdateDetector::initHook()
+void HooksUpdateDetector::start32Loader()
 {
-  Log::info(_T("Try to initialize the hooks..."));
-  HINSTANCE hinst = GetModuleHandle(0);
-
-  if (m_lib != 0) {
-    m_pSetHook = m_lib->getProcAddress(SET_HOOK_FUNCTION_NAME);
-    m_pUnSetHook = m_lib->getProcAddress(UNSET_HOOK_FUNCTION_NAME);
+#ifdef _WIN64
+  if (!isTerminating()) {
+    StringStorage path, folder;
+    Environment::getCurrentModuleFolderPath(&folder);
+    path.format(_T("%s\\%s"), folder.getString(),
+                HookDefinitions::HOOK_LOADER_NAME);
+    m_hookLoader32.setFilename(path.getString());
+    StringStorage hwndStr;
+    hwndStr.format(_T("%I64u"), (DWORD64)m_targetWin->getHWND());
+    m_hookLoader32.setArguments(hwndStr.getString());
+    try {
+      m_hookLoader32.start();
+    } catch (Exception &e) {
+      Log::error(_T("Can't run the 32-bit hook loader: %s"), e.getMessage());
+    }
   }
-  if (!m_pSetHook || !m_pUnSetHook) {
-    return false;
-  }
-
-  SetHookFunction setHookFunction = (SetHookFunction)m_pSetHook;
-  return setHookFunction(m_targetWin->getHWND());
+#endif
 }
 
-bool HooksUpdateDetector::unInitHook()
+void HooksUpdateDetector::terminate32Loader()
 {
-  bool result = true;
-
-  if (m_pUnSetHook) {
-    UnsetHookFunction unsetHookFunction = (UnsetHookFunction)m_pUnSetHook;
-    result = unsetHookFunction();
-    m_pUnSetHook = 0;
-    m_pSetHook = 0;
+  if (m_hookLoader32.getProcessHandle() != 0) {
+    // Send broadcast message to close the 32 bit hook loader.
+    broadcastMessage(HookDefinitions::LOADER_CLOSE_CODE);
   }
+}
 
-  return result;
+void HooksUpdateDetector::broadcastMessage(UINT message)
+{
+  HWND hwndFound = FindWindowEx(HWND_MESSAGE, 0, 0, 0);
+  while(hwndFound) {
+    PostMessage(hwndFound, message, 0, 0);
+    hwndFound = GetNextWindow(hwndFound, GW_HWNDNEXT);
+  }
 }
 
 void HooksUpdateDetector::execute()
@@ -119,17 +119,32 @@ void HooksUpdateDetector::execute()
 
   try {
     UipiControl uipiControl;
-    uipiControl.allowMessage(specIpcCode, m_targetWin->getHWND());
+    uipiControl.allowMessage(HookDefinitions::SPEC_IPC_CODE,
+                             m_targetWin->getHWND());
   } catch (Exception &e) {
     terminate();
     Log::error(e.getMessage());
   }
 
-  while (!isTerminating() && !initHook()) {
-    Log::error(_T("Hooks initialization failed, wait for the next trying"));
-    m_initWaiter.waitForEvent(5000);
-    unInitHook();
+  bool hookInstalled = false;
+  while (!isTerminating() && !hookInstalled) {
+    try {
+      m_hookInstaller->install(m_targetWin->getHWND());
+      hookInstalled = true;
+    } catch (Exception &e) {
+      Log::error(_T("Hooks installing failed, wait for the next trying: %s"),
+                 e.getMessage());
+      m_initWaiter.waitForEvent(5000);
+      try {
+        m_hookInstaller->uninstall();
+      } catch (Exception &e) {
+        Log::error(_T("Hooks uninstalling failed: %s"),
+                   e.getMessage());
+      }
+    }
   }
+
+  start32Loader();
 
   if (!isTerminating()) {
     Log::info(_T("Hooks update detector has been successfully initialized"));
@@ -138,7 +153,7 @@ void HooksUpdateDetector::execute()
   MSG msg;
   while (!isTerminating()) {
     if (PeekMessage(&msg, m_targetWin->getHWND(), 0, 0, PM_REMOVE) != 0) {
-      if (msg.message == specIpcCode) {
+      if (msg.message == HookDefinitions::SPEC_IPC_CODE) {
         Rect rect((INT16)(msg.wParam >> 16), (INT16)(msg.wParam & 0xffff),
                   (INT16)(msg.lParam >> 16), (INT16)(msg.lParam & 0xffff));
         if (!rect.isEmpty()) {
@@ -156,6 +171,13 @@ void HooksUpdateDetector::execute()
     }
   }
 
-  unInitHook();
+  try {
+    if (m_hookInstaller != 0) {
+      m_hookInstaller->uninstall();
+    }
+    terminate32Loader();
+  } catch (Exception &e) {
+    Log::error(_T("%s"), e.getMessage());
+  }
   Log::info(_T("Hooks update detector has been terminated."));
 }

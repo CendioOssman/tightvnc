@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -53,6 +53,10 @@ void EditPortMappingDialog::onOkButtonClick()
 {
   if (!isUserDataValid())
     return ;
+
+  //
+  // Temporary variables
+  //
 
   PortMappingRect rect;
   int port;
@@ -111,9 +115,9 @@ bool EditPortMappingDialog::isUserDataValid()
 
   PortMappingContainer *extraPorts = Configurator::getInstance()->getServerConfig()->getPortMappingContainer();
 
-  int index = extraPorts->findByPort(port);
+  size_t index = extraPorts->findByPort(port);
 
-  if ((index != -1) && (extraPorts->at(index) != m_mapping)) {
+  if ((index != (size_t)-1) && (extraPorts->at(index) != m_mapping)) {
     MessageBox(m_ctrlThis.getWindow(),
                StringTable::getString(IDS_PORT_ALREADY_IN_USE),
                StringTable::getString(IDS_CAPTION_BAD_INPUT),

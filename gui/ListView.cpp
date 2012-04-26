@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,12 +26,19 @@
 
 void ListView::addColumn(int index, const TCHAR *caption, int width, int fmt)
 {
+  //
+  // Create LV_COLUMN struct
+  //
 
   LV_COLUMN lvColumn = {0};
   lvColumn.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT;
   lvColumn.fmt = fmt;
   lvColumn.cx = width;
   lvColumn.pszText = (TCHAR *)caption;
+
+  //
+  // Add column to list view
+  //
 
   ListView_InsertColumn(m_hwnd, index, &lvColumn);
 }
@@ -43,18 +50,34 @@ void ListView::addColumn(int index, const TCHAR *caption, int width)
 
 ListViewItem ListView::getItem(int index)
 {
+  // Output structure
   ListViewItem item;
+  // Windows list view item concept
   LVITEM lvI;
+  // Buffer for text data
   TCHAR textBuffer[256];
+
+  //
+  // Retrieve text and tag from list view item (zero subitem)
+  //
 
   lvI.mask = LVIF_TEXT | LVIF_PARAM;
   lvI.pszText = (TCHAR *)&textBuffer[0];
   lvI.iItem = index;
   lvI.iSubItem = 0;
 
+  //
+  // FIXME: Forced set text limit. 256 chars max
+  //
+
   lvI.cchTextMax = 256 * sizeof(TCHAR);
 
+  // Trying to get data from window
   ListView_GetItem(m_hwnd, &lvI);
+
+  //
+  // Copying data to our list view item structure
+  //
 
   item.index = lvI.iItem;
   item.tag = lvI.lParam;
@@ -69,6 +92,9 @@ void ListView::addItem(int index, const TCHAR *caption)
 
 void ListView::addItem(int index, const TCHAR *caption, LPARAM tag)
 {
+  //
+  // Prepare LVITEM structure
+  //
 
   LVITEM lvI;
   lvI.mask = LVIF_TEXT | LVIF_PARAM;
@@ -77,11 +103,18 @@ void ListView::addItem(int index, const TCHAR *caption, LPARAM tag)
   lvI.iSubItem = 0;
   lvI.pszText = (TCHAR*)caption;
 
+  //
+  // Send message to window
+  //
+
   ListView_InsertItem(m_hwnd, &lvI);
 }
 
 void ListView::addItem(int index, const TCHAR *caption, LPARAM tag, int imageIndex)
 {
+  //
+  // Prepare LVITEM structure
+  //
 
   LVITEM lvI;
   lvI.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
@@ -90,6 +123,10 @@ void ListView::addItem(int index, const TCHAR *caption, LPARAM tag, int imageInd
   lvI.iSubItem = 0;
   lvI.iImage = imageIndex;
   lvI.pszText = (TCHAR*)caption;
+
+  //
+  // Send message to window
+  //
 
   ListView_InsertItem(m_hwnd, &lvI);
 }
@@ -106,6 +143,9 @@ void ListView::clear()
 
 void ListView::setSubItemText(int index, int subIndex, const TCHAR *caption)
 {
+  //
+  // Prepare LVITEM structure
+  //
 
   LVITEM lvI;
   lvI.mask = LVIF_TEXT;
@@ -113,11 +153,18 @@ void ListView::setSubItemText(int index, int subIndex, const TCHAR *caption)
   lvI.iSubItem = subIndex;
   lvI.pszText = (TCHAR*)caption;
 
+  //
+  // Send message to window
+  //
+
   SendMessage(m_hwnd, LVM_SETITEM, 0, (LPARAM)&lvI);
 }
 
 void ListView::setItemData(int index, LPARAM tag)
 {
+  //
+  // Prepare LVITEM structure
+  //
 
   LVITEM lvI;
   lvI.mask = LVIF_PARAM;
@@ -125,6 +172,10 @@ void ListView::setItemData(int index, LPARAM tag)
   lvI.iItem = index;
   lvI.iSubItem = 0;
   lvI.lParam = tag;
+
+  //
+  // Send message to window
+  //
 
   SendMessage(m_hwnd, LVM_SETITEM, 0, (LPARAM)&lvI);
 }
@@ -202,7 +253,7 @@ void ListView::setExStyle(DWORD style)
 
 DWORD ListView::getExStyle()
 {
-  return ::SendMessage(m_hwnd, LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0);
+  return ListView_GetExtendedListViewStyle(m_hwnd);
 }
 
 void ListView::addExStyle(DWORD styleFlag)

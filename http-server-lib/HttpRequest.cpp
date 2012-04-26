@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -93,9 +93,14 @@ bool HttpRequest::parseHeader()
     m_argList = NULL;
   }
 
+  // Try to extract filename from request.
   if (sscanf(m_request, "GET %s HTTP/", m_filename) != 1) {
     return false;
   }
+
+  //
+  // Split filename and arguments.
+  //
 
   size_t filenameLen = strlen(m_filename);
 
@@ -130,14 +135,14 @@ void HttpRequest::readLine(char endLnChar, char *buffer, size_t maxSize)
       m_dataInput->readFully(&c, 1);
     } catch (IOException &ioEx) {
       throw ioEx;
-    } 
+    } // try / catch.
 
     buffer[readTotal++] = c;
 
     if (c == endLnChar) {
       break;
-    } 
-  } 
+    } // if read char is delimitter.
+  } // while
 
   buffer[readTotal] = '\0';
 }

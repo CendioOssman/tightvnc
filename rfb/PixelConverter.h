@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,17 +34,37 @@ public:
   PixelConverter(void);
   virtual ~PixelConverter(void);
 
+  // Convert pixels for the specified `rect' from `srcFb' to `dstFb'.
+  // The pixel formats of `srcFb' and `dstFb' must be identical to the formats
+  // set by the most recent setPixelFormats() call. The source and destination
+  // framebuffers must be of the same size. The entire rectangle referenced by
+  // `rect' must be within the frame buffer boundaries.
   virtual void convert(const Rect *rect, FrameBuffer *dstFb,
                        const FrameBuffer *srcFb) const;
 
+  // Convert pixels for the specified `rect' from `srcFb' to the internal
+  // PixelConverter's frame buffer and return a pointer to that frame buffer.
+  // If the source and destination formats are the same, then no translation
+  // will happen and srcFb will be returned.
+  // The pixel format of `srcFb' must be identical to the source format set by
+  // the most recent setPixelFormats() call. The entire rectangle referenced
+  // by `rect' must be within the frame buffer boundaries.
+  // This function will work efficiently only if the frame buffer size does
+  // not vary from call to call. It checks if the frame buffer size has
+  // changed since the previous call and reallocates the frame buffer if
+  // necessary.
   virtual const FrameBuffer *convert(const Rect *rect,
                                      const FrameBuffer *srcFb);
 
+  // FIXME: Review the argument order for each function of PixelConverter.
+  // FIXME: Review the argument names for each function of PixelConverter.
   virtual void setPixelFormats(const PixelFormat *dstPf,
                                const PixelFormat *srcPf);
 
+  // Return the number of bits per pixel from the source pixel format.
   virtual size_t getSrcBitsPerPixel() const;
 
+  // Return the number of bits per pixel from the destination pixel format.
   virtual size_t getDstBitsPerPixel() const;
 
 protected:
@@ -62,15 +82,17 @@ protected:
   };
 
   ConvertMode m_convertMode;
-  UINT32 *m_hexBitsTable;
-  UINT32 *m_redTable;
-  UINT32 *m_grnTable;
-  UINT32 *m_bluTable;
+  std::vector<UINT32> m_hexBitsTable;
+  std::vector<UINT32> m_redTable;
+  std::vector<UINT32> m_grnTable;
+  std::vector<UINT32> m_bluTable;
 
   PixelFormat m_srcFormat;
   PixelFormat m_dstFormat;
 
+  // An internally maintained frame buffer used by the two-argument version of
+  // the convert() function.
   FrameBuffer *m_dstFrameBuffer;
 };
 
-#endif 
+#endif // __RFB_PIXEL_CONVERTER_H_INCLUDED__

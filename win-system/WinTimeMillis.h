@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,8 +33,10 @@ public:
   WinTimeMillis(void);
   virtual ~WinTimeMillis(void);
 
+  // Set this object to current time, returns true on sucess.
   bool update() { return setToCurrentTime(); }
 
+  // Return difference in milliseconds between two time points.
   int diffFrom(const WinTimeMillis *older) const;
 
 protected:
@@ -46,4 +48,4 @@ protected:
   SYSTEMTIME m_time;
 };
 
-#endif 
+#endif // __WINTIMEMILLIS_H__

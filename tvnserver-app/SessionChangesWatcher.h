@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,10 +25,10 @@
 #ifndef __SESSIONCHANGESWATCHER_H__
 #define __SESSIONCHANGESWATCHER_H__
 
-#include "thread/Thread.h"
+#include "thread/GuiThread.h"
 #include "util/AnEventListener.h"
 
-class SessionChangesWatcher : public Thread
+class SessionChangesWatcher : public GuiThread
 {
 public:
   SessionChangesWatcher(AnEventListener *extSessionChangesListener);
@@ -41,4 +41,4 @@ protected:
   AnEventListener *m_extSessionChangesListener;
 };
 
-#endif 
+#endif // __SESSIONCHANGESWATCHER_H__

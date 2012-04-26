@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -48,6 +48,7 @@ void WINAPI Service::ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv)
     g_service->onStart();
   } catch (Exception &) {
     g_service->reportStatus(SERVICE_STOPPED, NO_ERROR, 0);
+    // TODO: Report to SCManager about critical error.
   }
 
   g_service->reportStatus(SERVICE_RUNNING, NO_ERROR, 0);
@@ -56,6 +57,7 @@ void WINAPI Service::ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv)
     g_service->main();
   } catch (Exception &) {
     g_service->reportStatus(SERVICE_STOPPED, NO_ERROR, 0);
+    // TODO: Report to SCManager about critical error.
   }
 
   g_service->reportStatus(SERVICE_STOPPED, NO_ERROR, 0);

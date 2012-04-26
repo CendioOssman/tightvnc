@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,29 +26,32 @@
 
 CursorShape::~CursorShape()
 {
-  if (m_mask) {
-    delete[] m_mask;
-  }
 }
 
 bool CursorShape::clone(const CursorShape *srcCursorShape)
 {
   m_hotSpot = srcCursorShape->getHotSpot();
   if (m_pixels.clone(srcCursorShape->getPixels())) {
-    if (resizeBuffer()) {
-      memcpy(m_mask, srcCursorShape->getMask(), srcCursorShape->getMaskSize());
-      return true;
-    } else {
-      return false;
-    }
+    m_mask = srcCursorShape->m_mask;
+    return true;
   } else {
     return false;
   }
 }
 
+void CursorShape::assignMaskFromRfb(const char *srcMask)
+{
+  if (!m_mask.empty()) {
+    int height = m_pixels.getDimension().height;
+    size_t rfbWidthInBytes = getMaskWidthInBytes();
+    size_t maskLen = height * rfbWidthInBytes;
+    memcpy(&m_mask.front(), srcMask, maskLen);
+  }
+}
+
 void CursorShape::assignMaskFromWindows(const char *srcMask)
 {
-  if (m_mask) {
+  if (!m_mask.empty()) {
     int height = m_pixels.getDimension().height;
     int winWidthInBytes = ((m_pixels.getDimension().width + 15) / 16) * 2;
     int rfbWidthInBytes = getMaskWidthInBytes();
@@ -80,14 +83,16 @@ bool CursorShape::setProperties(const Dimension *newDim,
   return result && resizeBuffer();
 }
 
+void CursorShape::resetToEmpty()
+{
+  setDimension(&Dimension(0, 0));
+  setHotSpot(0, 0);
+}
+
 bool CursorShape::resizeBuffer()
 {
-  if (m_mask != 0) {
-    delete[] m_mask;
-  }
-  m_mask = new char[getMaskSize()];
-
-  return m_mask != 0;
+  m_mask.resize(getMaskSize());
+  return true;
 }
 
 int CursorShape::getMaskSize() const

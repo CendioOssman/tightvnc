@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "SocketOutputStream.h"
+#include <crtdbg.h>
 
 SocketOutputStream::SocketOutputStream(SOCKET sock)
 : m_sock(sock)
@@ -35,7 +36,8 @@ SocketOutputStream::~SocketOutputStream()
 
 size_t SocketOutputStream::write(const void *buffer, size_t len)
 {
-  int result = ::send(m_sock, (const char *)buffer, len, 0);
+  _ASSERT((int)len == len);
+  int result = ::send(m_sock, (const char *)buffer, (int)len, 0);
 
   if (result == SOCKET_ERROR) {
     throw IOException(_T("Failed to write data to socket"));

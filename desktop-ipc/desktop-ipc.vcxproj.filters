@@ -41,9 +41,6 @@
     <ClCompile Include="GateKickHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IpcServer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ReconnectException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -92,9 +89,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GateKickHandler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IpcServer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ReconnectException.h">

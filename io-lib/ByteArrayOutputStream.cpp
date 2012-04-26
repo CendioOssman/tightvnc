@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -56,12 +56,21 @@ size_t ByteArrayOutputStream::write(const void *buffer, size_t len)
 
   if (allocateNewBuffer && m_ownMemory) {
     size_t reserve = DEFAULT_INNER_BUFFER_CAPACITY;
+    // Create new buffer with some reserve
     char *newBuffer = new char[m_size + len + reserve];
+    // Copy old buffer content to new
     memcpy(newBuffer, m_buffer, m_size);
+    // Cleanup
     delete[] m_buffer;
+    // Set new buffer
     m_buffer = newBuffer;
+    // Set new max buffer size
     m_max = m_size + len + reserve;
   }
+
+  //
+  // Write data to buffer
+  //
 
   memcpy(&m_buffer[m_size], (const char *)buffer, len);
   m_size += len;

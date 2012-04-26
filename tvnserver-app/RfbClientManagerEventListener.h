@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,12 +25,24 @@
 #ifndef _RFB_CLIENT_MANAGER_LISTENER_H_
 #define _RFB_CLIENT_MANAGER_LISTENER_H_
 
+/**
+ * Listener of RfbClientManager object events.
+ */
 class RfbClientManagerEventListener
 {
 public:
+  /**
+   * Destructor, does nothing.
+   */
   virtual ~RfbClientManagerEventListener();
 
+  /**
+   * Called when first rfb client connects to server.
+   */
   virtual void afterFirstClientConnect() = 0;
+  /**
+   * Called when last rfb client disconnects from server.
+   */
   virtual void afterLastClientDisconnect() = 0;
 };
 

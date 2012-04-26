@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,6 @@
 //
 
 #include "WindowsMouseGrabber.h"
-#include "WindowsScreenGrabber.h"
 
 WindowsMouseGrabber::WindowsMouseGrabber(void)
 : m_lastHCursor(0)
@@ -58,6 +57,7 @@ bool WindowsMouseGrabber::grabPixels(PixelFormat *pixelFormat)
   }
   m_lastHCursor = hCursor;
 
+  // Get bitmap mask
   ICONINFO iconInfo;
   if (!GetIconInfo(hCursor, &iconInfo)) {
     return false;
@@ -93,6 +93,9 @@ bool WindowsMouseGrabber::grabPixels(PixelFormat *pixelFormat)
   std::vector<char> maskBuff(widthBytes * bmMask.bmHeight);
   char *mask = &maskBuff.front();
 
+  // FIXME: Use try-catch block to escape code duplication
+  // and free resources on an error.
+
   bool result = GetBitmapBits(iconInfo.hbmMask,
                               widthBytes * bmMask.bmHeight,
                               mask) != 0;
@@ -102,13 +105,16 @@ bool WindowsMouseGrabber::grabPixels(PixelFormat *pixelFormat)
     return false;
   }
 
+  // Get cursor pixels
   HDC screenDC = GetDC(0);
   if (screenDC == NULL) {
     return false;
   }
 
-  WindowsScreenGrabber::BMI bmi;
-  if (!WindowsScreenGrabber::getBMI(&bmi, screenDC)) {
+  Screen::BMI bmi;
+  try {
+    m_screen.getBMI(&bmi, screenDC);
+  } catch (...) {
     return false;
   }
 
@@ -145,6 +151,7 @@ bool WindowsMouseGrabber::grabPixels(PixelFormat *pixelFormat)
   } else {
     if (pixels->getBitsPerPixel() == 32) {
       if (winColorShapeToRfb<UINT32>(pixels, mask)) {
+        // If the alpha channel is presented.
         fixAlphaChannel(pixels, mask);
       }
     } else if (pixels->getBitsPerPixel() == 16) {
@@ -203,11 +210,11 @@ void WindowsMouseGrabber::winMonoShapeToRfb(const FrameBuffer *pixels,
       bool maskANDBit = testBit(byteAnd, iCol % 8);
       bool maskXORBit = testBit(byteXor, iCol % 8);
 
-      if (!maskANDBit && !maskXORBit) { 
+      if (!maskANDBit && !maskXORBit) { // Black dot
         memset(pixel, 0, pixelSize);
-      } else if (!maskANDBit && maskXORBit) { 
+      } else if (!maskANDBit && maskXORBit) { // White dot
         memset(pixel, 0xff, pixelSize);
-      } else if (maskANDBit && maskXORBit) { 
+      } else if (maskANDBit && maskXORBit) { // Inverted (as black dot)
         memset(pixel, 0, pixelSize);
       }
     }
@@ -242,18 +249,22 @@ bool WindowsMouseGrabber::winColorShapeToRfb(const FrameBuffer *pixels,
       char byteAnd = maskAND[iMaskAnd];
       bool maskANDBit = testBit(byteAnd, iCol % 8);
 
-      if (!maskANDBit) { 
+      if (!maskANDBit) { // *pixel = *pixel
+        // Set current mask bit to true
         maskAND[iMaskAnd] = maskAND[iMaskAnd] | 128 >> (iCol % 8);
       } else if ((*pixel >> pf.redShift & pf.redMax) == 0 &&
                  (*pixel >> pf.greenShift & pf.greenMax) == 0 &&
-                 (*pixel >> pf.blueShift & pf.blueMax) == 0) { 
+                 (*pixel >> pf.blueShift & pf.blueMax) == 0) { // Transparent dot
         maskAND[iMaskAnd] = maskAND[iMaskAnd] & ~(128 >> (iCol % 8));
-      } else { 
+      } else { // Inverted (as black dot)
+        // Set current mask bit to true
         maskAND[iMaskAnd] = maskAND[iMaskAnd] | 128 >> (iCol % 8);
+        // Set pixel to black with the alpa channel preserving
         *pixel &= ~((T)pf.redMax << pf.redShift);
         *pixel &= ~((T)pf.greenMax << pf.greenShift);
         *pixel &= ~((T)pf.blueMax << pf.blueShift);
       }
+      // Test for the alpha channel presence
       hasAlphaChannel = hasAlphaChannel || (*pixel & alphaMask) != 0;
     }
   }
@@ -278,7 +289,7 @@ void WindowsMouseGrabber::fixAlphaChannel(const FrameBuffer *pixels,
   for (alphaShift = 0; alphaShift < 32 && (alphaMax % 2) == 0 ; alphaShift++) {
     alphaMax = alphaMax >> 1;
   }
-  if (alphaShift > 24) { 
+  if (alphaShift > 24) { // We don't know how do it
     return;
   }
 

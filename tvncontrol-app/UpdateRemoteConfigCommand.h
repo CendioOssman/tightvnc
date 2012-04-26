@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,15 +29,35 @@
 
 #include "ControlProxy.h"
 
+/**
+ * Command that sends current configuration to TightVNC Server.
+ * This command will ask server to save recieved configuration.
+ * @fixme: use MacroCommand to join UpdateRemoteConfigCommand and UpdateLocalConfigCommand.
+ */
 class UpdateRemoteConfigCommand : public Command
 {
 public:
+  /**
+   * Creates command.
+   * @param serverControl control proxy.
+   */
   UpdateRemoteConfigCommand(ControlProxy *serverControl);
+  /**
+   * Deletes command.
+   */
   virtual ~UpdateRemoteConfigCommand();
 
+  /**
+   * Inherited from Command interface.
+   *
+   * @throws IOException on io error, RemoteException on server side error.
+   */
   virtual void execute() throw(IOException, RemoteException);
 
 protected:
+  /**
+   * Control proxy on client side.
+   */
   ControlProxy *m_serverControl;
 };
 

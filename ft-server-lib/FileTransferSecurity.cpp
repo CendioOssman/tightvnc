@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,9 +25,9 @@
 #include "FileTransferSecurity.h"
 
 #include "server-config-lib/Configurator.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
-FileTransferSecurity::FileTransferSecurity(WinDesktop *desktop)
+FileTransferSecurity::FileTransferSecurity(DesktopInterface *desktop)
 : m_hasAccess(false), m_desktop(desktop)
 {
   m_desktop = desktop;
@@ -53,6 +53,7 @@ void FileTransferSecurity::beginMessageProcessing()
 
       desktopName.toLowerCase();
 
+      // FIXME: Why we compare desktop name? why only default desktop?
       if (!desktopName.isEqualTo(_T("default"))) {
         throw Exception(_T("Desktop is not default desktop."));
       }
@@ -64,8 +65,8 @@ void FileTransferSecurity::beginMessageProcessing()
       Log::error(_T("Access denied to the file transfer: %s"),
                  e.getMessage());
       m_hasAccess = false;
-    } 
-  } 
+    } // try / catch.
+  } // if running as service.
 }
 
 void FileTransferSecurity::throwIfAccessDenied()
@@ -83,6 +84,6 @@ void FileTransferSecurity::endMessageProcessing()
     try {
       revertToSelf();
     } catch (...) {
-    } 
-  } 
+    } // try / catch.
+  } // if run as service.
 }

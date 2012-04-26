@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -48,6 +48,7 @@ RemoteFileRenameOperation::~RemoteFileRenameOperation()
 
 void RemoteFileRenameOperation::start()
 {
+  // Logging
   StringStorage message;
 
   message.format(_T("Renaming remote file '%s' to '%s'"),
@@ -56,19 +57,23 @@ void RemoteFileRenameOperation::start()
 
   notifyInformation(message.getString());
 
+  // Notify all that operation have started
   notifyStart();
 
+  // Send request to server
   m_sender->sendMvFileRequest(m_pathToSourceFile.getString(),
                               m_pathToTargetFile.getString());
 }
 
 void RemoteFileRenameOperation::onMvReply()
 {
+  // Notify listeners that operation has finished
   notifyFinish();
 }
 
 void RemoteFileRenameOperation::onLastRequestFailedReply()
 {
+  // Logging
   StringStorage message;
 
   message.format(_T("Error: failed to rename remote '%s' file"),
@@ -76,5 +81,6 @@ void RemoteFileRenameOperation::onLastRequestFailedReply()
 
   notifyInformation(message.getString());
 
+  // Notify listeners that operation has finished
   notifyFinish();
 }

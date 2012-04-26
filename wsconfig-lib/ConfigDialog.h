@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -62,13 +62,16 @@ protected:
 
   void initControls();
   void loadSettings();
+  // Init dialog handler
   virtual BOOL onInitDialog();
   virtual BOOL onCommand(UINT controlID, UINT notificationID);
   virtual BOOL onNotify(UINT controlID, LPARAM data);
   virtual BOOL onDestroy();
+  // Button handlers
   void onCancelButtonClick();
   void onOKButtonClick();
   void onApplyButtonClick();
+  // Tab handlers
   void onTabChange();
   void onTabChanging();
 private:
@@ -76,14 +79,18 @@ private:
   bool validateInput();
   void updateCaption();
 protected:
+  // Controls
   Control m_ctrlApplyButton;
   TabControl m_tabControl;
+  // Settings
   Configurator *m_config;
+  // Dialogs for tab control
   ServerConfigDialog m_serverConfigDialog;
   PortMappingDialog m_portMappingDialog;
   AdministrationConfigDialog m_administrationConfigDialog;
   IpAccessControlDialog m_ipAccessControlDialog;
   VideoRegionsConfigDialog m_videoRegionsConfigDialog;
+  // Other members
   bool m_isConfiguringService;
 
   Command *m_reloadConfigCommand;

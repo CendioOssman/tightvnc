@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,45 +26,59 @@
 
 #include "ft-common/FTMessage.h"
 
-#include "vncviewer/CapsContainer.h"
+#include "viewer-core/CapsContainer.h"
 
-OperationSupport::OperationSupport(CapsContainer *clientCaps, CapsContainer *serverCaps)
+OperationSupport::OperationSupport()
 {
-  m_isFileListSupported = ((clientCaps->IsEnabled(FTMessage::FILE_LIST_REQUEST)) &&
-                           (serverCaps->IsEnabled(FTMessage::FILE_LIST_REPLY)));
+  m_isFileListSupported = false;
+  m_isRenameSupported = false;
+  m_isRemoveSupported = false;
+  m_isMkDirSupported = false;
+  m_isCompressionSupported = false;
+  m_isMD5Supported = false;
+  m_isDirSizeSupported = false;
+  m_isUploadSupported = false;
+  m_isDownloadSupported = false;
+}
 
-  m_isRenameSupported = ((clientCaps->IsEnabled(FTMessage::RENAME_REQUEST)) &&
-                         (serverCaps->IsEnabled(FTMessage::RENAME_REPLY)));
+OperationSupport::OperationSupport(const CapsContainer *clientCaps,
+                                   const CapsContainer *serverCaps)
+{
+  m_isFileListSupported = ((clientCaps->isEnabled(FTMessage::FILE_LIST_REQUEST)) &&
+                           (serverCaps->isEnabled(FTMessage::FILE_LIST_REPLY)));
 
-  m_isRemoveSupported = ((clientCaps->IsEnabled(FTMessage::REMOVE_REQUEST)) &&
-                         (serverCaps->IsEnabled(FTMessage::REMOVE_REPLY)) &&
+  m_isRenameSupported = ((clientCaps->isEnabled(FTMessage::RENAME_REQUEST)) &&
+                         (serverCaps->isEnabled(FTMessage::RENAME_REPLY)));
+
+  m_isRemoveSupported = ((clientCaps->isEnabled(FTMessage::REMOVE_REQUEST)) &&
+                         (serverCaps->isEnabled(FTMessage::REMOVE_REPLY)) &&
                          (m_isFileListSupported));
 
-  m_isMkDirSupported = ((clientCaps->IsEnabled(FTMessage::MKDIR_REQUEST)) &&
-                        (serverCaps->IsEnabled(FTMessage::MKDIR_REPLY)));
+  m_isMkDirSupported = ((clientCaps->isEnabled(FTMessage::MKDIR_REQUEST)) &&
+                        (serverCaps->isEnabled(FTMessage::MKDIR_REPLY)));
 
-  m_isCompressionSupported = ((clientCaps->IsEnabled(FTMessage::COMPRESSION_SUPPORT_REQUEST)) &&
-                              (serverCaps->IsEnabled(FTMessage::COMPRESSION_SUPPORT_REPLY)));
+  m_isCompressionSupported = ((clientCaps->isEnabled(FTMessage::COMPRESSION_SUPPORT_REQUEST)) &&
+                              (serverCaps->isEnabled(FTMessage::COMPRESSION_SUPPORT_REPLY)));
 
-  m_isMD5Supported = ((clientCaps->IsEnabled(FTMessage::MD5_REQUEST)) &&
-                      (serverCaps->IsEnabled(FTMessage::MD5_REPLY)));
+  m_isMD5Supported = ((clientCaps->isEnabled(FTMessage::MD5_REQUEST)) &&
+                      (serverCaps->isEnabled(FTMessage::MD5_REPLY)));
 
-  m_isDirSizeSupported = ((clientCaps->IsEnabled(FTMessage::DIRSIZE_REQUEST)) &&
-                          (serverCaps->IsEnabled(FTMessage::DIRSIZE_REPLY)));
+  m_isDirSizeSupported = ((clientCaps->isEnabled(FTMessage::DIRSIZE_REQUEST)) &&
+                          (serverCaps->isEnabled(FTMessage::DIRSIZE_REPLY)));
 
-  m_isUploadSupported = ((clientCaps->IsEnabled(FTMessage::UPLOAD_START_REQUEST)) &&
-                         (clientCaps->IsEnabled(FTMessage::UPLOAD_DATA_REQUEST)) &&
-                         (clientCaps->IsEnabled(FTMessage::UPLOAD_END_REQUEST)) &&
-                         (serverCaps->IsEnabled(FTMessage::UPLOAD_START_REPLY)) &&
-                         (serverCaps->IsEnabled(FTMessage::UPLOAD_DATA_REPLY)) &&
-                         (serverCaps->IsEnabled(FTMessage::UPLOAD_END_REPLY)) &&
+  m_isUploadSupported = ((clientCaps->isEnabled(FTMessage::UPLOAD_START_REQUEST)) &&
+                         (clientCaps->isEnabled(FTMessage::UPLOAD_DATA_REQUEST)) &&
+                         (clientCaps->isEnabled(FTMessage::UPLOAD_END_REQUEST)) &&
+                         (serverCaps->isEnabled(FTMessage::UPLOAD_START_REPLY)) &&
+                         (serverCaps->isEnabled(FTMessage::UPLOAD_DATA_REPLY)) &&
+                         (serverCaps->isEnabled(FTMessage::UPLOAD_END_REPLY)) &&
                          m_isMkDirSupported && m_isFileListSupported);
 
-  m_isDownloadSupported = ((clientCaps->IsEnabled(FTMessage::DOWNLOAD_START_REQUEST)) &&
-                           (clientCaps->IsEnabled(FTMessage::DOWNLOAD_DATA_REQUEST)) &&
-                           (serverCaps->IsEnabled(FTMessage::DOWNLOAD_START_REPLY)) &&
-                           (serverCaps->IsEnabled(FTMessage::DOWNLOAD_DATA_REPLY)) &&
-                           (serverCaps->IsEnabled(FTMessage::DOWNLOAD_END_REPLY)) &&
+  m_isDownloadSupported = ((clientCaps->isEnabled(FTMessage::DOWNLOAD_START_REQUEST)) &&
+                           (clientCaps->isEnabled(FTMessage::DOWNLOAD_DATA_REQUEST)) &&
+                           (serverCaps->isEnabled(FTMessage::DOWNLOAD_START_REPLY)) &&
+                           (serverCaps->isEnabled(FTMessage::DOWNLOAD_DATA_REPLY)) &&
+                           (serverCaps->isEnabled(FTMessage::DOWNLOAD_END_REPLY)) &&
                            m_isFileListSupported && m_isDirSizeSupported);
 }
 

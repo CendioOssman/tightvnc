@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,6 +25,7 @@
 #include "UserInputClient.h"
 #include "thread/AutoLock.h"
 #include "ReconnectException.h"
+#include "util/BrokenHandleException.h"
 
 UserInputClient::UserInputClient(BlockingGate *forwGate,
                                  DesktopSrvDispatcher *dispatcher,
@@ -70,6 +71,7 @@ void UserInputClient::setMouseEvent(const Point *newPos, UINT8 keyFlag)
 {
   AutoLock al(m_forwGate);
   try {
+    // Send mouse data
     m_forwGate->writeUInt8(POINTER_POS_CHANGED);
     sendNewPointerPos(newPos, keyFlag, m_forwGate);
     m_sendMouseFlags = keyFlag;
@@ -81,6 +83,7 @@ void UserInputClient::setNewClipboard(const StringStorage *newClipboard)
 {
   AutoLock al(m_forwGate);
   try {
+    // Send clipboard data
     m_forwGate->writeUInt8(CLIPBOARD_CHANGED);
     sendNewClipboard(newClipboard, m_forwGate);
   } catch (ReconnectException &) {
@@ -91,6 +94,7 @@ void UserInputClient::setKeyboardEvent(UINT32 keySym, bool down)
 {
   AutoLock al(m_forwGate);
   try {
+    // Send keyboard data
     m_forwGate->writeUInt8(KEYBOARD_EVENT);
     sendKeyEvent(keySym, down, m_forwGate);
   } catch (ReconnectException &) {
@@ -102,8 +106,84 @@ void UserInputClient::getCurrentUserInfo(StringStorage *desktopName,
 {
   AutoLock al(m_forwGate);
   try {
+    // Send request
     m_forwGate->writeUInt8(USER_INFO_REQ);
     readUserInfo(desktopName, userName, m_forwGate);
   } catch (ReconnectException &) {
   }
+}
+
+void UserInputClient::getPrimaryDisplayCoords(Rect *rect)
+{
+  AutoLock al(m_forwGate);
+  bool success = false;
+  do {
+    try {
+      // Send request
+      m_forwGate->writeUInt8(DESKTOP_COORDS_REQ);
+      *rect = readRect(m_forwGate);
+      success = true;
+    } catch (ReconnectException &) {
+    }
+  } while (!success);
+}
+
+void UserInputClient::getDisplayNumberCoords(Rect *rect,
+                                             unsigned char dispNumber)
+{
+  AutoLock al(m_forwGate);
+  bool success = false;
+  do {
+    try {
+      // Send request
+      m_forwGate->writeUInt8(DISPLAY_NUMBER_COORDS_REQ);
+      m_forwGate->writeUInt8(dispNumber);
+      *rect = readRect(m_forwGate);
+      success = true;
+    } catch (ReconnectException &) {
+    }
+  } while (!success);
+}
+
+void UserInputClient::getWindowCoords(HWND hwnd, Rect *rect)
+{
+  AutoLock al(m_forwGate);
+  bool success = false;
+  do {
+    try {
+      // Send request
+      m_forwGate->writeUInt8(WINDOW_COORDS_REQ);
+      m_forwGate->writeUInt64((UINT64)hwnd);
+      bool isBrokenWindow = m_forwGate->readUInt8() != 0;
+      if (!isBrokenWindow) {
+        *rect = readRect(m_forwGate);
+      } else {
+        // Receive error discription (do not generate it here).
+        // This made to avoid code duplication.
+        StringStorage errMess;
+        m_forwGate->readUTF8(&errMess);
+        throw BrokenHandleException(errMess.getString());
+      }
+      success = true;
+    } catch (ReconnectException &) {
+    }
+  } while (!success);
+}
+
+HWND UserInputClient::getWindowHandleByName(const StringStorage *windowName)
+{
+  AutoLock al(m_forwGate);
+  bool success = false;
+  HWND hwnd = 0;
+  do {
+    try {
+      // Send request
+      m_forwGate->writeUInt8(WINDOW_HANDLE_REQ);
+      m_forwGate->writeUTF8(windowName->getString());
+      hwnd = (HWND)m_forwGate->readUInt64();
+      success = true;
+    } catch (ReconnectException &) {
+    }
+  } while (!success);
+  return hwnd;
 }

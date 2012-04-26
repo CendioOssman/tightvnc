@@ -6,6 +6,11 @@
 #include "zutil.h"
 #include "infblock.h"
 
+#ifdef WIN32
+// warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data
+#pragma warning(disable : 4244)
+#endif
+
 struct inflate_blocks_state {int dummy;}; /* for buggy compilers */
 
 typedef enum {

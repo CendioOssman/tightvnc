@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,12 +28,16 @@
 #include "util/CommandLine.h"
 
 #include "win-system/Workstation.h"
+#include "win-system/WinCommandLineArgs.h"
 
 const TCHAR AdditionalActionApplication::LOCK_WORKSTATION_KEY[] = _T("-lockworkstation");
 const TCHAR AdditionalActionApplication::LOGOUT_KEY[] = _T("-logout");
 
-AdditionalActionApplication::AdditionalActionApplication(HINSTANCE hInstance, const TCHAR *commandLine)
-: LocalWindowsApplication(hInstance), m_commandLine(commandLine)
+AdditionalActionApplication::AdditionalActionApplication(HINSTANCE hInstance,
+                                                         const TCHAR *windowClassName,
+                                                         const TCHAR *commandLine)
+: LocalWindowsApplication(hInstance, windowClassName),
+  m_commandLine(commandLine)
 {
 }
 
@@ -50,9 +54,14 @@ int AdditionalActionApplication::run()
     { LOGOUT_KEY, NO_ARG }
   };
 
-  if (!args.parse(format,
-                  sizeof(format) / sizeof(CommandLineFormat),
-                  m_commandLine.getString())) {
+  try {
+
+    WinCommandLineArgs cmdArgs(m_commandLine.getString());
+    if (!args.parse(format,
+                    sizeof(format) / sizeof(CommandLineFormat),
+                    &cmdArgs)) {
+    }
+  } catch (...) {
     TvnServerHelp::showUsage();
     return 0;
   }

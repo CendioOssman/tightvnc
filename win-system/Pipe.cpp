@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,62 +26,40 @@
 #include "util/Exception.h"
 #include <crtdbg.h>
 #include "win-system/Environment.h"
+#include "thread/AutoLock.h"
 
 #define MAX_PORTION_SIZE 512 * 1024
 
-Pipe::Pipe(HANDLE hPipe, bool asServer)
-: m_hPipe(hPipe),
-  m_asServer(asServer)
-{
-}
-
-Pipe::~Pipe(void)
-{
-  try {
-    close();
-  } catch (...) {
-  }
-}
-
-void Pipe::close()
-{
-  if (m_asServer) {
-    if (DisconnectNamedPipe(m_hPipe) == 0) {
-      int errCode = GetLastError();
-      StringStorage errMess;
-      errMess.format(_T("DisconnectNamedPipe failed, error code = %d"), errCode);
-      throw Exception(errMess.getString());
-    }
-  }
-
-  if (m_hPipe) {
-    CloseHandle(m_hPipe);
-    m_hPipe = 0;
-  }
-  m_winEvent.notify();
-}
-
-size_t Pipe::write(const void *buffer, size_t len)
+size_t Pipe::writeByHandle(const void *buffer, size_t len, HANDLE pipeHandle)
 {
   DWORD result;
   OVERLAPPED overlapped;
   memset(&overlapped, 0, sizeof(OVERLAPPED));
-  overlapped.hEvent = m_winEvent.getHandle();
+  overlapped.hEvent = m_writeEvent.getHandle();
 
-  bool success = WriteFile(m_hPipe, 
-                           buffer,    
-                           len,  
-                           &result, 
-                           &overlapped)    
-                           != 0;
+  bool success;
+  {
+    AutoLock al(&m_hPipeMutex);
+    checkPipeHandle(pipeHandle);
+    DWORD length = (DWORD)len;
+    _ASSERT(length == len);
+    success = WriteFile(pipeHandle, // pipe handle
+                        buffer,    // message
+                        length,  // message length
+                        &result, // bytes written
+                        &overlapped)    // overlapped
+                        != 0;
+  }
 
   if (!success) {
     int errCode = GetLastError();
 
     if (errCode == ERROR_IO_PENDING) {
-      m_winEvent.waitForEvent();
+      m_writeEvent.waitForEvent();
       DWORD cbRet;
-      if (GetOverlappedResult(m_hPipe, &overlapped, &cbRet, FALSE) ||
+      AutoLock al(&m_hPipeMutex);
+      checkPipeHandle(pipeHandle);
+      if (GetOverlappedResult(pipeHandle, &overlapped, &cbRet, FALSE) ||
           cbRet == 0) {
         result = cbRet;
       } else {
@@ -97,7 +75,7 @@ size_t Pipe::write(const void *buffer, size_t len)
                              _T(" after WriteFile calling"), &errMess);
       throw IOException(errMess.getString());
     }
-  } 
+  } // else operation already successful has been completed
 
   if (result == 0) {
     throw IOException(_T("Unknown pipe error"));
@@ -105,27 +83,35 @@ size_t Pipe::write(const void *buffer, size_t len)
   return result;
 }
 
-size_t Pipe::read(void *buffer, size_t len)
+size_t Pipe::readByHandle(void *buffer, size_t len, HANDLE pipeHandle)
 {
   DWORD result = 0;
   OVERLAPPED overlapped;
   memset(&overlapped, 0, sizeof(OVERLAPPED));
-  overlapped.hEvent = m_winEvent.getHandle();
+  overlapped.hEvent = m_readEvent.getHandle();
 
-  bool success = ReadFile(m_hPipe,         
-                          buffer,            
-                          len,          
-                          &result,         
-                          &overlapped)   
-                          != 0;
-
+  bool success;
+  {
+    AutoLock al(&m_hPipeMutex);
+    DWORD length = (DWORD)len;
+    _ASSERT(length == len);
+    checkPipeHandle(pipeHandle);
+    success = ReadFile(pipeHandle,         // pipe handle
+                       buffer,            // message
+                       length,          // message length
+                       &result,         // bytes read
+                       &overlapped)   // overlapped
+                       != 0;
+  }
   if (!success) {
     DWORD errCode = GetLastError();
 
     if (errCode == ERROR_IO_PENDING) {
-      m_winEvent.waitForEvent();
+      m_readEvent.waitForEvent();
       DWORD cbRet = 0;
-      if (GetOverlappedResult(m_hPipe, &overlapped, &cbRet, FALSE) &&
+      AutoLock al(&m_hPipeMutex);
+      checkPipeHandle(pipeHandle);
+      if (GetOverlappedResult(pipeHandle, &overlapped, &cbRet, FALSE) &&
           cbRet != 0) {
         result = cbRet;
       } else {
@@ -138,10 +124,10 @@ size_t Pipe::read(void *buffer, size_t len)
     } else {
       StringStorage errMess;
       Environment::getErrStr(_T("The Pipe's read function failed")
-                             _T(" after WriteFile calling"), &errMess);
+                             _T(" after ReadFile calling"), &errMess);
       throw IOException(errMess.getString());
     }
-  } 
+  } // else operation already successful has been completed
 
   if (result == 0) {
     throw IOException(_T("Unknown pipe error"));
@@ -149,7 +135,9 @@ size_t Pipe::read(void *buffer, size_t len)
   return result;
 }
 
-HANDLE Pipe::getPipeHandle()
+void Pipe::checkPipeHandle(HANDLE pipeHandle)
 {
-  return m_hPipe;
+  if (pipeHandle == INVALID_HANDLE_VALUE) {
+    throw IOException(_T("Invalid pipe handle"));
+  }
 }

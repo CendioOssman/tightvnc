@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,36 +27,36 @@
 
 #include "UpdateDetector.h"
 #include "win-system/WindowsEvent.h"
-#include "win-system/DynamicLibrary.h"
-#include "gui/Window.h"
+#include "HookInstaller.h"
+#include "gui/MessageWindow.h"
 #include "HookUpdateTimer.h"
+#include "win-system/Process.h"
 
 class HooksUpdateDetector : public UpdateDetector
 {
 public:
   HooksUpdateDetector(UpdateKeeper *updateKeeper,
                       UpdateListener *updateListener);
-  virtual ~HooksUpdateDetector(void);
+  virtual ~HooksUpdateDetector();
 
 protected:
   virtual void execute();
   virtual void onTerminate();
 
-  FARPROC m_pSetHook;
-  FARPROC m_pUnSetHook;
+  void start32Loader();
+  void terminate32Loader();
+
   WindowsEvent m_initWaiter;
 
-  DynamicLibrary *m_lib;
-  Window *m_targetWin;
+  HookInstaller *m_hookInstaller;
+  MessageWindow *m_targetWin;
   HookUpdateTimer m_updateTimer;
+  Process m_hookLoader32;
 
 private:
-  bool initHook();
-  bool unInitHook();
+  void broadcastMessage(UINT message);
 
-  static const TCHAR LIBRARY_NAME[];
-  static const char SET_HOOK_FUNCTION_NAME[];
-  static const char UNSET_HOOK_FUNCTION_NAME[];
+  static const TCHAR HOOK_LOADER_NAME[];
 };
 
-#endif 
+#endif // __HOOKSUPDATEDETECTOR_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,19 +29,52 @@
 
 #include "win-system/LocalWindowsApplication.h"
 
+/**
+ * Windows application that used to do additional actions:
+ *
+ * Solves a couple of problems:
+ *  1) Lock workstation (-lockworkstation keys).
+ *  2) Log out interactive user (-logout keys).
+ *
+ * @fixme stub class.
+ */
 class AdditionalActionApplication : public LocalWindowsApplication
 {
 public:
+  /**
+   * Key identifying lock workstation action.
+   */
   static const TCHAR LOCK_WORKSTATION_KEY[];
+  /**
+   * Key identifying logout action.
+   */
   static const TCHAR LOGOUT_KEY[];
 
 public:
-  AdditionalActionApplication(HINSTANCE hInstance, const TCHAR *commandLine) throw(SystemException);
+  /**
+   * Creates new instance.
+   * @param hInstance application instance.
+   * @param commandLine command line.
+   * @throws SystemException on fail(inherited from superclass).
+   */
+  AdditionalActionApplication(HINSTANCE hInstance,
+                              const TCHAR *windowClassName,
+                              const TCHAR *commandLine);
+  /**
+   * Destructor.
+   */
   virtual ~AdditionalActionApplication();
 
+  /**
+   * Runs application.
+   * @return 0 on success, non-zero on error (Windows error code).
+   */
   virtual int run();
 
 private:
+  /**
+   * Application command line arguments.
+   */
   StringStorage m_commandLine;
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,11 +33,29 @@ public:
   OperationEventListener();
   ~OperationEventListener();
 
+  //
+  // Must be called by file transfer operation when operation had started
+  //
+
   virtual void ftOpStarted(FileTransferOperation *sender);
+
+  //
+  // Must be called by file transfer operation when operation had finished
+  //
 
   virtual void ftOpFinished(FileTransferOperation *sender);
 
+  //
+  // Must be called by file transfer operation when some error occured(
+  // not list files from catalog, cannot open file, cannot create folder etc)
+  //
+
   virtual void ftOpErrorMessage(FileTransferOperation *sender, const TCHAR *message);
+
+  //
+  // Must be called by file transfer operation when need to do some text output
+  // to user (or console, or log)
+  //
 
   virtual void ftOpInfoMessage(FileTransferOperation *sender, const TCHAR *message);
 };

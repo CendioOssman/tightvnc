@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,6 +24,8 @@
 
 #ifndef __RFB_HOST_PATH_H_INCLUDED__
 #define __RFB_HOST_PATH_H_INCLUDED__
+
+// FIXME: Convert to TCHAR.
 
 class HostPath {
 public:
@@ -55,13 +57,36 @@ private:
   char* m_vncHost;
   int m_vncPort;
 
+  //
+  // Reset the object to its initial state (no path set).
+  //
   void clear();
 
+  //
+  // Parse m_path[] and store lengths if tokens in the specified array
+  // of four size_t elements. Up to four tokens are detected: SSH host
+  // name (optionally including a user name), SSH port number, VNC
+  // host name, VNC port or display number. Port number tokens include
+  // colons at the their beginning. Note that the '/' character
+  // between SSH-related and VNC-related parts is not counted in any
+  // token length.
+  //
+  // Examples: "user@server:22/vnc::443"  ->  11, 3, 3, 5
+  //           "host/:1"                  ->   4, 0, 0, 2
+  //           ":1"                       ->   0, 0, 0, 2
+  //
   void parsePath(size_t results[]) const;
 
+  //
+  // Return true if m_sshHost[] and m_vncHost[] strings are valid,
+  // false otherwise. It checks the lengths and character sets of the
+  // strings. m_sshHost may be a null pointer, that does not make the
+  // function return false. However, m_vncHost[] string is mandatory
+  // so the function will return false if m_vncHost is a null pointer.
+  //
   bool validateHostNames() const;
 
   int m_defaultPort;
 };
 
-#endif 
+#endif // __RFB_HOST_PATH_H_INCLUDED__

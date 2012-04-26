@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,6 +37,10 @@ public:
   TabControl();
   ~TabControl();
 
+  //
+  // Tab access members
+  //
+
   TabContainer &getTabs() { return m_tabContainer; }
   Tab *getTab(int index);
   void addTab(BaseDialog *dialog, const TCHAR *caption);
@@ -45,7 +49,15 @@ public:
   void deleteAllTabs();
   void removeTab(int index);
 
+  //
+  // Return selected tab number
+  //
+
   int getSelectedTabIndex();
+
+  //
+  // Tab work rect methods
+  //
 
   void adjustRect(RECT *rect);
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,6 +26,7 @@
 #include "WsConfigRunner.h"
 #include "AdditionalActionApplication.h"
 #include "win-system/CurrentConsoleProcess.h"
+#include "win-system/Environment.h"
 
 #include "server-config-lib/Configurator.h"
 
@@ -37,11 +38,13 @@
 
 #include "network/socket/WindowsSocket.h"
 
-#include "util/FileLog.h"
 #include "util/StringTable.h"
+#include "util/AnsiStringStorage.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include "file-lib/File.h"
 
+// FIXME: Bad dependency on tvncontrol-app.
 #include "tvncontrol-app/TransportFactory.h"
 #include "tvncontrol-app/ControlPipeName.h"
 
@@ -50,26 +53,34 @@
 #include <crtdbg.h>
 #include <time.h>
 
-TvnServer::TvnServer(bool runsInServiceContext)
+TvnServer::TvnServer(bool runsInServiceContext,
+                     NewConnectionEvents *newConnectionEvents)
 : Singleton<TvnServer>(),
   ListenerContainer<TvnServerListener *>(),
   m_runAsService(runsInServiceContext),
   m_rfbClientManager(0),
-  m_httpServer(0), m_controlServer(0), m_rfbServer(0)
+  m_httpServer(0), m_controlServer(0), m_rfbServer(0),
+  m_config(runsInServiceContext),
+  m_logManager(LogNames::SERVER_LOG_FILE_STUB_NAME)
 {
+  Log::message(_T("%s Build on %s"),
+               ProductNames::SERVER_PRODUCT_NAME,
+               BuildTime::DATE);
+
+  // Initialize configuration.
+  // FIXME: It looks like configurator may be created as a member object.
   Configurator *configurator = Configurator::getInstance();
-
-  configurator->setServiceFlag(m_runAsService);
-
   configurator->load();
+  m_srvConfig = Configurator::getInstance()->getServerConfig();
 
-  m_config = Configurator::getInstance()->getServerConfig();
+  try {
+    Log::storeHeader();
+    m_logManager.init();
+  } catch (...) {
+    // A log error must not be a reason that stop the server.
+  }
 
-  resetLogFilePath();
-
-  m_log.changeLevel(m_config->getLogLevel());
-
-  Log::message(_T("TightVNC Server Build on %s"), BuildTime::DATE);
+  // Initialize windows sockets.
 
   Log::info(_T("Initialize WinSock"));
 
@@ -79,15 +90,19 @@ TvnServer::TvnServer(bool runsInServiceContext)
     Log::interror(_T("%s"), ex.getMessage());
   }
 
-  ZombieKiller *zombieKiller = new ZombieKiller();
-
-  m_rfbClientManager = new RfbClientManager(NULL);
+   // Instanize zombie killer singleton.
+   // FIXME: may be need to do it in another place or use "lazy" initialization.
+  m_rfbClientManager = new RfbClientManager(NULL, newConnectionEvents);
 
   m_rfbClientManager->addListener(this);
 
+  // FIXME: No good to act as a listener before completing the object
+  //        construction.
   Configurator::getInstance()->addListener(this);
 
   {
+    // FIXME: Protect only primitive operations.
+    // FIXME: Nested lock in protected code (congifuration locking).
     AutoLock l(&m_mutex);
 
     restartMainRfbServer();
@@ -108,13 +123,13 @@ TvnServer::~TvnServer()
 
   ZombieKiller *zombieKiller = ZombieKiller::getInstance();
 
+  // Disconnect all zombies http, rfb, control clients though killing
+  // their threads.
   zombieKiller->killAllZombies();
 
   m_rfbClientManager->removeListener(this);
 
   delete m_rfbClientManager;
-
-  delete zombieKiller;
 
   Log::info(_T("Shutdown WinSock"));
 
@@ -123,26 +138,24 @@ TvnServer::~TvnServer()
   } catch (Exception &ex) {
     Log::error(_T("%s"), ex.getMessage());
   }
-
-  delete Configurator::getInstance();
 }
 
+// Remark: this method can be called from other threads.
 void TvnServer::onConfigReload(ServerConfig *serverConfig)
 {
-  resetLogFilePath();
-
-  m_log.changeLevel(serverConfig->getLogLevel());
-
+  // Start/stop/restart RFB servers if needed.
   {
+    // FIXME: Protect only primitive operations.
+    // FIXME: Nested lock in protected code (congifuration locking).
     AutoLock l(&m_mutex);
 
     bool toggleMainRfbServer =
-      m_config->isAcceptingRfbConnections() != (m_rfbServer != 0);
+      m_srvConfig->isAcceptingRfbConnections() != (m_rfbServer != 0);
     bool changeMainRfbPort = m_rfbServer != 0 &&
-      (m_config->getRfbPort() != (int)m_rfbServer->getBindPort());
+      (m_srvConfig->getRfbPort() != (int)m_rfbServer->getBindPort());
 
     const TCHAR *bindHost =
-      m_config->isOnlyLoopbackConnectionsAllowed() ? _T("localhost") : _T("0.0.0.0");
+      m_srvConfig->isOnlyLoopbackConnectionsAllowed() ? _T("localhost") : _T("0.0.0.0");
     bool changeBindHost =  m_rfbServer != 0 &&
       _tcscmp(m_rfbServer->getBindHost(), bindHost) != 0;
 
@@ -152,16 +165,21 @@ void TvnServer::onConfigReload(ServerConfig *serverConfig)
       restartMainRfbServer();
     }
 
+    // NOTE: ExtraRfbServers::reload() does not throw exceptions if some
+    //       servers did not start. However, it returns false in that case.
+    //       Here we ignore all errors.
     (void)m_extraRfbServers.reload(m_runAsService, m_rfbClientManager);
   }
 
+  // Start/stop/restart HTTP server if needed.
   {
+    // FIXME: Protect only primitive operations.
     AutoLock l(&m_mutex);
 
     bool toggleHttp =
-      m_config->isAcceptingHttpConnections() != (m_httpServer != 0);
+      m_srvConfig->isAcceptingHttpConnections() != (m_httpServer != 0);
     bool changePort = m_httpServer != 0 &&
-      (m_config->getHttpPort() != (int)m_httpServer->getBindPort());
+      (m_srvConfig->getHttpPort() != (int)m_httpServer->getBindPort());
 
     if (toggleHttp || changePort) {
       restartHttpServer();
@@ -179,26 +197,30 @@ void TvnServer::getServerInfo(TvnServerInfo *info)
 
   StringStorage statusString;
 
-  bool vncAuthEnabled = m_config->isUsingAuthentication();
-  bool noVncPasswords = !m_config->hasPrimaryPassword() && !m_config->hasReadOnlyPassword();
+  // Vnc authentication enabled.
+  bool vncAuthEnabled = m_srvConfig->isUsingAuthentication();
+  // No vnc passwords are set.
+  bool noVncPasswords = !m_srvConfig->hasPrimaryPassword() && !m_srvConfig->hasReadOnlyPassword();
+  // Determinates that main rfb server cannot accept connection in case of passwords problem.
   bool vncPasswordsError = vncAuthEnabled && noVncPasswords;
 
   if (rfbServerListening) {
     if (vncPasswordsError) {
       statusString = StringTable::getString(IDS_NO_PASSWORDS_SET);
     } else {
+      // FIXME: Usage of deprecated FUNCTION!
       char localAddressString[1024];
       getLocalIPAddrString(localAddressString, 1024);
-
-      statusString.fromAnsiString(localAddressString);
+      AnsiStringStorage ansiString(localAddressString);
+      ansiString.toStringStorage(&statusString);
 
       if (!vncAuthEnabled) {
         statusString.appendString(StringTable::getString(IDS_NO_AUTH_STATUS));
-      } 
-    } 
+      } // if no auth enabled.
+    } // accepting connections and no problem with passwords.
   } else {
     statusString = StringTable::getString(IDS_SERVER_NOT_LISTENING);
-  } 
+  } // not accepting connections.
 
   UINT stringId = m_runAsService ? IDS_TVNSERVER_SERVICE : IDS_TVNSERVER_APP;
 
@@ -218,7 +240,7 @@ void TvnServer::generateExternalShutdownSignal()
     TvnServerListener *each = *it;
 
     each->onTvnServerShutdown();
-  } 
+  } // for all listeners.
 }
 
 bool TvnServer::isRunningAsService() const
@@ -232,7 +254,10 @@ void TvnServer::afterFirstClientConnect()
 
 void TvnServer::afterLastClientDisconnect()
 {
-  ServerConfig::DisconnectAction action = m_config->getDisconnectAction();
+  ServerConfig::DisconnectAction action = m_srvConfig->getDisconnectAction();
+
+  // Disconnect action must be executed in process on interactive user session to take effect.
+  // Now, choose application keys for specified action.
 
   StringStorage keys;
 
@@ -249,10 +274,15 @@ void TvnServer::afterLastClientDisconnect()
 
   Process *process;
 
+  // Choose how to start process.
+  StringStorage thisModulePath;
+  Environment::getCurrentModulePath(&thisModulePath);
+  thisModulePath.quoteSelf();
   if (isRunningAsService()) {
-    process = new CurrentConsoleProcess(_T("tvnserver.exe"), keys.getString());
+    process = new CurrentConsoleProcess(thisModulePath.getString(),
+                                        keys.getString());
   } else {
-    process = new Process(_T("tvnserver.exe"), keys.getString());
+    process = new Process(thisModulePath.getString(), keys.getString());
   }
 
   Log::message(_T("Execute disconnect action in separate process"));
@@ -268,13 +298,16 @@ void TvnServer::afterLastClientDisconnect()
 
 void TvnServer::restartHttpServer()
 {
+  // FIXME: Errors are critical here, they should not be ignored.
 
   stopHttpServer();
 
-  if (m_config->isAcceptingHttpConnections()) {
+  if (m_srvConfig->isAcceptingHttpConnections()) {
     Log::message(_T("Starting HTTP server"));
     try {
-      m_httpServer = new HttpServer(_T("0.0.0.0"), m_config->getHttpPort(), m_runAsService);
+      // FIXME: HTTP server should bind to localhost if only loopback
+      //        connections are allowed.
+      m_httpServer = new HttpServer(_T("0.0.0.0"), m_srvConfig->getHttpPort(), m_runAsService);
     } catch (Exception &ex) {
       Log::error(_T("Failed to start HTTP server: \"%s\""), ex.getMessage());
     }
@@ -283,6 +316,8 @@ void TvnServer::restartHttpServer()
 
 void TvnServer::restartControlServer()
 {
+  // FIXME: Memory leaks.
+  // FIXME: Errors are critical here, they should not be ignored.
 
   stopControlServer();
 
@@ -292,6 +327,7 @@ void TvnServer::restartControlServer()
     StringStorage pipeName;
     ControlPipeName::createPipeName(isRunningAsService(), &pipeName);
 
+    // FIXME: Memory leak
     SecurityAttributes *pipeSecurity = new SecurityAttributes();
     pipeSecurity->setInheritable();
     pipeSecurity->shareToAllUsers();
@@ -305,15 +341,16 @@ void TvnServer::restartControlServer()
 
 void TvnServer::restartMainRfbServer()
 {
+  // FIXME: Errors are critical here, they should not be ignored.
 
   stopMainRfbServer();
 
-  if (!m_config->isAcceptingRfbConnections()) {
+  if (!m_srvConfig->isAcceptingRfbConnections()) {
     return;
   }
 
-  const TCHAR *bindHost = m_config->isOnlyLoopbackConnectionsAllowed() ? _T("localhost") : _T("0.0.0.0");
-  unsigned short bindPort = m_config->getRfbPort();
+  const TCHAR *bindHost = m_srvConfig->isOnlyLoopbackConnectionsAllowed() ? _T("localhost") : _T("0.0.0.0");
+  unsigned short bindPort = m_srvConfig->getRfbPort();
 
   Log::message(_T("Starting main RFB server"));
 
@@ -369,27 +406,11 @@ void TvnServer::stopMainRfbServer()
   }
 }
 
-void TvnServer::resetLogFilePath()
+void TvnServer::updateLogDirPath()
 {
-  StringStorage pathToLogDirectory;
-
-  TvnLogFilename::queryLogFileDirectory(m_runAsService,
-    m_config->isSaveLogToAllUsersPathFlagEnabled(),
-    &pathToLogDirectory);
-
-  {
-    File logDirectory(pathToLogDirectory.getString());
-
-    logDirectory.mkdir();
-  }
-
-  StringStorage pathToLogFile;
-
-  TvnLogFilename::queryLogFilePath(m_runAsService,
-    m_config->isSaveLogToAllUsersPathFlagEnabled(),
-    &pathToLogFile);
-
-  m_config->setLogFilePath(pathToLogFile.getString());
-
-  m_log.changeFilename(pathToLogFile.getString());
+  // Creating log directory if it is still no exists.
+  StringStorage logFileDir;
+  m_srvConfig->getLogFileDir(&logFileDir);
+  File logDirectory(logFileDir.getString());
+  logDirectory.mkdir();
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,35 +25,38 @@
 #include "Thread.h"
 #include "AutoLock.h"
 #include "util/Exception.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 Thread::Thread()
-: m_terminated(false), m_active(false), m_hDesk(0)
+: m_terminated(false), m_active(false)
 {
   m_hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) threadProc,
                            (LPVOID) this, CREATE_SUSPENDED, (LPDWORD) &m_threadID);
-  m_hDesk = DesktopSelector::getInputDesktop();
 }
 
 Thread::~Thread()
 {
+  CloseHandle(m_hThread);
 }
 
 DWORD WINAPI Thread::threadProc(LPVOID pThread)
 {
   Thread *_this = ((Thread *)pThread);
   try {
-    DesktopSelector::setDesktopToCurrentThread(_this->m_hDesk);
-    DesktopSelector::closeDesktop(_this->m_hDesk);
-    _this->m_hDesk = 0;
+    _this->initByDerived();
     _this->execute();
   } catch (Exception &e) {
     Log::error(_T("Abnormal thread termination.")
-               _T(" ThreadId = %x, message = \"%s\" \n"),
-               _this->m_threadID, e.getMessage());
+               _T(" ThreadId = %u, message = \"%s\" \n"),
+               (unsigned int)_this->m_threadID, e.getMessage());
   }
   _this->m_active = false;
   return 0;
+}
+
+void Thread::initByDerived()
+{
+  // If is needed this function will be inherited by a derived class.
 }
 
 bool Thread::wait()
@@ -61,6 +64,7 @@ bool Thread::wait()
   return (WaitForSingleObject(m_hThread, INFINITE) != WAIT_FAILED);
 }
 
+// FIXME: not thread-safe (m_active).
 bool Thread::suspend()
 {
   m_active = !(SuspendThread(m_hThread) != -1);
@@ -68,6 +72,7 @@ bool Thread::suspend()
   return !m_active;
 }
 
+// FIXME: not thread-safe (m_active).
 bool Thread::resume()
 {
   m_active = ResumeThread(m_hThread) != -1;

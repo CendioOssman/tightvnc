@@ -1,4 +1,4 @@
-// Copyright (C) 2000-2010 Constantin Kaplinsky.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,19 +25,29 @@
 #ifndef __RFB_ENCODING_DEFS_H_INCLUDED__
 #define __RFB_ENCODING_DEFS_H_INCLUDED__
 
+//
+// Codes for encoding types
+//
+
 class EncodingDefs
 {
 public:
   static const int RAW = 0;
   static const int COPYRECT = 1;
+  static const int RRE = 2;
   static const int HEXTILE = 5;
   static const int TIGHT = 7;
+  static const int ZRLE = 16;
 
   static const char *const SIG_RAW;
   static const char *const SIG_COPYRECT;
   static const char *const SIG_HEXTILE;
   static const char *const SIG_TIGHT;
 };
+
+//
+// Codes for pseudo-encoding types
+//
 
 class PseudoEncDefs
 {
@@ -80,4 +90,4 @@ public:
   static const char *const SIG_QUALITY_LEVEL;
 };
 
-#endif 
+#endif // __RFB_ENCODING_DEFS_H_INCLUDED__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,19 +29,49 @@
 
 #include "Notificator.h"
 
+/**
+ * Command that executes remote method using ControlProxy and catchs all of
+ * exception that can be thown by executing of such command.
+ */
 class ControlCommand : public Command
 {
 public:
+  /**
+   * Creates control command.
+   * @param command real command.
+   * @param notificator [optional] notificator to report about error.
+   */
   ControlCommand(Command *command, Notificator *notificator = 0);
+  /**
+   * Destroys command.
+   */
   virtual ~ControlCommand();
 
+  /**
+   * Executes command.
+   */
   virtual void execute();
 
+  /**
+   * Checks result of last execute() method call.
+   * @note if called before execute() then it will return false.
+   * @return true if execute() doesn't real command (passed to constructor) don't raise any exceptions,
+   * false otherwise.
+   */
   bool executionResultOk() const;
 
 protected:
+  /**
+   * Real command.
+   */
   Command *m_command;
+  /**
+   * Error notificator.
+   */
   Notificator *m_notificator;
+  /**
+   * Flag determinates successfull execution of command.
+   */
   bool m_successfull;
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,15 +27,26 @@
 
 #include "util/CommonHeader.h"
 
+/**
+ * Utility to create path to server log file.
+ */
 class TvnLogFilename
 {
 public:
-  static void queryLogFilePath(bool forService, bool shareLog, StringStorage *logFilePath);
-
+  /**
+   * Queries full path to directory where server log files are located.
+   *
+   * @param forService determinates if it must create log directory path for service, or for application.
+   * @param shareToAll determinates if log directory must be shared to all users.
+   * @param logFileDirectory [out] output variable that will contain path to log directory.
+   */
   static void queryLogFileDirectory(bool forService,
                                     bool shareToAll,
                                     StringStorage *logFileDirectory);
 private:
+  /**
+   * Deny instanizing of this class.
+   */
   TvnLogFilename();
 };
 

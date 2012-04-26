@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,17 +25,18 @@
 #include "TvnService.h"
 
 #include "ServerCommandLine.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include "win-system/SCMClient.h"
 #include "win-system/Environment.h"
 
 const TCHAR TvnService::SERVICE_COMMAND_LINE_KEY[] = _T("-service");
 
-const TCHAR TvnService::SERVICE_NAME[]             = _T("tvnserver");
-const TCHAR TvnService::SERVICE_NAME_TO_DISPLAY[]  = _T("TightVNC Server");
-
-TvnService::TvnService()
-: Service(SERVICE_NAME), m_tvnServer(0)
+TvnService::TvnService(WinServiceEvents *winServiceEvents,
+                       NewConnectionEvents *newConnectionEvents)
+: Service(ServiceNames::SERVICE_NAME), m_tvnServer(0),
+  m_winServiceEvents(winServiceEvents),
+  m_newConnectionEvents(newConnectionEvents)
 {
 }
 
@@ -45,20 +46,24 @@ TvnService::~TvnService()
 
 void TvnService::onStart()
 {
-  m_tvnServer = new TvnServer(true);
-
-  m_tvnServer->addListener(this);
+  try {
+    m_winServiceEvents->enable();
+    m_tvnServer = new TvnServer(true, m_newConnectionEvents);
+    m_tvnServer->addListener(this);
+    m_winServiceEvents->onSuccServiceStart();
+  } catch (Exception &e) {
+    m_winServiceEvents->onFailedServiceStart(&StringStorage(e.getMessage()));
+  }
 }
 
 void TvnService::main()
 {
   m_shutdownEvent.waitForEvent();
-
   m_tvnServer->removeListener(this);
-
   delete m_tvnServer;
-
   m_tvnServer = 0;
+
+  m_winServiceEvents->onServiceStop();
 }
 
 void TvnService::onStop()
@@ -79,7 +84,8 @@ void TvnService::install()
 
   SCMClient scManager;
 
-  scManager.installService(SERVICE_NAME, SERVICE_NAME_TO_DISPLAY,
+  scManager.installService(ServiceNames::SERVICE_NAME,
+                           ServiceNames::SERVICE_NAME_TO_DISPLAY,
                            binPath.getString(), _T(""));
 }
 
@@ -87,7 +93,7 @@ void TvnService::remove()
 {
   SCMClient scManager;
 
-  scManager.removeService(SERVICE_NAME);
+  scManager.removeService(ServiceNames::SERVICE_NAME);
 }
 
 void TvnService::reinstall()
@@ -103,26 +109,26 @@ void TvnService::start(bool waitCompletion)
 {
   SCMClient scManager;
 
-  scManager.startService(SERVICE_NAME, waitCompletion);
+  scManager.startService(ServiceNames::SERVICE_NAME, waitCompletion);
 }
 
 void TvnService::stop(bool waitCompletion)
 {
   SCMClient scManager;
 
-  scManager.stopService(SERVICE_NAME, waitCompletion);
+  scManager.stopService(ServiceNames::SERVICE_NAME, waitCompletion);
 }
 
 bool TvnService::getBinPath(StringStorage *binPath)
 {
   StringStorage pathToServiceBinary;
 
-  if (!Environment::getCurrentModuleFolderPath(&pathToServiceBinary)) {
+  // Get executable folder first.
+  if (!Environment::getCurrentModulePath(&pathToServiceBinary)) {
     return false;
   }
 
-  pathToServiceBinary.appendString(_T("\\tvnserver.exe"));
-
+  // Create formatted binary path.
   binPath->format(_T("\"%s\" %s"),
                   pathToServiceBinary.getString(),
                   SERVICE_COMMAND_LINE_KEY);

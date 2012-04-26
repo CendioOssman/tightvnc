@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,8 +37,8 @@ FilteredTextBox::~FilteredTextBox()
 void FilteredTextBox::setWindow(HWND hwnd)
 {
   if (hwnd != NULL) {
-    m_oldWindowProc = SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&windowProc);
-    SetWindowLong(hwnd, GWL_USERDATA, (LONG)this);
+    m_oldWindowProc = SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)&windowProc);
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
   } else {
     m_oldWindowProc = NULL;
   }
@@ -73,6 +73,9 @@ LRESULT FilteredTextBox::makeCheck()
       TextBox::setText(m_text.getString());
       TextBox::selectText(m_text.getLength(), m_text.getLength());
     } else {
+      //
+      // TODO: Play annoying sound this
+      //
     }
     return -1;
   }
@@ -87,6 +90,11 @@ bool FilteredTextBox::isStringValid(const TCHAR *string)
   return true;
 }
 
+//
+// Return values: 0 - if window process this message
+//      other value - otherwise
+//
+
 LRESULT  FilteredTextBox::onKeyDown(WPARAM code, LPARAM params)
 {
   return makeCheck();
@@ -94,7 +102,7 @@ LRESULT  FilteredTextBox::onKeyDown(WPARAM code, LPARAM params)
 
 LRESULT FilteredTextBox::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-  FilteredTextBox *_this = (FilteredTextBox *)GetWindowLong(hwnd, GWL_USERDATA);
+  FilteredTextBox *_this = (FilteredTextBox *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
   if (_this == NULL) {
     return FALSE;
   }

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -38,7 +38,7 @@ void FileTransferMessageProcessor::processRfbMessage(UINT32 rfbMessage)
             OperationNotSupportedException,
             OperationNotPermittedException)
 {
-  AutoLock al(&m_listenersCS);
+  AutoLock al(&m_listeners);
 
   for (size_t i = 0; i < m_listeners.size(); i++) {
     FileTransferEventHandler *listener = m_listeners.at(i);
@@ -86,6 +86,6 @@ void FileTransferMessageProcessor::processRfbMessage(UINT32 rfbMessage)
     case FTMessage::LAST_REQUEST_FAILED_REPLY:
       listener->onLastRequestFailedReply();
       break;
-    } 
-  } 
+    } // switch
+  } // for
 }

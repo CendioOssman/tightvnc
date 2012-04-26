@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -39,16 +39,29 @@ public:
   void setRange32(int lower, int upper);
   void setAccel(UINT nSec, UINT nInc);
 
+  //
+  // Auto acceleration methods
+  //
+
+  //
+  // Handler, call it on UDN_DELTAPOS notification
+  //
+
   void autoAccelerationHandler(LPNMUPDOWN message);
   void enableAutoAcceleration(bool enabled);
-  void setAutoAccelerationParams(const int *limitters, const int *deltas, size_t size, int maxDelta);
+  void setAutoAccelerationParams(const std::vector<int> *limitters,
+                                 const std::vector<int> *deltas,
+                                 int maxDelta);
 protected:
   Control *m_buddy;
 
+  //
+  // Members needed for auto acceleration
+  //
+
   bool m_isAutoAccelerationEnabled;
-  int *m_limitters;
-  int *m_deltas;
-  size_t m_size; 
+  std::vector<int> m_limitters;
+  std::vector<int> m_deltas;
   int m_maxDelta;
 };
 

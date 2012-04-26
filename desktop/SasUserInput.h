@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,8 +27,9 @@
 
 #include "UserInput.h"
 #include "desktop-ipc/UserInputClient.h"
-#include "KeyEvent.h"
 
+// This class delegates all inputs but the "ctrl+alt+del" under Vista or later
+// it process by himself.
 class SasUserInput : public UserInput
 {
 public:
@@ -41,6 +42,11 @@ public:
   virtual void setKeyboardEvent(UINT32 keySym, bool down);
   virtual void getCurrentUserInfo(StringStorage *desktopName,
                                   StringStorage *userName);
+  virtual void getPrimaryDisplayCoords(Rect *rect);
+  virtual void getDisplayNumberCoords(Rect *rect,
+                                      unsigned char dispNumber);
+  virtual void getWindowCoords(HWND hwnd, Rect *rect);
+  virtual HWND getWindowHandleByName(const StringStorage *windowName);
 
 private:
   UserInputClient *m_client;
@@ -50,4 +56,4 @@ private:
   bool m_underVista;
 };
 
-#endif 
+#endif // __SASUSERINPUT_H__

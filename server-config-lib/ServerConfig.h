@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -47,6 +47,11 @@ public:
   static const unsigned int MINIMAL_LOCAL_INPUT_PRIORITY_TIMEOUT = 1;
   static const unsigned int MINIMAL_QUERY_TIMEOUT = 1;
 
+  //
+  // Enum defines server action when last client disconnects
+  // from the TightVNC server.
+  //
+
   enum DisconnectAction {
     DA_DO_NOTHING = 0,
     DA_LOCK_WORKSTATION = 1,
@@ -57,9 +62,25 @@ public:
   ServerConfig();
   virtual ~ServerConfig();
 
+  /**
+   * Serializes server config to output stream as byte stream.
+   * Thread-safe method.
+   * @throws Exception on io error.
+   * @fixme stub.
+   */
   void serialize(DataOutputStream *output) throw(Exception);
 
+  /**
+   * Deserializes server config from input stream.
+   * Thread-safe method.
+   * @throws Exception on io error.
+   * @fixme stub.
+   */
   void deserialize(DataInputStream *input) throw(Exception);
+
+  //
+  // Inherited from Lockable abstract class.
+  //
 
   virtual void lock() {
     m_objectCS.lock();
@@ -68,6 +89,10 @@ public:
   virtual void unlock() {
     m_objectCS.unlock();
   }
+
+  //
+  // Display (or port numbers) group.
+  //
 
   bool isControlAuthEnabled();
   void useControlAuth(bool useAuth);
@@ -81,6 +106,10 @@ public:
   bool isBlankScreenEnabled();
   void enableBlankScreen(bool enabled);
 
+  //
+  // Other server options access methods
+  //
+
   void enableFileTransfers(bool enabled);
   bool isFileTransfersEnabled();
 
@@ -89,6 +118,13 @@ public:
 
   void setDisconnectAction(DisconnectAction action);
   DisconnectAction getDisconnectAction();
+
+  bool getMirrorIsAllowed();
+  void setMirrorAllowing(bool value);
+
+  //
+  // Incoming connections options group
+  //
 
   bool isAcceptingRfbConnections();
   void acceptRfbConnections(bool accept);
@@ -114,6 +150,10 @@ public:
 
   void setIdleTimeout(unsigned int idleTimeout);
 
+  //
+  // Configurator from Administration tab
+  //
+
   bool isUsingAuthentication();
 
   void useAuthentication(bool enabled);
@@ -134,6 +174,10 @@ public:
 
   void setLogLevel(int logLevel);
 
+  //
+  // Sharing configuration
+  //
+
   bool isAlwaysShared();
 
   bool isNeverShared();
@@ -149,6 +193,10 @@ public:
   void setPollingInterval(unsigned int interval);
 
   unsigned int getPollingInterval();
+
+  //
+  // Input handling config
+  //
 
   void blockRemoteInput(bool blockEnabled);
 
@@ -166,6 +214,10 @@ public:
 
   bool isBlockingLocalInput();
 
+  //
+  // Query config
+  //
+
   unsigned int getQueryTimeout();
 
   void setQueryTimeout(unsigned int timeout);
@@ -173,8 +225,20 @@ public:
   bool isDefaultActionAccept();
   void setDefaultActionToAccept(bool accept);
 
+  //
+  // Port mapping config
+  //
+
+  // Remark: not-thread safe method, use lock / unlock methods of this class
+  // to lock and unlock server configuration.
   PortMappingContainer *getPortMappingContainer();
 
+  //
+  // Ip access control config
+  //
+
+  // Remark: not-thread safe method, use lock / unlock methods of this class
+  // to lock and unlock server configuration.
   IpAccessControl *getAccessControl();
 
   IpAccessRule::ActionType getActionByAddress(unsigned long ip);
@@ -183,7 +247,18 @@ public:
 
   bool isLoopbackConnectionsAllowed();
 
+  //
+  // Video regions
+  //
+
+  // FIXME: Deprecated?
+  // Remark: not-thread safe method, use lock / unlock methods of this class
+  // to lock and unlock server configuration.
   StringVector *getVideoClassNames();
+
+  //
+  // Other
+  //
 
   unsigned int getVideoRecognitionInterval();
 
@@ -198,20 +273,35 @@ public:
   bool getShowTrayIconFlag();
   void setShowTrayIconFlag(bool val);
 
-  void getLogFilePath(StringStorage *logFilePath);
-  void getLogFileDirectory(StringStorage *logFileDirectory);
-  void setLogFilePath(const TCHAR *logFilePath);
+  void getLogFileDir(StringStorage *logFileDir);
+  void setLogFileDir(const TCHAR *logFileDir);
 protected:
+
+  //
+  // Server port numbers
+  //
 
   int m_rfbPort;
   int m_httpPort;
 
   bool m_blankScreen;
 
+  //
+  // Other server options members group
+  //
+
   bool m_enableFileTransfers;
   bool m_removeWallpaper;
+  bool m_mirrorDriverAllowed;
+  //
+  // Server action when last client disconnects from server
+  //
 
   DisconnectAction m_disconnectAction;
+
+  //
+  // Incoming connections options group
+  //
 
   bool m_acceptRfbConnections;
   bool m_acceptHttpConnections;
@@ -220,7 +310,15 @@ protected:
   unsigned char m_readonlyPassword[VNC_PASSWORD_SIZE];
   unsigned char m_controlPassword[VNC_PASSWORD_SIZE];
 
+  //
+  // TODO: Make saving/loading idleTimeout member
+  //
+
   unsigned int m_idleTimeout;
+
+  //
+  // Configurator from Administration tab
+  //
 
   bool m_useAuthentication;
   bool m_onlyLoopbackConnections;
@@ -228,44 +326,99 @@ protected:
   int m_logLevel;
   bool m_useControlAuth;
 
+  //
+  // Sharing configuration
+  //
+
   bool m_alwaysShared;
   bool m_neverShared;
   bool m_disconnectClients;
 
+  //
+  // Polling configuration
+  //
+
   unsigned int m_pollingInterval;
 
+  //
+  // When flag is set server always blocks remote input.
+  //
+
   bool m_blockRemoteInput;
+  //
+  // When flag is set server always blocks local input.
+  //
 
   bool m_blockLocalInput;
 
+  //
+  // When flag is set server blocks remote input
+  // on local input activity.
+  //
+
   bool m_localInputPriority;
+
+  //
+  // Local input invactivity timeout during that
+  // we still blocking remote input(when m_localInputPriority
+  // is enabled).
+  //
 
   unsigned int m_localInputPriorityTimeout;
 
   bool m_defaultActionAccept;
 
+  //
+  // Timeout for Query IpAccessControl record
+  //
+
   unsigned int m_queryTimeout;
 
+  //
+  // Port mapping config
+  //
+
   PortMappingContainer m_portMappings;
+
+  //
+  // Ip access control config
+  //
 
   IpAccessControl m_accessControlContainer;
   bool m_allowLoopbackConnections;
 
+  //
+  // Video regions
+  //
+
   StringVector m_videoClassNames;
   
+  //
+  // Other
+  //
 
   unsigned int m_videoRecognitionInterval;
   bool m_grabTransparentWindows;
 
+  // Flag that determiates where log file directory will be.
   bool m_saveLogToAllUsersPath;
+  // Run control interface with TightVNC server or not.
   bool m_showTrayIcon;
 
   StringStorage m_logFilePath;
 private:
 
+  //
+  // Helper methods
+  //
+
   bool m_hasPrimaryPassword;
   bool m_hasReadOnlyPassword;
   bool m_hasControlPassword;
+
+  //
+  // Critical section
+  //
 
   LocalMutex m_objectCS;
 };

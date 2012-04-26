@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,9 +23,8 @@
 //
 
 #include "ExtraRfbServers.h"
-
+#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
-#include "util/FileLog.h"
 
 ExtraRfbServers::Conf::Conf()
 : acceptConnections(false),
@@ -82,9 +81,12 @@ bool ExtraRfbServers::reload(bool asService, RfbClientManager *mgr)
               (int)noConfigChanges, (int)enoughServers);
 
   if (noConfigChanges && enoughServers) {
-    return true; 
+    return true; // no work needed, no errors encountered
   }
 
+  // Either configuration was actually changed, or our number of actually
+  // running servers does not match the configuration. In either case,
+  // restart the servers.
   Log::message(_T("Need to reconfigure extra RFB servers"));
   shutDown();
   return startUp(asService, mgr);
@@ -139,15 +141,22 @@ bool ExtraRfbServers::startUp(bool asService, RfbClientManager *mgr)
     }
   }
 
+  // If the number of requested port mappings equals to the number of
+  // successfully started servers, then everything went fine, return true.
   return newConf.extraPorts.count() == m_servers.size();
 }
 
 void ExtraRfbServers::getConfiguration(Conf *out)
 {
-  //          ConfigAccessor ca;                         
-  //          ServerConfig *cfg = ca.getServerConfig();  
-  //          someSetting = cfg.getSomeSetting();        
-  //        }                                            
+  // FIXME: Create a sort of configuration accessor with auto-locking, and
+  //        do not allow to access the configuration directly, so we would
+  //        have to write something like this:
+  //        {
+  //          ConfigAccessor ca;                         // lock
+  //          ServerConfig *cfg = ca.getServerConfig();  // get access
+  //          someSetting = cfg.getSomeSetting();        // use
+  //        }                                            // auto-unlock
+  //
   ServerConfig *config = Configurator::getInstance()->getServerConfig();
   AutoLock l(config);
 

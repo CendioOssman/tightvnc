@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,7 +30,7 @@
 #include "win-system/WindowsEvent.h"
 #include "thread/Thread.h"
 #include "network/RfbOutputGate.h"
-#include "desktop/WinDesktop.h"
+#include "desktop/DesktopInterface.h"
 #include "fb-update-sender/UpdateSender.h"
 
 #include "RfbDispatcher.h"
@@ -38,9 +38,11 @@
 #include "ClientInputHandler.h"
 #include "ClientTerminationListener.h"
 #include "ClientInputEventListener.h"
+#include "tvnserver-app/NewConnectionEvents.h"
 
 class ClientAuthListener;
 
+// FIXME: Document it.
 enum ClientState
 {
   IN_NONAUTH,
@@ -50,12 +52,16 @@ enum ClientState
   IN_READY_TO_REMOVE
 };
 
+// FIXME: Document it, i understand nothing from such kind of description.
 class RfbClient: public Thread, ClientInputEventListener
 {
 public:
-  RfbClient(SocketIPv4 *socket, ClientTerminationListener *extTermListener,
+  RfbClient(NewConnectionEvents *newConnectionEvents, SocketIPv4 *socket,
+            ClientTerminationListener *extTermListener,
             ClientAuthListener *extAuthListener, bool viewOnly,
-            bool isOutgoing, unsigned int id, const Rect *viewPort = 0);
+            bool isOutgoing, unsigned int id,
+            const ViewPortState *constViewPort,
+            const ViewPortState *dynViewPort);
   virtual ~RfbClient();
 
   void disconnect();
@@ -67,12 +73,17 @@ public:
   void getLocalIpAddress(StringStorage *address);
   void getSocketAddr(SocketAddressIPv4 *addr) const;
 
+  // Return true if connection has been initialised from the server to a client
+  // else return false.
   bool isOutgoing() const;
 
   bool getSharedFlag() const { return m_shared; }
   bool getViewOnlyAuth() const { return m_viewOnlyAuth; }
 
   void setViewOnlyFlag(bool value);
+
+  // Changes current dynViewPort value by new.
+  void changeDynViewPort(const ViewPortState *dynViewPort);
 
   bool clientIsReady() const { return m_updateSender->clientIsReady(); }
   void sendUpdate(const UpdateContainer *updateContainer,
@@ -85,12 +96,22 @@ protected:
   virtual void onTerminate();
 
 private:
+  // Calling this function makes the client manager enter (and leave) the
+  // mutex associated with the client list, so it will have to wait until
+  // other threads stop working with our object (such operations should be
+  // protected with the same mutex as well). If we call this function to
+  // change the state to IN_PENDING_TO_REMOVE or IN_READY_TO_REMOVE, we can
+  // guarantee that our object will not be used by the client manager after
+  // this call.
   void notifyAbStateChanging(ClientState state);
 
+  // This class is layer between WinDesktop and ClientInputHandler.
   virtual void onKeyboardEvent(UINT32 keySym, bool down);
   virtual void onMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask);
 
   void setClientState(ClientState newState);
+
+  Rect getViewPortRect(const Dimension *fbDimension);
 
   ClientState m_clientState;
   bool m_isMarkedOk;
@@ -101,18 +122,24 @@ private:
 
   ClientAuthListener *m_extAuthListener;
 
-  ViewPort m_viewPort;
+  ViewPort m_constViewPort;
+  ViewPort m_dynamicViewPort;
+  LocalMutex m_viewPortMutex;
+
   UpdateSender *m_updateSender;
   ClipboardExchange *m_clipboardExchange;
   ClientInputHandler *m_clientInputHandler;
-  WinDesktop *m_desktop;
+  DesktopInterface *m_desktop;
 
   bool m_viewOnly;
   bool m_isOutgoing;
   bool m_viewOnlyAuth;
   bool m_shared;
 
+  // Information
   unsigned int m_id;
+
+  NewConnectionEvents *m_newConnectionEvents;
 };
 
-#endif 
+#endif // __RFBCLIENT_H__

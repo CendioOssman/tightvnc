@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -161,7 +161,9 @@ void DesktopServerProto::sendRegion(const Region *region, BlockingGate *gate)
   std::vector<Rect>::iterator iRect;
   region->getRectVector(&rects);
 
-  gate->writeUInt32(rects.size());
+  unsigned int numRects = (unsigned int)rects.size();
+  _ASSERT(numRects == rects.size());
+  gate->writeUInt32(numRects);
 
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
     Rect *rect = &(*iRect);
@@ -182,6 +184,8 @@ void DesktopServerProto::sendFrameBuffer(const FrameBuffer *srcFb,
                                          const Rect *srcRect,
                                          BlockingGate *gate)
 {
+  // FIXME: Additional FrameBuffer will be used temporarily.
+  // This is easy way to send all pixels.
   PixelFormat pf = srcFb->getPixelFormat();
   FrameBuffer fb;
 
@@ -195,6 +199,8 @@ void DesktopServerProto::readFrameBuffer(FrameBuffer *dstFb,
                                          const Rect *dstRect,
                                          BlockingGate *gate)
 {
+  // FIXME: FrameBuffer will be used temporarily.
+  // This is easy way to get all pixels.
   PixelFormat pf = dstFb->getPixelFormat();
   FrameBuffer fb;
   fb.setProperties(dstRect, &pf);
@@ -218,16 +224,20 @@ void DesktopServerProto::readNewClipboard(StringStorage *newClipboard,
 void DesktopServerProto::sendNewPointerPos(const Point *newPos, UINT8 keyFlag,
                                            BlockingGate *gate)
 {
+  // Send pointer position
   gate->writeUInt16(newPos->x);
   gate->writeUInt16(newPos->y);
+  // Send key flags
   gate->writeUInt8(keyFlag);
 }
 
 void DesktopServerProto::readNewPointerPos(Point *newPos, UINT8 *keyFlag,
                                            BlockingGate *gate)
 {
+  // Read pointer position
   newPos->x = gate->readUInt16();
   newPos->y = gate->readUInt16();
+  // Read key flags
   *keyFlag = gate->readUInt8();
 }
 
@@ -265,17 +275,21 @@ void DesktopServerProto::sendConfigSettings(BlockingGate *gate)
 {
   ServerConfig *srvConf = Configurator::getInstance()->getServerConfig();
 
+  // Log
   gate->writeUInt32(srvConf->getLogLevel());
 
+  // Polling
   gate->writeUInt32(srvConf->getPollingInterval());
   gate->writeUInt8(srvConf->getGrabTransparentWindowsFlag());
 
+  //
   gate->writeUInt8(srvConf->isBlockingLocalInput());
   gate->writeUInt8(srvConf->isLocalInputPriorityEnabled());
   gate->writeUInt32(srvConf->getLocalInputPriorityTimeout());
 
   gate->writeUInt8(srvConf->isRemovingDesktopWallpaperEnabled());
 
+  // Send video class names
   AutoLock al(srvConf);
   StringVector *wndClassNames = srvConf->getVideoClassNames();
   StringVector::iterator iter = wndClassNames->begin();
@@ -284,6 +298,7 @@ void DesktopServerProto::sendConfigSettings(BlockingGate *gate)
   for (; iter < wndClassNames->end(); iter++) {
     gate->writeUTF8((*iter).getString());
   }
+  // Send video recognition interval
   gate->writeUInt32(srvConf->getVideoRecognitionInterval());
 }
 
@@ -291,8 +306,10 @@ void DesktopServerProto::readConfigSettings(BlockingGate *gate)
 {
   ServerConfig *srvConf = Configurator::getInstance()->getServerConfig();
 
+  // Log
   srvConf->setLogLevel(gate->readUInt32());
 
+  // Polling
   srvConf->setPollingInterval(gate->readUInt32());
   srvConf->setGrabTransparentWindowsFlag(gate->readUInt8() != 0);
 
@@ -302,6 +319,7 @@ void DesktopServerProto::readConfigSettings(BlockingGate *gate)
 
   srvConf->enableRemovingDesktopWallpaper(gate->readUInt8() != 0);
 
+  // Receive video class names
   AutoLock al(srvConf);
   size_t stringCount = gate->readUInt32();
 
@@ -310,5 +328,6 @@ void DesktopServerProto::readConfigSettings(BlockingGate *gate)
     gate->readUTF8(&tmpString);
     srvConf->getVideoClassNames()->push_back(tmpString);
   }
+  // Receive video recognition interval
   srvConf->setVideoRecognitionInterval(gate->readUInt32());
 }

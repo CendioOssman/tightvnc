@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,11 +37,14 @@ SecurityDescriptor::~SecurityDescriptor()
 {
 }
 
-void SecurityDescriptor::setRulesAsDacl(size_t count, EXPLICIT_ACCESS *rules)
+void SecurityDescriptor::setRulesAsDacl(size_t count,
+                                        EXPLICIT_ACCESS *rules)
 {
   PACL acl = 0;
 
-  DWORD ret = SetEntriesInAcl(count, rules, NULL, &acl);
+  ULONG constrCount = (ULONG)count;
+  _ASSERT(constrCount == count);
+  DWORD ret = SetEntriesInAcl(constrCount, rules, NULL, &acl);
 
   if (ret != ERROR_SUCCESS) {
     throw SystemException(ret);

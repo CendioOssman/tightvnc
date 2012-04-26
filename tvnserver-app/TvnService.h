@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,38 +31,113 @@
 #include "win-system/Service.h"
 
 #include "thread/Thread.h"
+#include "WinServiceEvents.h"
+#include "NewConnectionEvents.h"
 
+/**
+ * TightVNC service.
+ *
+ * Solves problems of installing, reinstalling, removing, starting, stopping tvnserver
+ * from service control manager.
+ *
+ * Also contains body of tvnservice.
+ */
 class TvnService : public Service,
                    public TvnServerListener
 {
 public:
+  /**
+   * Command line key which needed to start tvnserver binary as service.
+   */
   static const TCHAR SERVICE_COMMAND_LINE_KEY[];
-  static const TCHAR SERVICE_NAME[];
-  static const TCHAR SERVICE_NAME_TO_DISPLAY[];
 public:
-  TvnService();
+  /**
+   * Creates object.
+   */
+  TvnService(WinServiceEvents *winServiceEvents,
+             NewConnectionEvents *newConnectionEvents);
+  /**
+   * Deletes object.
+   */
   virtual ~TvnService();
 
+  /**
+   * Inherited from abstract TvnServerListener class.
+   * Shutdows tvnservice using service control manager.
+   */
   virtual void onTvnServerShutdown();
 
+  /**
+   * Installs tvnserver service.
+   * @throws SystemException on fail.
+   */
   static void install() throw(SystemException);
+  /**
+   * Stops and removes tvnserver service.
+   * @throws SystemException when failed to remove service.
+   */
   static void remove() throw(SystemException);
+  /**
+   * Reinstalls tvnserver service (combite call of remove and install methods).
+   * @remark ignores if remove call throws exception.
+   * @throws SystemException when fail to install service.
+   */
   static void reinstall() throw(SystemException);
+  /**
+   * Starts tvnserver service.
+   * @param waitCompletion if true, wait until the status becomes
+   *   SERVICE_RUNNING.
+   * @throws SystemException on fail.
+   */
   static void start(bool waitCompletion = false) throw(SystemException);
+  /**
+   * Stopps tvnserver service.
+   * @param waitCompletion if true, wait until the status becomes
+   *   SERVICE_STOPPED.
+   * @throws SystemException on fail.
+   */
   static void stop(bool waitCompletion = false) throw(SystemException);
 
 protected:
+  /**
+   * Inherited from superclass.
+   * Starts tvnserver execution.
+   * @throws SystemException when failed to start.
+   */
   virtual void onStart() throw(SystemException);
 
+  /**
+   * Inherited from superclass.
+   * TvnService working body.
+   */
   virtual void main();
 
+  /**
+   * Inherited from superclass.
+   * Stops tvnserver execution.
+   */
   virtual void onStop();
 
+  /**
+   * Creates path to binary of tvnserver service.
+   * @param binPath [out] output string where path will be stored.
+   * @return true on success, false on error.
+   * @remark creates path with all needed keys for starting service.
+   */
   static bool getBinPath(StringStorage *binPath);
 
 protected:
+  /**
+   * Shutdown service event.
+   */
   WindowsEvent m_shutdownEvent;
+  /**
+   * TightVNC server.
+   */
   TvnServer *m_tvnServer;
+
+  WinServiceEvents *m_winServiceEvents;
+  NewConnectionEvents *m_newConnectionEvents;
 };
 
 #endif

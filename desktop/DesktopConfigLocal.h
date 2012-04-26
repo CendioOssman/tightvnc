@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,16 +25,15 @@
 #ifndef __DESKTOPCONFIGLOCAL_H__
 #define __DESKTOPCONFIGLOCAL_H__
 
-#include "server-config-lib/DesktopConfig.h"
 #include "InputBlocker.h"
 
-class DesktopConfigLocal : public DesktopConfig
+class DesktopConfigLocal
 {
 public:
   DesktopConfigLocal();
   virtual ~DesktopConfigLocal();
 
-  virtual void updateByNewSettings(BlockingGate *gate);
+  virtual void updateByNewSettings();
 
   virtual bool isRemoteInputAllowed();
   virtual DateTime getLastInputTime() const;
@@ -44,4 +43,4 @@ private:
   InputBlocker *m_inputBlocker;
 };
 
-#endif 
+#endif // __DESKTOPCONFIGLOCAL_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,31 +23,43 @@
 //
 
 #include "win-system/Environment.h"
-
+#include "wsconfig-lib/TvnLogFilename.h"
 #include "config-lib/RegistrySettingsManager.h"
 
 #include "win-system/Registry.h"
 #include "win-system/RegistryKey.h"
 
 #include "Configurator.h"
+#include "tvnserver-app/NamingDefs.h"
 
 Configurator *Configurator::s_instance = NULL;
+LocalMutex Configurator::m_instanceMutex;
 
-Configurator::Configurator()
-: m_isConfiguringService(false), m_isConfigLoadedPartly(false),
+Configurator::Configurator(bool isConfiguringService)
+: m_isConfiguringService(isConfiguringService), m_isConfigLoadedPartly(false),
   m_isFirstLoad(true), m_regSA(0)
 {
+  AutoLock al(&m_instanceMutex);
+  if (s_instance != 0) {
+    throw Exception(_T("Configurator instance already exists"));
+  }
+  s_instance = this;
   try {
     m_regSA = new RegistrySecurityAttributes();
   } catch (...) {
+    // TODO: Place exception handler here.
   }
+}
+
+Configurator::~Configurator()
+{
+  if (m_regSA != 0) delete m_regSA;
 }
 
 Configurator *Configurator::getInstance()
 {
-  if (s_instance == NULL) {
-    s_instance = new Configurator();
-  }
+  AutoLock al(&m_instanceMutex);
+  _ASSERT(s_instance != NULL);
   return s_instance;
 }
 
@@ -85,7 +97,7 @@ bool Configurator::load(bool forService)
   if (forService && m_regSA != 0) {
     sa = m_regSA->getServiceSA();
   }
-  RegistrySettingsManager sm(rootKey, _T("Software\\TightVNC\\Server\\"), sa);
+  RegistrySettingsManager sm(rootKey, RegistryPaths::SERVER_PATH, sa);
 
   isOk = load(&sm);
 
@@ -104,7 +116,7 @@ bool Configurator::save(bool forService)
   if (forService && m_regSA != 0) {
     sa = m_regSA->getServiceSA();
   }
-  RegistrySettingsManager sm(rootKey, _T("Software\\TightVNC\\Server\\"), sa);
+  RegistrySettingsManager sm(rootKey, RegistryPaths::SERVER_PATH, sa);
 
   isOk = save(&sm);
 
@@ -178,6 +190,10 @@ bool Configurator::savePortMappingContainer(SettingsManager *sm)
 {
   bool saveResult = true;
 
+  //
+  // Get port mappings from server config
+  //
+
   AutoLock l(&m_serverConfig);
 
   PortMappingContainer *portMappings = m_serverConfig.getPortMappingContainer();
@@ -185,6 +201,10 @@ bool Configurator::savePortMappingContainer(SettingsManager *sm)
   size_t count = portMappings->count();
   StringStorage portMappingsString;
   StringStorage portMappingString;
+
+  //
+  // Create string to serialize
+  //
 
   portMappingsString.setString(_T(""));
   for (size_t i = 0; i < count; i++) {
@@ -195,6 +215,10 @@ bool Configurator::savePortMappingContainer(SettingsManager *sm)
       portMappingsString.appendString(_T(","));
     }
   }
+
+  //
+  // Save port mappings
+  //
 
   if (!sm->setString(_T("ExtraPorts"), portMappingsString.getString())) {
     saveResult = false;
@@ -218,20 +242,20 @@ bool Configurator::loadPortMappingContainer(SettingsManager *sm,
   size_t count = 0;
 
   extraPorts.split(_T(","), NULL, &count);
-  StringStorage *chunks = new StringStorage[count];
-  extraPorts.split(_T(","), chunks, &count);
+  if (count != 0) {
+    std::vector<StringStorage> chunks(count);
+    extraPorts.split(_T(","), &chunks.front(), &count);
 
-  PortMapping mapping;
+    PortMapping mapping;
 
-  for (size_t i = 0; i < count; i++) {
-    if (PortMapping::parse(chunks[i].getString(), &mapping)) {
-      portMapping->pushBack(mapping);
-    } else {
-      wasError = true;
+    for (size_t i = 0; i < count; i++) {
+      if (PortMapping::parse(chunks[i].getString(), &mapping)) {
+        portMapping->pushBack(mapping);
+      } else {
+        wasError = true;
+      }
     }
   }
-
-  delete[] chunks;
 
   return !wasError;
 }
@@ -289,6 +313,10 @@ bool Configurator::saveInputHandlingConfig(SettingsManager *sm)
 bool Configurator::loadInputHandlingConfig(SettingsManager *sm, ServerConfig *config)
 {
   bool loadResult = true;
+
+  //
+  // Temporary variables
+  //
 
   bool boolVal = false;
   UINT uintVal = 0;
@@ -349,9 +377,18 @@ bool Configurator::loadVideoRegionConfig(SettingsManager *sm, ServerConfig *conf
 
   StringVector *videoClasses = m_serverConfig.getVideoClassNames();
 
+  // Lock configuration
   AutoLock al(&m_serverConfig);
 
+  //
+  // Delete old video classes entries
+  //
+
   videoClasses->clear();
+
+  //
+  // Try to load.
+  //
 
   StringStorage storage;
 
@@ -359,19 +396,23 @@ bool Configurator::loadVideoRegionConfig(SettingsManager *sm, ServerConfig *conf
     loadResult = false;
   }
 
+  //
+  // Split.
+  //
+
   size_t count = 0;
 
   storage.split(_T("\n"), NULL, &count);
-  StringStorage *chunks = new StringStorage[count];
-  storage.split(_T("\n"), chunks, &count);
+  if (count != 0) {
+    std::vector<StringStorage> chunks(count);
+    storage.split(_T("\n"), &chunks.front(), &count);
 
-  for (size_t i = 0; i < count; i++) {
-    if (!chunks[i].isEmpty()) {
-      videoClasses->push_back(chunks[i]);
+    for (size_t i = 0; i < count; i++) {
+      if (!chunks[i].isEmpty()) {
+        videoClasses->push_back(chunks[i]);
+      }
     }
   }
-
-  delete[] chunks;
 
   return loadResult;
 }
@@ -380,16 +421,25 @@ bool Configurator::saveIpAccessControlContainer(SettingsManager *storage)
 {
   AutoLock l(&m_serverConfig);
 
+  // Get rules container
   IpAccessControl *rules = m_serverConfig.getAccessControl();
+  // Remember rules count
   size_t rulesCount = rules->size();
+  // 1 rule can contain 34 character max
   size_t maxStringBufferLength = 34 * 2 * rulesCount;
+  // Buffer that we need to write to storage
   StringStorage buffer(_T(""));
+  // Variable to save temporary result from toString method
   StringStorage ruleString;
 
+  // Generate rules string
   for (size_t i = 0; i < rulesCount; i++) {
     IpAccessRule *rule = rules->at(i);
+    // Get rule as string
     rule->toString(&ruleString);
+    // Add it to result buffer
     buffer.appendString(ruleString.getString());
+    // Add delimiter if we need it
     if (i != rulesCount - 1)
       buffer.appendString(_T(","));
   }
@@ -405,14 +455,13 @@ Configurator::loadIpAccessControlContainer(SettingsManager *sm, IpAccessControl 
   bool wasError = false;
   rules->clear();
 
-  TCHAR *ipacStringBuffer;
   StringStorage storage;
   if (!sm->getString(_T("IpAccessControl"), &storage)) {
     return false;
   } else {
     size_t maxBufSize = storage.getLength() + 1;
-    ipacStringBuffer = new TCHAR[maxBufSize + 1];
-    _tcscpy_s(ipacStringBuffer, maxBufSize, storage.getString());
+    std::vector<TCHAR> ipacStringBuffer(maxBufSize + 1);
+    _tcscpy_s(&ipacStringBuffer.front(), maxBufSize, storage.getString());
     TCHAR *pch = _tcstok(&ipacStringBuffer[0], _T(","));
     while (pch != NULL) {
       if (IpAccessRule::parse(pch, NULL)) {
@@ -423,9 +472,8 @@ Configurator::loadIpAccessControlContainer(SettingsManager *sm, IpAccessControl 
         wasError = true;
       }
       pch = _tcstok(NULL, _T(","));
-    } 
-    delete[] ipacStringBuffer;
-  } 
+    } // while
+  } // else
   return !wasError;
 }
 
@@ -466,6 +514,9 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
     saveResult = false;
   }
   if (!sm->setBoolean(_T("RemoveWallpaper"), m_serverConfig.isRemovingDesktopWallpaperEnabled())) {
+    saveResult = false;
+  }
+  if (!sm->setBoolean(_T("UseMirrorDriver"), m_serverConfig.getMirrorIsAllowed())) {
     saveResult = false;
   }
   if (!sm->setBoolean(_T("EnableUrlParams"), m_serverConfig.isAppletParamInUrlEnabled())) {
@@ -537,6 +588,10 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
 bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
 {
   bool loadResult = true;
+
+  //
+  // Temporary variables
+  //
 
   bool boolVal;
   UINT uintVal;
@@ -611,6 +666,12 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.enableRemovingDesktopWallpaper(boolVal);
+  }
+  if (!sm->getBoolean(_T("UseMirrorDriver"), &boolVal)) {
+    loadResult = false;
+  } else {
+    m_isConfigLoadedPartly = true;
+    m_serverConfig.setMirrorAllowing(boolVal);
   }
   if (!sm->getBoolean(_T("EnableUrlParams"), &boolVal)) {
     loadResult = false;
@@ -697,5 +758,15 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
     m_isConfigLoadedPartly = true;
     m_serverConfig.setShowTrayIconFlag(boolVal);
   }
+  updateLogDirPath();
   return loadResult;
+}
+
+void Configurator::updateLogDirPath()
+{
+  StringStorage pathToLogDirectory;
+  TvnLogFilename::queryLogFileDirectory(m_isConfiguringService,
+    m_serverConfig.isSaveLogToAllUsersPathFlagEnabled(),
+    &pathToLogDirectory);
+  m_serverConfig.setLogFileDir(pathToLogDirectory.getString());
 }

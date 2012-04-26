@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,6 +30,9 @@ class Unicode
 public:
   static unsigned short SIGNATURE;
 
+  /**
+  @return returns true if application is built with unicode character set enabled.
+  */
   static bool isEnabled();
 };
 

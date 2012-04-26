@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,8 +33,11 @@ public:
   InputBlocker();
   virtual ~InputBlocker();
 
+  // This functions set/unset blocks on a local keyboard and mouse.
   virtual void setKeyboardBlocking(bool block) = 0;
   virtual void setMouseBlocking(bool block) = 0;
+  // This functions set/unset blocks on a local keyboard and mouse on the
+  // timeInterval interval from a last software event generation.
   virtual void setSoftKeyboardBlocking(bool block, unsigned int timeInterval) = 0;
   virtual void setSoftMouseBlocking(bool block, unsigned int timeInterval) = 0;
 
@@ -44,4 +47,4 @@ public:
   virtual bool isRemoteInputAllowed() = 0;
 };
 
-#endif 
+#endif // __INPUTBLOCKER_H__

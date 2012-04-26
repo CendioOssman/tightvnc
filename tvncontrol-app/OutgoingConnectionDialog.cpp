@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "util/winhdr.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include "win-system/Registry.h"
 
@@ -32,16 +33,15 @@
 
 OutgoingConnectionDialog::OutgoingConnectionDialog()
 : BaseDialog(IDD_OUTGOING_CONN),
-  m_connHistoryKey(new RegistryKey(Registry::getCurrentUserKey(),
-                   _T("Software\\TightVNC\\Control\\ReverseConnectionHistory"),
-                   true)),
-  m_connHistory(m_connHistoryKey, 16)
+  m_connHistoryKey(Registry::getCurrentUserKey(),
+                   RegistryPaths::SERVER_REVERSE_CONN_HISTORY_PATH,
+                   true),
+  m_connHistory(&m_connHistoryKey, 16)
 {
 }
 
 OutgoingConnectionDialog::~OutgoingConnectionDialog()
 {
-  delete m_connHistoryKey;
 }
 
 const TCHAR *OutgoingConnectionDialog::getConnectString() const
@@ -67,6 +67,8 @@ BOOL OutgoingConnectionDialog::onInitDialog()
   initControls();
 
   m_viewOnlyCB.check(false);
+
+  // Load connection history.
 
   m_connHistory.load();
 
@@ -108,6 +110,8 @@ void OutgoingConnectionDialog::onOkButtonClick()
   m_connectStringCB.getText(&m_connectString);
 
   m_isViewOnly = m_viewOnlyCB.isChecked();
+
+  // Modify connection history.
 
   m_connHistory.addHost(m_connectString.getString());
   m_connHistory.save();

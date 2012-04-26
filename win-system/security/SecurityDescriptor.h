@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,19 +29,52 @@
 #include "win-system/SystemException.h"
 #include <AccCtrl.h>
 
+/**
+ * Contains the security information associated with an object.
+ */
 class SecurityDescriptor {
 public:
+  /**
+   * Creates new security descriptor.
+   * @remark created security descriptor have no system access control list (SACL),
+   * no discretionary access control list (DACL), no owner, no primary group,
+   * and all control flags set to FALSE (NULL). Thus, except for its revision level, it is empty
+   */
   SecurityDescriptor();
   virtual ~SecurityDescriptor();
 
-  void setRulesAsDacl(size_t count, EXPLICIT_ACCESS *rules) throw(SystemException);
+  /**
+   * Sets rules list for security descriptor.
+   * It creates dalc from specified rules and link created dalc with security
+   * descriptor using setUserDacl method.
+   * @param count count of rules in rules array.
+   * @param rules rules array.
+   * @throws SystemException on fail.
+   */
+  void setRulesAsDacl(size_t count,
+                      EXPLICIT_ACCESS *rules) throw(SystemException);
 
+  /**
+   * Sets information in a discretionary access control list (DACL).
+   * Built-in DACL value in acl param cannot be passed.
+   * @param acl access control list.
+   * @throws SystemException on fail.
+   */
   void setUserDacl(ACL *acl) throw(SystemException);
 
+  /**
+  Marks the security descriptor as having no owner.
+  */
   void clearOwner();
 
+  /**
+   * Determines whether the components of a security descriptor are valid.
+   */
   bool isValid();
 
+  /**
+   Returns pointer to WinAPI security descriptor.
+   */
   SECURITY_DESCRIPTOR *getSD();
 
 private:

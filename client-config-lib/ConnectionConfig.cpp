@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,20 +31,15 @@
 #define TEST_FAIL(C,R) if (!C) { R = false; }
 
 ConnectionConfig::ConnectionConfig()
-: m_restricted(false), m_swapMouse(false), m_viewOnly(false),
-  m_useFullscreen(false), m_use8BitColor(false), m_preferredEncoding(7),
+: m_swapMouse(false), m_viewOnly(false),
+  m_useFullscreen(false), m_use8BitColor(false), m_preferredEncoding(EncodingDefs::TIGHT),
   m_requestSharedSession(true), m_deiconifyOnRemoteBell(false),
   m_isClipboardEnabled(true),
   m_customCompressionLevel(-1), m_jpegCompressionLevel(6),
-  m_emulate3Buttons(true), m_emulate3ButtonsTimeout(100),
-  m_emulate3ButtonsFuzz(4), m_fitWindow(false), m_requestShapeUpdates(true),
+  m_fitWindow(false), m_requestShapeUpdates(true),
   m_ignoreShapeUpdates(false), m_scaleNumerator(1), m_scaleDenominator(1),
-  m_localCursor(DOT_CURSOR)
+  m_localCursor(DOT_CURSOR), m_allowedCopyRect(true)
 {
-  for (int i = FIRST_ENCODING; i<= LAST_ENCODING; i++) {
-    m_allowedEncodings[i] = true;
-  }
-  m_allowedEncodings[3] = false;
 }
 
 ConnectionConfig::~ConnectionConfig()
@@ -53,81 +48,84 @@ ConnectionConfig::~ConnectionConfig()
 
 ConnectionConfig& ConnectionConfig::operator=(ConnectionConfig& other)
 {
-  AutoLock lockThis(&m_cs);
-  AutoLock lockOther(&other.m_cs);
+  bool allowedCopyRect;
+  unsigned char preferredEncoding;
+  bool use8BitColor;
+  int customCompressionLevel;
+  int jpegCompressionLevel;
+  bool viewOnly;
+  bool isClipboardEnabled;
+  bool useFullscreen;
+  bool deiconifyOnRemoteBell;
+  int scaleNumerator;
+  int scaleDenominator;
+  bool swapMouse;
+  bool requestSharedSession;
+  bool fitWindow;
+  bool requestShapeUpdates;
+  bool ignoreShapeUpdates;
+  int localCursor;
 
-  for (int i = FIRST_ENCODING; i <= LAST_ENCODING; i++) {
-    m_allowedEncodings[i] = other.m_allowedEncodings[i];
+  {
+    AutoLock lockOther(&other.m_cs);
+    allowedCopyRect = other.m_allowedCopyRect;
+    preferredEncoding = other.m_preferredEncoding;
+    use8BitColor = other.m_use8BitColor;
+    customCompressionLevel = other.m_customCompressionLevel;
+    jpegCompressionLevel = other.m_jpegCompressionLevel;
+    viewOnly = other.m_viewOnly;
+    isClipboardEnabled = other.m_isClipboardEnabled;
+    useFullscreen = other.m_useFullscreen;
+    deiconifyOnRemoteBell = other.m_deiconifyOnRemoteBell;
+    scaleNumerator = other.m_scaleNumerator;
+    scaleDenominator = other.m_scaleDenominator;
+    swapMouse = other.m_swapMouse;
+    requestSharedSession = other.m_requestSharedSession;
+    fitWindow = other.m_fitWindow;
+    requestShapeUpdates = other.m_requestShapeUpdates;
+    ignoreShapeUpdates = other.m_ignoreShapeUpdates;
+    localCursor = other.m_localCursor;
   }
 
-  m_preferredEncoding = other.m_preferredEncoding;
-  m_use8BitColor = other.m_use8BitColor;
-  m_customCompressionLevel = other.m_customCompressionLevel;
-  m_jpegCompressionLevel = other.m_jpegCompressionLevel;
-  m_viewOnly = other.m_viewOnly;
-  m_isClipboardEnabled = other.m_isClipboardEnabled;
-  m_useFullscreen = other.m_useFullscreen;
-  m_deiconifyOnRemoteBell = other.m_deiconifyOnRemoteBell;
-  m_scaleNumerator = other.m_scaleNumerator;
-  m_scaleDenominator = other.m_scaleDenominator;
-  m_swapMouse = other.m_swapMouse;
-  m_emulate3Buttons = other.m_emulate3Buttons;
-  m_emulate3ButtonsTimeout = other.m_emulate3ButtonsTimeout;
-  m_emulate3ButtonsFuzz = other.m_emulate3ButtonsFuzz;
-  m_requestSharedSession = other.m_requestSharedSession;
-  m_restricted = other.m_restricted;
-  m_fitWindow = other.m_fitWindow;
-  m_requestShapeUpdates = other.m_requestShapeUpdates;
-  m_ignoreShapeUpdates = other.m_ignoreShapeUpdates;
-  m_localCursor = other.m_localCursor;
-
+  {
+    AutoLock lockThis(&m_cs);
+    m_allowedCopyRect = allowedCopyRect;
+    m_preferredEncoding = preferredEncoding;
+    m_use8BitColor = use8BitColor;
+    m_customCompressionLevel = customCompressionLevel;
+    m_jpegCompressionLevel = jpegCompressionLevel;
+    m_viewOnly = viewOnly;
+    m_isClipboardEnabled = isClipboardEnabled;
+    m_useFullscreen = useFullscreen;
+    m_deiconifyOnRemoteBell = deiconifyOnRemoteBell;
+    m_scaleNumerator = scaleNumerator;
+    m_scaleDenominator = scaleDenominator;
+    m_swapMouse = swapMouse;
+    m_requestSharedSession = requestSharedSession;
+    m_fitWindow = fitWindow;
+    m_requestShapeUpdates = requestShapeUpdates;
+    m_ignoreShapeUpdates = ignoreShapeUpdates;
+    m_localCursor = localCursor;
+  }
   return *this;
 }
 
-void ConnectionConfig::allowEncoding(int enc, bool allow)
+void ConnectionConfig::allowCopyRect(bool allow)
 {
-  if (enc < FIRST_ENCODING || enc > LAST_ENCODING) {
-    _ASSERT(FALSE);
-    return ;
-  }
-
-  {
-    AutoLock l(&m_cs);
-    m_allowedEncodings[enc] = allow;
-  }
+  AutoLock l(&m_cs);
+  m_allowedCopyRect = allow;
 }
 
-bool ConnectionConfig::isEncodingAllowed(int enc)
+bool ConnectionConfig::isCopyRectAllowed()
 {
-  if (enc < FIRST_ENCODING || enc > LAST_ENCODING) {
-    return false;
-  }
-
-  {
-    AutoLock l(&m_cs);
-    return m_allowedEncodings[enc];
-  }
+  AutoLock l(&m_cs);
+  return m_allowedCopyRect;
 }
 
 void ConnectionConfig::setPreferredEncoding(int encoding)
 {
   AutoLock l(&m_cs);
-
-  switch (encoding) {
-  case rfbEncodingRaw:
-  case rfbEncodingCopyRect:
-  case rfbEncodingRRE:
-  case rfbEncodingCoRRE:
-  case rfbEncodingHextile:
-  case rfbEncodingZlib:
-  case rfbEncodingTight:
-  case rfbEncodingZlibHex:
-  case rfbEncodingZRLE:
-    m_preferredEncoding = encoding;
-    break;
-  default:
-    _ASSERT(FALSE);
-  } 
+  m_preferredEncoding = encoding;
 }
 
 int ConnectionConfig::getPreferredEncoding()
@@ -150,13 +148,12 @@ bool ConnectionConfig::isUsing8BitColor()
 
 void ConnectionConfig::setCustomCompressionLevel(int level)
 {
-  if (level < 1) {
-    if (level != -1) {
-      level = 1;
-    }
-  } else if (level > 9) {
+  // level in interval [0..9]
+  // if compression is disable, then level is -1.
+  if (level < -1)
+    level = 0;
+  if (level > 9)
     level = 9;
-  }
 
   {
     AutoLock l(&m_cs);
@@ -166,13 +163,12 @@ void ConnectionConfig::setCustomCompressionLevel(int level)
 
 void ConnectionConfig::setJpegCompressionLevel(int level)
 {
-  if (level < 1) {
-    if (level != -1) {
-      level = 1;
-    }
-  } else if (level > 9) {
+  // level in interval [0..9]
+  // if jpeg compression is disable, then level is -1.
+  if (level < -1)
+      level = 0;
+  if (level > 9)
     level = 9;
-  }
 
   {
     AutoLock l(&m_cs);
@@ -260,12 +256,6 @@ bool ConnectionConfig::isDeiconifyOnRemoteBellEnabled()
   return m_deiconifyOnRemoteBell;
 }
 
-bool ConnectionConfig::scalingActive()
-{
-  AutoLock l(&m_cs);
-  return (m_scaleNumerator != m_scaleDenominator);
-}
-
 int ConnectionConfig::getScaleNumerator()
 {
   AutoLock l(&m_cs);
@@ -284,15 +274,15 @@ void ConnectionConfig::setScale(int n, int d)
     n = d = 1;
   }
 
+  if ((n * 100.0) / d > 400) {
+    n = 400;
+    d = 100;
+  }
+
   int g = gcd(n, d);
 
   n /= g;
   d /= g;
-
-  if ((n * 100) / d > 150) {
-    n = 150;
-    d = 100;
-  }
 
   {
     AutoLock l(&m_cs);
@@ -313,54 +303,6 @@ bool ConnectionConfig::isMouseSwapEnabled()
   return m_swapMouse;
 }
 
-void ConnectionConfig::emulate3Buttons(bool enabled)
-{
-  AutoLock l(&m_cs);
-  m_emulate3Buttons = enabled;
-}
-
-bool ConnectionConfig::isEmulate3ButtonsEnabled()
-{
-  AutoLock l(&m_cs);
-  return m_emulate3Buttons;
-}
-
-void ConnectionConfig::setEmulate3ButtonsTimeout(int millis)
-{
-  if (millis < 0) {
-    millis = 0;
-  }
-
-  {
-    AutoLock l(&m_cs);
-    m_emulate3ButtonsTimeout = millis;
-  }
-}
-
-int ConnectionConfig::getEmulate3ButtonsTimeout()
-{
-  AutoLock l(&m_cs);
-  return m_emulate3ButtonsTimeout;
-}
-
-void ConnectionConfig::setEmulate3ButtonsFuzz(int sec)
-{
-  if (sec < 0) {
-    sec = 0;
-  }
-
-  {
-    AutoLock l(&m_cs);
-    m_emulate3ButtonsFuzz = sec;
-  }
-}
-
-int ConnectionConfig::getEmulate3ButtonsFuzz()
-{
-  AutoLock l(&m_cs);
-  return m_emulate3ButtonsFuzz;
-}
-
 void ConnectionConfig::setSharedFlag(bool shared)
 {
   AutoLock l(&m_cs);
@@ -371,18 +313,6 @@ bool ConnectionConfig::getSharedFlag()
 {
   AutoLock l(&m_cs);
   return m_requestSharedSession;
-}
-
-void ConnectionConfig::setRestricted(bool restricted)
-{
-  AutoLock l(&m_cs);
-  m_restricted = restricted;
-}
-
-bool ConnectionConfig::isRestricted()
-{
-  AutoLock l(&m_cs);
-  return m_restricted;
 }
 
 void ConnectionConfig::fitWindow(bool enabled)
@@ -432,7 +362,7 @@ void ConnectionConfig::setLocalCursorShape(int cursorShape)
   default:
     cursorShape = DOT_CURSOR;
     _ASSERT(FALSE);
-  } 
+  } // switch
 
   {
     AutoLock l(&m_cs);
@@ -452,21 +382,16 @@ bool ConnectionConfig::saveToStorage(SettingsManager *sm)
 
   bool saveAllOk = true;
 
-  StringStorage useEncEntryName;
-  for (int i = FIRST_ENCODING; i <= LAST_ENCODING; i++) {
-    useEncEntryName.format(_T("use_encoding_%d"), i);
-    TEST_FAIL(sm->setBoolean(useEncEntryName.getString(), m_allowedEncodings[i]), saveAllOk);
-  }
-
+  // option "use_encoding_1" have need for compatible with old-vnc files
+  TEST_FAIL(sm->setBoolean(_T("use_encoding_1"),   m_allowedCopyRect), saveAllOk);
+  TEST_FAIL(sm->setBoolean(_T("copyrect"),         m_allowedCopyRect), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("viewonly"),         m_viewOnly), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("fullscreen"),       m_useFullscreen), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("8bit"),             m_use8BitColor), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("shared"),           m_requestSharedSession), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("belldeiconify"),    m_deiconifyOnRemoteBell), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("disableclipboard"), !m_isClipboardEnabled), saveAllOk);
-  TEST_FAIL(sm->setBoolean(_T("restricted"),       m_restricted), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("swapmouse"),        m_swapMouse), saveAllOk);
-  TEST_FAIL(sm->setBoolean(_T("emulate3"),         m_emulate3Buttons), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("fitwindow"),        m_fitWindow), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("cursorshape"),      m_requestShapeUpdates), saveAllOk);
   TEST_FAIL(sm->setBoolean(_T("noremotecursor"),   m_ignoreShapeUpdates), saveAllOk);
@@ -474,8 +399,6 @@ bool ConnectionConfig::saveToStorage(SettingsManager *sm)
   TEST_FAIL(sm->setByte(_T("preferred_encoding"),  m_preferredEncoding), saveAllOk);
   TEST_FAIL(sm->setInt(_T("compresslevel"),        m_customCompressionLevel), saveAllOk);
   TEST_FAIL(sm->setInt(_T("quality"),              m_jpegCompressionLevel), saveAllOk);
-  TEST_FAIL(sm->setInt(_T("emulate3timeout"),      m_emulate3ButtonsTimeout), saveAllOk);
-  TEST_FAIL(sm->setInt(_T("emulate3fuzz"),         m_emulate3ButtonsFuzz), saveAllOk);
   TEST_FAIL(sm->setInt(_T("localcursor"),          m_localCursor), saveAllOk);
   TEST_FAIL(sm->setInt(_T("scale_den"),            m_scaleDenominator), saveAllOk);
   TEST_FAIL(sm->setInt(_T("scale_num"),            m_scaleNumerator), saveAllOk);
@@ -491,12 +414,10 @@ bool ConnectionConfig::loadFromStorage(SettingsManager *sm)
 
   bool loadAllOk = true;
 
-  StringStorage useEncEntryName;
-  for (int i = FIRST_ENCODING; i <= LAST_ENCODING; i++) {
-    useEncEntryName.format(_T("use_encoding_%d"), i);
-    TEST_FAIL(sm->getBoolean(useEncEntryName.getString(), &m_allowedEncodings[i]), loadAllOk);
-  }
 
+  // option "use_encoding_1" have need for compatible with old-vnc files
+  TEST_FAIL(sm->getBoolean(_T("use_encoding_1"),   &m_allowedCopyRect), loadAllOk);
+  TEST_FAIL(sm->getBoolean(_T("copyrect"),         &m_allowedCopyRect), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("viewonly"),         &m_viewOnly), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("fullscreen"),       &m_useFullscreen), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("8bit"),             &m_use8BitColor), loadAllOk);
@@ -509,9 +430,7 @@ bool ConnectionConfig::loadFromStorage(SettingsManager *sm)
     loadAllOk = false;
   }
 
-  TEST_FAIL(sm->getBoolean(_T("restricted"),       &m_restricted), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("swapmouse"),        &m_swapMouse), loadAllOk);
-  TEST_FAIL(sm->getBoolean(_T("emulate3"),         &m_emulate3Buttons), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("fitwindow"),        &m_fitWindow), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("cursorshape"),      &m_requestShapeUpdates), loadAllOk);
   TEST_FAIL(sm->getBoolean(_T("noremotecursor"),   &m_ignoreShapeUpdates), loadAllOk);
@@ -520,8 +439,6 @@ bool ConnectionConfig::loadFromStorage(SettingsManager *sm)
 
   TEST_FAIL(sm->getInt(_T("compresslevel"),        &m_customCompressionLevel), loadAllOk);
   TEST_FAIL(sm->getInt(_T("quality"),              &m_jpegCompressionLevel), loadAllOk);
-  TEST_FAIL(sm->getInt(_T("emulate3timeout"),      &m_emulate3ButtonsTimeout), loadAllOk);
-  TEST_FAIL(sm->getInt(_T("emulate3fuzz"),         &m_emulate3ButtonsFuzz), loadAllOk);
   TEST_FAIL(sm->getInt(_T("localcursor"),          &m_localCursor), loadAllOk);
   TEST_FAIL(sm->getInt(_T("scale_den"),            &m_scaleDenominator), loadAllOk);
   TEST_FAIL(sm->getInt(_T("scale_num"),            &m_scaleNumerator), loadAllOk);
@@ -531,7 +448,8 @@ bool ConnectionConfig::loadFromStorage(SettingsManager *sm)
   return loadAllOk;
 }
 
-int ConnectionConfig::gcd(int a, int b)
+// Greatest common denominator, by Euclid
+int ConnectionConfig::gcd(int a, int b) const
 {
   if (a < b) {
     return gcd(b, a);

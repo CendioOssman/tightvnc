@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,14 +25,18 @@
 #include "ControlPipeName.h"
 
 #include "util/winhdr.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include "win-system/WTS.h"
 
 void ControlPipeName::createPipeName(bool forService, StringStorage *pipeName)
 {
   if (forService) {
-    pipeName->setString(_T("TightVNC_Service_Control"));
+    pipeName->setString(
+      ServerApplicationNames::FOR_SERVICE_CONTROL_APP_PIPE_NAME);
   } else {
-    pipeName->format(_T("TightVNC_Application_Session_%d_Control"), WTS::getActiveConsoleSessionId());
+    pipeName->format(_T("%s_On_Session_%d"),
+      ServerApplicationNames::FOR_APP_CONTROL_APP_SERVICE_PIPE_NAME,
+      WTS::getActiveConsoleSessionId());
   }
 }

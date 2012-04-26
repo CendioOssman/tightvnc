@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,17 +26,19 @@
 #define __UPDATEFILTER_H__
 
 #include "WindowsScreenGrabber.h"
+#include "ScreenDriver.h"
 #include "rfb/FrameBuffer.h"
 #include "thread/LocalMutex.h"
 #include "UpdateContainer.h"
+#include "GrabOptimizator.h"
 
 class UpdateFilter
 {
 public:
-  UpdateFilter(ScreenGrabber *screenGrabber,
+  UpdateFilter(ScreenDriver *screenDriver,
                FrameBuffer *frameBuffer,
                LocalMutex *frameBufferCriticalSection);
-  ~UpdateFilter(void);
+  ~UpdateFilter();
 
   void filter(UpdateContainer *updateContainer);
 
@@ -45,9 +47,16 @@ private:
   void updateChangedRect(Region *rgn, const Rect *rect);
   void updateChangedSubRect(Region *rgn, const Rect *rect);
 
-  ScreenGrabber *m_screenGrabber;
+  // This function update the screen grabber frame buffer.
+  // If success the function returns the true.
+  // Also, this function researching an optimal way to grab from
+  // the whole screen grabbing or 
+  bool grab();
+
+  ScreenDriver *m_screenDriver;
   FrameBuffer *m_frameBuffer;
   LocalMutex *m_fbMutex;
+  GrabOptimizator m_grabOptimizator;
 };
 
-#endif 
+#endif // __UPDATEFILTER_H__

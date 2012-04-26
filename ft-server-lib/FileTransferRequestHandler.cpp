@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,9 +28,6 @@
 
 #include "ft-common/FileTransferException.h"
 #include "io-lib/ByteArrayOutputStream.h"
-#include "file-lib/FileOutputStream.h"
-#include "file-lib/FileInputStream.h"
-#include "file-lib/FileSeeker.h"
 #include "file-lib/File.h"
 #include "file-lib/EOFException.h"
 #include "ft-common/FolderListener.h"
@@ -49,7 +46,7 @@
 
 FileTransferRequestHandler::FileTransferRequestHandler(RfbCodeRegistrator *registrator,
                                                        RfbOutputGate *output,
-                                                       WinDesktop *desktop,
+                                                       DesktopInterface *desktop,
                                                        bool enabled)
 : m_downloadFile(NULL), m_fileInputStream(NULL),
   m_uploadFile(NULL), m_fileOutputStream(NULL),
@@ -104,7 +101,7 @@ FileTransferRequestHandler::FileTransferRequestHandler(RfbCodeRegistrator *regis
     FTMessage::DIRSIZE_REQUEST
   };
 
-  for (size_t i = 0; i < 12; i++) {
+  for (size_t i = 0; i < sizeof(rfbMessagesToProcess) / sizeof(UINT32); i++) {
     registrator->regCode(rfbMessagesToProcess[i], this);
   }
 
@@ -175,10 +172,10 @@ void FileTransferRequestHandler::onRequest(UINT32 reqCode, RfbInputGate *backGat
     case FTMessage::MD5_REQUEST:
       md5Requested();
       break;
-    } 
+    } // switch.
   } catch (Exception &someEx) {
     lastRequestFailed(someEx.getMessage());
-  } 
+  } // try / catch.
 
   m_input = NULL;
 
@@ -193,6 +190,11 @@ bool FileTransferRequestHandler::isFileTransferEnabled()
 void FileTransferRequestHandler::compressionSupportRequested()
 {
   Log::message(_T("%s"), _T("compression support requested"));
+
+  //
+  // Can be 0 - compression not supported by server
+  //     or 1 - compression is supported by server
+  //
 
   UINT8 compressionSupport = 1;
 
@@ -213,6 +215,10 @@ void FileTransferRequestHandler::fileListRequested()
   UINT8 requestedCompressionLevel;
   WinFilePath fullPathName;
 
+  //
+  // Read input data
+  //
+
   {
     requestedCompressionLevel = m_input->readUInt8();
 
@@ -231,6 +237,10 @@ void FileTransferRequestHandler::fileListRequested()
   UINT32 filesInfoDataSize = 0;
   const FileInfo *files = NULL;
 
+  //
+  // Get file list from specified folder
+  //
+
   FolderListener folderListener(fullPathName.getString());
 
   if (!folderListener.list()) {
@@ -239,6 +249,10 @@ void FileTransferRequestHandler::fileListRequested()
 
   files = folderListener.getFilesInfo();
   filesCount = folderListener.getFilesCount();
+
+  //
+  // Create buffer with "CompressedData" block inside
+  //
 
   ByteArrayOutputStream memStream;
   DataOutputStream outMemStream(&memStream);
@@ -249,17 +263,27 @@ void FileTransferRequestHandler::fileListRequested()
     outMemStream.writeUInt64(files[i].lastModified());
     outMemStream.writeUInt16(files[i].getFlags());
     outMemStream.writeUTF8(files[i].getFileName());
-  } 
+  } // for
 
-  uncompressedSize = memStream.size();
+  _ASSERT((UINT32)memStream.size() == memStream.size());
+  uncompressedSize = (UINT32)memStream.size();
+
+  //
+  // Buffer for data in "CompressedData" block
+  //
 
   compressedSize = uncompressedSize;
 
   if (compressionLevel != 0) {
     m_deflater.setInput(memStream.toByteArray(), memStream.size());
     m_deflater.deflate();
-    compressedSize = m_deflater.getOutputSize();
+    _ASSERT((UINT32)m_deflater.getOutputSize() == m_deflater.getOutputSize());
+    compressedSize = (UINT32)m_deflater.getOutputSize();
   }
+
+  //
+  // Write data to socket
+  //
 
   {
     AutoLock l(m_output);
@@ -277,8 +301,8 @@ void FileTransferRequestHandler::fileListRequested()
     }
 
     m_output->flush();
-  } 
-} 
+  } // synchronized(m_output)
+} // void
 
 void FileTransferRequestHandler::mkDirRequested()
 {
@@ -286,7 +310,7 @@ void FileTransferRequestHandler::mkDirRequested()
 
   {
     m_input->readUTF8(&folderPath);
-  } 
+  } // end of reading block.
 
   Log::message(_T("mkdir \"%s\" command requested"), folderPath.getString());
 
@@ -321,7 +345,7 @@ void FileTransferRequestHandler::rmFileRequested()
 
   {
     m_input->readUTF8(&fullPathName);
-  } 
+  } // end of reading block.
 
   Log::message(_T("rm \"%s\" command requested"), fullPathName.getString());
 
@@ -331,11 +355,11 @@ void FileTransferRequestHandler::rmFileRequested()
 
   if (!file.exists()) {
     throw SystemException();
-  } 
+  } // file file does not exists
 
   if (!file.remove()) {
     throw SystemException();
-  } 
+  } // if cannot delete file
 
   {
     AutoLock l(m_output);
@@ -344,7 +368,7 @@ void FileTransferRequestHandler::rmFileRequested()
 
     m_output->flush();
   }
-} 
+} // void
 
 void FileTransferRequestHandler::mvFileRequested()
 {
@@ -354,7 +378,7 @@ void FileTransferRequestHandler::mvFileRequested()
   {
     m_input->readUTF8(&oldFileName);
     m_input->readUTF8(&newFileName);
-  } 
+  } // end of reading block.
 
   Log::message(_T("move \"%s\" \"%s\" command requested"), oldFileName.getString(), newFileName.getString());
 
@@ -382,7 +406,7 @@ void FileTransferRequestHandler::dirSizeRequested()
 
   {
     m_input->readUTF8(&fullPathName);
-  } 
+  } // end of reading block.
 
   Log::message(_T("Size of folder '%s\' requested"),
                fullPathName.getString());
@@ -403,7 +427,7 @@ void FileTransferRequestHandler::dirSizeRequested()
 
     m_output->flush();
   }
-} 
+} // void
 
 void FileTransferRequestHandler::md5Requested()
 {
@@ -417,39 +441,42 @@ void FileTransferRequestHandler::md5Requested()
 
     offset = m_input->readUInt64();
     dataLen = m_input->readUInt64();
-  } 
+  } // end of reading block.
 
   Log::message(_T("md5 \"%s\" %d %d command requested"), fullPathName.getString(), offset, dataLen);
 
   checkAccess();
 
+  //
+  // Action
+  //
+
   MD5 md5calculator;
 
   File file(fullPathName.getString());
 
-  UINT8 *buffer = NULL;
+  StringStorage path;
+  file.getPath(&path);
+  WinFileChannel fileInputStream(path.getString(), F_READ, FM_OPEN);
+  fileInputStream.seek(offset);
 
-  FileInputStream fileInputStream(&file);
-
-  FileSeeker fs(fileInputStream.getFD());
-
-  if (!fs.seek(offset)) {
-    throw SystemException();
-  }
+  //
+  // Begin reading needed file data
+  //
 
   DWORD bytesToRead = 1024 * 1024;
   UINT64 bytesToReadTotal = dataLen;
-  DWORD bytesRead = 0;
+  size_t bytesRead = 0;
   UINT64 bytesReadTotal = 0;
 
   if (dataLen < (UINT64)bytesToRead) {
     bytesToRead = (DWORD)dataLen;
   }
 
-  buffer = new UINT8[bytesToRead];
+  std::vector<UINT8> buffer(bytesToRead);
 
   while (bytesToReadTotal > 0) {
-    bytesRead = fileInputStream.read(buffer, bytesToRead);
+    bytesRead = fileInputStream.read(&buffer.front(), bytesToRead);
     bytesReadTotal += bytesRead;
     bytesToReadTotal -= bytesRead;
 
@@ -457,12 +484,10 @@ void FileTransferRequestHandler::md5Requested()
       bytesToRead = (DWORD)bytesToReadTotal;
     }
 
-    md5calculator.update(buffer, (UINT32)bytesRead);
-  } 
+    md5calculator.update(&buffer.front(), (UINT32)bytesRead);
+  } // while
 
   md5calculator.finalize();
-
-  delete[] buffer;
 
   {
     AutoLock l(m_output);
@@ -476,6 +501,9 @@ void FileTransferRequestHandler::md5Requested()
 
 void FileTransferRequestHandler::uploadStartRequested()
 {
+  //
+  // Request input variables.
+  //
 
   WinFilePath fullPathName;
   UINT8 uploadFlags;
@@ -491,11 +519,17 @@ void FileTransferRequestHandler::uploadStartRequested()
 
   checkAccess();
 
+  //
+  // Closing previous upload if it was broken
+  //
+
   if (m_fileOutputStream != NULL) {
     delete m_fileOutputStream;
+    m_fileOutputStream = 0;
   }
   if (m_uploadFile != NULL) {
     delete m_uploadFile;
+    m_uploadFile = 0;
   }
 
   if (fullPathName.parentPathIsRoot()) {
@@ -504,15 +538,25 @@ void FileTransferRequestHandler::uploadStartRequested()
 
   m_uploadFile = new File(fullPathName.getString());
 
+  //
+  // Trying to create file or overwrite existing
+  //
+
   if ((uploadFlags & 0x1) && (!m_uploadFile->truncate())) {
     throw SystemException();
   }
 
-  m_fileOutputStream = new FileOutputStream(m_uploadFile);
+  //
+  // Trying to open file and seek to initial file position
+  //
+  m_fileOutputStream = new WinFileChannel(fullPathName.getString(),
+                                          F_WRITE,
+                                          FM_OPEN);
+  m_fileOutputStream->seek(initialOffset);
 
-  FileSeeker seeker(m_fileOutputStream->getFD());
-
-  seeker.seek(initialOffset);
+  //
+  // Send reply
+  //
 
   {
     AutoLock l(m_output);
@@ -521,53 +565,44 @@ void FileTransferRequestHandler::uploadStartRequested()
 
     m_output->flush();
   }
-} 
+} // void
 
 void FileTransferRequestHandler::uploadDataRequested()
 {
+  //
+  // Request input variables.
+  //
 
   UINT8 compressionLevel;
   UINT32 compressedSize;
   UINT32 uncompressedSize;
-  UINT8 *buffer = NULL;
 
-  {
-    compressionLevel = m_input->readUInt8();
-    compressedSize = m_input->readUInt32();
-    uncompressedSize = m_input->readUInt32();
-    buffer = new UINT8[compressedSize];
-    m_input->readFully((char *)buffer, compressedSize);
-  } 
+  compressionLevel = m_input->readUInt8();
+  compressedSize = m_input->readUInt32();
+  uncompressedSize = m_input->readUInt32();
+  std::vector<char> buffer(compressedSize);
+  m_input->readFully(&buffer.front(), compressedSize);
 
   Log::info(_T("upload data (cs = %d, us = %d) requested"), compressedSize, uncompressedSize);
 
-  try {
-    checkAccess();
+  checkAccess();
 
-    if (m_uploadFile == NULL) {
-      throw FileTransferException(_T("No active upload at the moment"));
-    }
+  if (m_uploadFile == NULL) {
+    throw FileTransferException(_T("No active upload at the moment"));
+  }
 
-    if (compressionLevel == 0) {
-      DataOutputStream dataOutStream(m_fileOutputStream);
-      dataOutStream.writeFully(buffer, uncompressedSize);
-    } else {
-      m_inflater.setInput((const char *)buffer, compressedSize);
-      m_inflater.setUnpackedSize(uncompressedSize);
-      m_inflater.inflate();
+  if (compressionLevel == 0) {
+    DataOutputStream dataOutStream(m_fileOutputStream);
+    dataOutStream.writeFully(&buffer.front(), uncompressedSize);
+  } else {
+    m_inflater.setInput(&buffer.front(), compressedSize);
+    m_inflater.setUnpackedSize(uncompressedSize);
+    m_inflater.inflate();
 
-      DataOutputStream dataOutStream(m_fileOutputStream);
+    DataOutputStream dataOutStream(m_fileOutputStream);
 
-      dataOutStream.writeFully(m_inflater.getOutput(), m_inflater.getOutputSize());
-    } 
-  } catch (Exception &someEx) {
-
-    delete[] buffer;
-
-    throw someEx;
-  } 
-
-  delete[] buffer;
+    dataOutStream.writeFully(m_inflater.getOutput(), m_inflater.getOutputSize());
+  } // if using compression
 
   {
     AutoLock l(m_output);
@@ -586,23 +621,40 @@ void FileTransferRequestHandler::uploadEndRequested()
   {
     fileFlags = m_input->readUInt16();
     modificationTime = m_input->readUInt64();
-  } 
+  } // end of reading block.
 
   Log::message(_T("%s"), _T("end of upload requested\n"));
 
   checkAccess();
 
+  //
+  // No active uploads at the moment.
+  // Client is "bad" if send to us this message
+  //
+
   if (m_uploadFile == NULL) {
     throw FileTransferException(_T("No active upload at the moment"));
   }
+
+  //
+  // Close file output stream
+  //
 
   try {
     m_fileOutputStream->close();
   } catch (...) { }
 
+  //
+  // Trying to set modification time
+  //
+
   if (!m_uploadFile->setLastModified(modificationTime)) {
     throw FileTransferException(_T("Cannot change last write file time"));
-  } 
+  } // if cannot set modification time
+
+  //
+  // Send reply
+  //
 
   {
     AutoLock l(m_output);
@@ -611,6 +663,10 @@ void FileTransferRequestHandler::uploadEndRequested()
 
     m_output->flush();
   }
+
+  //
+  // Cleanup
+  //
 
   if (m_fileOutputStream != NULL) {
     delete m_fileOutputStream;
@@ -622,40 +678,50 @@ void FileTransferRequestHandler::uploadEndRequested()
     m_uploadFile = NULL;
   }
 
-} 
+} // void
 
 void FileTransferRequestHandler::downloadStartRequested()
 {
   WinFilePath fullPathName;
   UINT64 initialOffset;
 
+  //
+  // Reading command arguments
+  //
+
   {
     m_input->readUTF8(&fullPathName);
     initialOffset = m_input->readUInt64();
-  } 
+  } // end of reading block.
 
   Log::message(_T("download of \"%s\" file (offset = %d) requested"), fullPathName.getString(), initialOffset);
 
   checkAccess();
 
-  if (m_fileInputStream != NULL) {
+  //
+  // Ending previous download if it was broken
+  //
+
+  if (m_fileInputStream != 0) {
     delete m_fileInputStream;
+    m_fileInputStream = 0;
   }
-  if (m_downloadFile != NULL) {
+  if (m_downloadFile != 0) {
     delete m_downloadFile;
+    m_downloadFile = 0;
   }
 
   m_downloadFile = new File(fullPathName.getString());
 
-  m_fileInputStream = NULL;
 
-  m_fileInputStream = new FileInputStream(m_downloadFile);
+  //
+  // Try to open file for reading and seek to initial
+  // file position.
+  //
 
-  FileSeeker fs(m_fileInputStream->getFD());
-
-  if (!fs.seek(initialOffset)) {
-    throw IOException(_T("Cannot seek to initial file position"));
-  }
+  m_fileInputStream = new WinFileChannel(fullPathName.getString(), F_READ,
+                                         FM_OPEN);
+  m_fileInputStream->seek(initialOffset);
 
   {
     AutoLock l(m_output);
@@ -666,8 +732,15 @@ void FileTransferRequestHandler::downloadStartRequested()
   }
 }
 
+//
+// FIXME: file flags is unimplemented
+//
+
 void FileTransferRequestHandler::downloadDataRequested()
 {
+  //
+  // Request input variables.
+  //
 
   UINT8 requestedCompressionLevel;
   UINT32 dataSize;
@@ -675,28 +748,42 @@ void FileTransferRequestHandler::downloadDataRequested()
   {
     requestedCompressionLevel = m_input->readUInt8();
     dataSize = m_input->readUInt32();
-  } 
+  } // end of reading block.
 
   Log::info(_T("download %d bytes (comp flag = %d) requested"), dataSize, requestedCompressionLevel);
 
   checkAccess();
 
+  //
+  // Data download reply variables.
+  //
+
   UINT8 compressionLevel = requestedCompressionLevel;
   UINT32 compressedSize;
   UINT32 uncompressedSize;
-  UINT8 *buffer = NULL;
+
+  //
+  // Client cannot send this request cause there is no
+  // active download at the moment
+  //
 
   if (m_downloadFile == NULL) {
     throw FileTransferException(_T("No active download at the moment"));
   }
 
-  buffer = new UINT8[dataSize];
+  std::vector<char> buffer(dataSize);
 
   DWORD read = 0;
 
   try {
-    read = m_fileInputStream->read(buffer, dataSize);
+    size_t portion = m_fileInputStream->read(&buffer.front(), dataSize);
+    read = (DWORD)portion;
+    _ASSERT(read == portion);
   } catch (EOFException) {
+
+    //
+    // End of file detected
+    //
 
     try { m_fileInputStream->close(); } catch (...) { }
 
@@ -710,13 +797,12 @@ void FileTransferRequestHandler::downloadDataRequested()
       m_output->writeUInt64(m_downloadFile->lastModified());
 
       m_output->flush();
-    } 
+    } // rfb io handle block
 
     Log::message(_T("%s"), _T("downloading has finished\n"));
 
     delete m_fileInputStream;
     delete m_downloadFile;
-    delete[] buffer;
 
     m_fileInputStream = NULL;
     m_downloadFile = NULL;
@@ -724,41 +810,38 @@ void FileTransferRequestHandler::downloadDataRequested()
     return ;
 
   } catch (IOException &ioEx) {
-    delete[] buffer;
     throw FileTransferException(&ioEx);
-  } 
+  } // try / catch
 
   compressedSize = read;
   uncompressedSize = read;
 
   if (compressionLevel != 0) {
-    m_deflater.setInput((const char *)buffer, uncompressedSize);
+    m_deflater.setInput(&buffer.front(), uncompressedSize);
     m_deflater.deflate();
-    compressedSize = m_deflater.getOutputSize();
+    _ASSERT((UINT32)m_deflater.getOutputSize() == m_deflater.getOutputSize());
+    compressedSize = (UINT32)m_deflater.getOutputSize();
   }
 
-  try {
-    AutoLock l(m_output);
+  //
+  // Send download data reply
+  //
 
-    m_output->writeUInt32(FTMessage::DOWNLOAD_DATA_REPLY);
-    m_output->writeUInt8(compressionLevel);
-    m_output->writeUInt32(compressedSize);
-    m_output->writeUInt32(uncompressedSize);
+  AutoLock l(m_output);
 
-    if (compressionLevel == 0) {
-      m_output->writeFully((const char *)buffer, uncompressedSize);
-    } else {
-      m_output->writeFully((const char *)m_deflater.getOutput(), compressedSize);
-    }
+  m_output->writeUInt32(FTMessage::DOWNLOAD_DATA_REPLY);
+  m_output->writeUInt8(compressionLevel);
+  m_output->writeUInt32(compressedSize);
+  m_output->writeUInt32(uncompressedSize);
 
-    m_output->flush();
-  } catch (Exception &) {
-    delete[] buffer;
-    throw;
+  if (compressionLevel == 0) {
+    m_output->writeFully(&buffer.front(), uncompressedSize);
+  } else {
+    m_output->writeFully((const char *)m_deflater.getOutput(), compressedSize);
   }
 
-  delete[] buffer;
-} 
+  m_output->flush();
+}
 
 void FileTransferRequestHandler::lastRequestFailed(StringStorage *storage)
 {
@@ -787,33 +870,40 @@ bool FileTransferRequestHandler::getDirectorySize(const TCHAR *pathname, UINT64 
 
   File folder(pathname);
 
+  //
+  // Get files count
+  //
+
   if (!folder.list(NULL, &filesCount)) {
     return false;
   }
 
-  StringStorage *fileNames = new StringStorage[filesCount];
+  if (filesCount) {
+    std::vector<StringStorage> fileNames(filesCount);
 
-  folder.list(fileNames, NULL);
+    //
+    // Get file names
+    //
 
-  for (UINT32 i = 0; i < filesCount; i++) {
-    File subfile(pathname, fileNames[i].getString());
-    if (subfile.isDirectory()) {
+    folder.list(&fileNames.front(), NULL);
 
-      UINT64 subDirSize = 0;
-      StringStorage subDirPath;
+    for (UINT32 i = 0; i < filesCount; i++) {
+      File subfile(pathname, fileNames[i].getString());
+      if (subfile.isDirectory()) {
 
-      subfile.getPath(&subDirPath);
+        UINT64 subDirSize = 0;
+        StringStorage subDirPath;
 
-      if (getDirectorySize(subDirPath.getString(), &subDirSize)) {
-        currentDirSize += subDirSize;
-      }  
-    } else {
-      currentDirSize += subfile.length();
-    } 
-  } 
+        subfile.getPath(&subDirPath);
 
-  delete[] fileNames;
-
+        if (getDirectorySize(subDirPath.getString(), &subDirSize)) {
+          currentDirSize += subDirSize;
+        }  // if it got sub directory size
+      } else {
+        currentDirSize += subfile.length();
+      } // if subfile is normal file
+    } // for every subfile in file list
+  }
   *dirSize = currentDirSize;
 
   return true;
@@ -828,5 +918,5 @@ void FileTransferRequestHandler::checkAccess()
     m_security->throwIfAccessDenied();
   } catch (Exception &someEx) {
     throw SystemException(someEx.getMessage());
-  } 
+  } // try / catch.
 }

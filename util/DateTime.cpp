@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -41,10 +41,13 @@ DateTime::DateTime(FILETIME ft)
   const UINT64 SECS_BETWEEN_EPOCHS = 11644473600;
   const UINT64 SECS_TO_100NS = 10000000;
 
+   // Time since windows epoch in 100ns intervals.
   UINT64 winTime100ns = ((UINT64)ft.dwHighDateTime << 32) + ft.dwLowDateTime;
 
+   // Time since unix epoch in 100ns intervals.
   UINT64 unixTime100ns = winTime100ns - SECS_BETWEEN_EPOCHS * SECS_TO_100NS;
 
+   // Time singe unix epoch in milliseconds.
   m_timeValue = (unixTime100ns / 10000);
 }
 
@@ -85,6 +88,7 @@ void DateTime::toLocalSystemTime(LPSYSTEMTIME st) const
   FILETIME ft, localFt;
 
   toFileTime(&ft);
+  // Convert file time from UTC format to local.
   FileTimeToLocalFileTime(&ft, &localFt);
 
   FileTimeToSystemTime(&localFt, st);
@@ -106,6 +110,7 @@ void DateTime::toString(StringStorage *target) const
         0,
         dateString,
         dateStringMaxLength) == 0) {
+    // TODO: Process this error.
   }
 
   target->setString(dateString);
@@ -122,6 +127,7 @@ void DateTime::toString(StringStorage *target) const
         0,
         timeString,
         timeStringMaxLength) == 0) {
+    // TODO: Process this error.
   }
 
   target->appendString(timeString);

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,11 +26,14 @@
 
 #include "util/CommonHeader.h"
 #include "util/CommandLine.h"
+#include "region/RectSerializer.h"
+#include "util/StringParser.h"
 
 #include "ConnectStringParser.h"
 
 const TCHAR ControlCommandLine::SET_CONTROL_PASSWORD[] = _T("-setservicecontrolpass");
 const TCHAR ControlCommandLine::SET_PRIMARY_VNC_PASSWORD[] = _T("-setservicevncpass");
+const TCHAR ControlCommandLine::CHECK_SERVICE_PASSWORDS[] = _T("-checkservicepasswords");
 
 const TCHAR ControlCommandLine::CONTROL_SERVICE[] = _T("-controlservice");
 const TCHAR ControlCommandLine::CONTROL_APPLICATION[] = _T("-controlapp");
@@ -39,6 +42,11 @@ const TCHAR ControlCommandLine::CONFIG_RELOAD[]  = _T("-reload");
 const TCHAR ControlCommandLine::DISCONNECT_ALL[] = _T("-disconnectall");
 const TCHAR ControlCommandLine::CONNECT[] = _T("-connect");
 const TCHAR ControlCommandLine::SHUTDOWN[] = _T("-shutdown");
+const TCHAR ControlCommandLine::SHARE_PRIMARY[] = _T("-shareprimary");
+const TCHAR ControlCommandLine::SHARE_RECT[] = _T("-sharerect");
+const TCHAR ControlCommandLine::SHARE_DISPLAY[] = _T("-sharedisplay");
+const TCHAR ControlCommandLine::SHARE_WINDOW[] = _T("-sharewindow");
+const TCHAR ControlCommandLine::SHARE_FULL[] = _T("-sharefull");
 
 const TCHAR ControlCommandLine::CONFIG_APPLICATION[] = _T("-configapp");
 const TCHAR ControlCommandLine::CONFIG_SERVICE[] = _T("-configservice");
@@ -48,6 +56,7 @@ const TCHAR ControlCommandLine::SLAVE_MODE[] = _T("-slave");
 const TCHAR ControlCommandLine::DONT_ELEVATE[] = _T("-dontelevate");
 
 ControlCommandLine::ControlCommandLine()
+: m_displayNumber(0)
 {
 }
 
@@ -55,7 +64,7 @@ ControlCommandLine::~ControlCommandLine()
 {
 }
 
-void ControlCommandLine::parse(const TCHAR *commandLine)
+void ControlCommandLine::parse(const CommandLineArgs *cmdArgs)
 {
   CommandLineFormat fmt[] = {
     { PASSWORD_FILE, NEEDS_ARG },
@@ -65,6 +74,12 @@ void ControlCommandLine::parse(const TCHAR *commandLine)
     { SHUTDOWN, NO_ARG },
     { SET_PRIMARY_VNC_PASSWORD, NEEDS_ARG },
     { SET_CONTROL_PASSWORD, NEEDS_ARG },
+    { CHECK_SERVICE_PASSWORDS, NO_ARG },
+    { SHARE_PRIMARY, NO_ARG },
+    { SHARE_RECT, NEEDS_ARG },
+    { SHARE_DISPLAY, NEEDS_ARG },
+    { SHARE_WINDOW, NEEDS_ARG },
+    { SHARE_FULL, NO_ARG },
     { CONTROL_SERVICE, NO_ARG },
     { CONTROL_APPLICATION, NO_ARG },
     { CONFIG_APPLICATION, NO_ARG },
@@ -73,7 +88,7 @@ void ControlCommandLine::parse(const TCHAR *commandLine)
     { DONT_ELEVATE, NO_ARG }
   };
 
-  if (!CommandLine::parse(fmt, sizeof(fmt) / sizeof(CommandLineFormat), commandLine)) {
+  if (!CommandLine::parse(fmt, sizeof(fmt) / sizeof(CommandLineFormat), cmdArgs)) {
     throw CommandLineFormatException();
   }
 
@@ -88,6 +103,22 @@ void ControlCommandLine::parse(const TCHAR *commandLine)
   bool hasPassFile = hasPasswordFile();
   if (hasPassFile) {
     optionSpecified(PASSWORD_FILE, &m_passwordFile);
+  }
+
+  if (hasShareRect()) {
+    StringStorage strRect;
+    optionSpecified(SHARE_RECT, &strRect);
+    parseRectCoordinates(&strRect);
+  }
+
+  if (hasShareDisplay()) {
+    StringStorage strDisplayNumber;
+    optionSpecified(SHARE_DISPLAY, &strDisplayNumber);
+    parseDisplayNumber(&strDisplayNumber);
+  }
+
+  if (hasShareWindow()) {
+    optionSpecified(SHARE_WINDOW, &m_windowHeaderName);
   }
 
   if (hasKillAllFlag() && hasReloadFlag()) {
@@ -195,6 +226,51 @@ bool ControlCommandLine::isSlave()
   return optionSpecified(SLAVE_MODE);
 }
 
+bool ControlCommandLine::hasSharePrimaryFlag()
+{
+  return optionSpecified(SHARE_PRIMARY);
+}
+
+bool ControlCommandLine::hasShareRect()
+{
+  return optionSpecified(SHARE_RECT);
+}
+
+bool ControlCommandLine::hasShareDisplay()
+{
+  return optionSpecified(SHARE_DISPLAY);
+}
+
+bool ControlCommandLine::hasShareWindow()
+{
+  return optionSpecified(SHARE_WINDOW);
+}
+
+bool ControlCommandLine::hasShareFull()
+{
+  return optionSpecified(SHARE_FULL);
+}
+
+unsigned char ControlCommandLine::getShareDisplayNumber()
+{
+  return m_displayNumber;
+}
+
+void ControlCommandLine::getShareWindowName(StringStorage *out)
+{
+  *out = m_windowHeaderName;
+}
+
+Rect ControlCommandLine::getShareRect()
+{
+  return m_shareRect;
+}
+
+bool ControlCommandLine::hasCheckServicePasswords()
+{
+  return optionSpecified(CHECK_SERVICE_PASSWORDS);
+}
+
 const TCHAR *ControlCommandLine::getPrimaryVncPassword() const
 {
   return m_vncPassword.getString();
@@ -208,5 +284,22 @@ const TCHAR *ControlCommandLine::getControlPassword() const
 bool ControlCommandLine::isCommandSpecified()
 {
   return hasKillAllFlag() || hasReloadFlag() || hasSetControlPasswordFlag() ||
-         hasSetVncPasswordFlag() || hasConnectFlag() || hasShutdownFlag();
+         hasSetVncPasswordFlag() || hasConnectFlag() || hasShutdownFlag() ||
+         hasSharePrimaryFlag() || hasShareDisplay() || hasShareWindow() ||
+         hasShareRect() || hasShareFull();
+}
+
+void ControlCommandLine::parseRectCoordinates(const StringStorage *strCoord)
+{
+  m_shareRect = RectSerializer::toRect(strCoord);
+}
+
+void ControlCommandLine::parseDisplayNumber(const StringStorage *strDispNumber)
+{
+  if (!StringParser::parseByte(strDispNumber->getString(),
+                               &m_displayNumber)) {
+    StringStorage errMess;
+    errMess.format(_T("Can't parse the %s argument to a display number"),
+                   strDispNumber->getString());
+  }
 }

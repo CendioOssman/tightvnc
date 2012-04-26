@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,43 +28,44 @@
 #include "HooksUpdateDetector.h"
 #include "MouseShapeDetector.h"
 #include "server-config-lib/Configurator.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "gui/WindowFinder.h"
+#include "ScreenDriverFactory.h"
 
 LocalUpdateHandler::LocalUpdateHandler(UpdateListener *externalUpdateListener)
 : m_externalUpdateListener(externalUpdateListener),
   m_fullUpdateRequested(false)
 {
-  m_updateFilter = new UpdateFilter(&m_screenGrabber, &m_backupFrameBuffer,
-                                    &m_fbLocMut);
-  m_updateKeeper = new UpdateKeeper(&m_screenGrabber.getScreenBuffer()->
-                                    getDimension().getRect());
-  m_poller = new Poller(m_updateKeeper, this,
-                        &m_screenGrabber,
-                        &m_backupFrameBuffer, &m_fbLocMut);
-  m_consolePoller = new ConsolePoller(m_updateKeeper, this,
-                                      &m_screenGrabber,
-                                      &m_backupFrameBuffer, &m_fbLocMut);
-  m_hooks = new HooksUpdateDetector(m_updateKeeper, this);
+  // FIXME: Maybe the UpdateKeeper constructor can be empty?
+  m_updateKeeper = new UpdateKeeper();
+  m_screenDriver = ScreenDriverFactory::createScreenDriver(m_updateKeeper,
+                                                           this,
+                                                           &m_backupFrameBuffer,
+                                                           &m_fbLocMut);
+  m_updateKeeper->setBorderRect(&m_screenDriver->getScreenDimension().getRect());
+
   m_mouseDetector = new MouseDetector(m_updateKeeper, this);
   m_mouseShapeDetector = new MouseShapeDetector(m_updateKeeper, this,
                                                 &m_mouseGrabber,
                                                 &m_mouseGrabLocMut);
+  m_updateFilter = new UpdateFilter(m_screenDriver,
+                                    &m_backupFrameBuffer,
+                                    &m_fbLocMut);
 
   executeDetectors();
 
-  m_absoluteRect = m_screenGrabber.getScreenBuffer()->getDimension().getRect();
+  // Force first update with full screen grab
+  m_absoluteRect = m_screenDriver->getScreenBuffer()->getDimension().getRect();
   m_updateKeeper->addChangedRect(&m_absoluteRect);
   doUpdate();
 }
 
-LocalUpdateHandler::~LocalUpdateHandler(void)
+LocalUpdateHandler::~LocalUpdateHandler()
 {
   terminateDetectors();
   delete m_mouseShapeDetector;
   delete m_mouseDetector;
-  delete m_poller;
-  delete m_hooks;
+  delete m_screenDriver;
   delete m_updateKeeper;
   delete m_updateFilter;
 }
@@ -82,34 +83,42 @@ void LocalUpdateHandler::extract(UpdateContainer *updateContainer)
       m_updateKeeper->addCopyRect(&copyRect, &copySrc);
       m_updateKeeper->extract(updateContainer);
     }
-    m_updateFilter->filter(updateContainer);
-
     updateVideoRegion();
     updateContainer->videoRegion = m_vidRegion;
+    // Constrain the video region to the current frame buffer border.
+    Region fbRect(&m_backupFrameBuffer.getDimension().getRect());
+    updateContainer->videoRegion.intersect(&fbRect);
+
+    m_updateFilter->filter(updateContainer);
 
     if (!m_absoluteRect.isEmpty()) {
-      updateContainer->changedRegion.addRect(&m_screenGrabber.getScreenBuffer()->
+      updateContainer->changedRegion.addRect(&m_screenDriver->getScreenBuffer()->
                                              getDimension().getRect());
       m_absoluteRect.clear();
     }
 
-    if (m_screenGrabber.getPropertiesChanged() ||
-        !m_backupFrameBuffer.isEqualTo(m_screenGrabber.getScreenBuffer())) {
-      if (m_screenGrabber.getScreenSizeChanged()) {
+    // Checking for screen properties changing or frame buffers differ
+    if (m_screenDriver->getPropertiesChanged() ||
+      !m_backupFrameBuffer.isEqualTo(m_screenDriver->getScreenBuffer())) {
+      if (m_screenDriver->getScreenSizeChanged()) {
         updateContainer->screenSizeChanged = true;
       }
-      m_screenGrabber.applyNewProperties();
-      m_backupFrameBuffer.clone(m_screenGrabber.getScreenBuffer());
+      m_screenDriver->applyNewProperties();
+      m_backupFrameBuffer.clone(m_screenDriver->getScreenBuffer());
       updateContainer->changedRegion.clear();
       updateContainer->copiedRegion.clear();
       m_absoluteRect = m_backupFrameBuffer.getDimension().getRect();
       m_updateKeeper->setBorderRect(&m_absoluteRect);
     }
   }
+  // Cursor position must always be present.
   updateContainer->cursorPos = m_mouseDetector->getCursorPos();
+  // Checking for mouse shape changing
   if (updateContainer->cursorShapeChanged || m_fullUpdateRequested) {
+    // Update cursor shape
     AutoLock al(&m_mouseGrabLocMut);
     m_mouseGrabber.grab(&m_backupFrameBuffer.getPixelFormat());
+    // Store cursor shape
     m_cursorShape.clone(m_mouseGrabber.getCursorShape());
 
     m_fullUpdateRequested = false;
@@ -124,23 +133,16 @@ void LocalUpdateHandler::setFullUpdateRequested(const Region *region)
 
 void LocalUpdateHandler::executeDetectors()
 {
-  m_backupFrameBuffer.assignProperties(m_screenGrabber.getScreenBuffer());
-  m_poller->resume();
-  m_consolePoller->resume();
-  m_hooks->resume();
+  m_backupFrameBuffer.assignProperties(m_screenDriver->getScreenBuffer());
+  m_screenDriver->executeDetection();
   m_mouseDetector->resume();
   m_mouseShapeDetector->resume();
 }
 
 void LocalUpdateHandler::terminateDetectors()
 {
-  m_poller->terminate();
-  m_consolePoller->terminate();
-  m_hooks->terminate();
   m_mouseDetector->terminate();
-  m_poller->wait();
-  m_consolePoller->wait();
-  m_hooks->wait();
+  m_screenDriver->terminateDetection();
   m_mouseDetector->wait();
 }
 

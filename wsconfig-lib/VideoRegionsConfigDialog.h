@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -39,10 +39,18 @@ public:
 
   void setParentDialog(BaseDialog *dialog);
 
+  //
+  // BaseDialog overrided methods
+  //
+
   virtual BOOL onInitDialog();
   virtual BOOL onNotify(UINT controlID, LPARAM data);
   virtual BOOL onCommand(UINT controlID, UINT notificationID);
   virtual BOOL onDestroy() { return TRUE; }
+
+  //
+  // Helper methods
+  //
 
   bool validateInput();
   void updateUI();
@@ -51,6 +59,10 @@ public:
 protected:
 
   void initControls();
+
+  //
+  // Control event handlers
+  //
 
   void onRecognitionIntervalSpinChangePos(LPNMUPDOWN message);
   void onRecognitionIntervalUpdate();

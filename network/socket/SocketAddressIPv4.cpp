@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,11 +24,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 #include "sockdefs.h"
 #include "SocketAddressIPv4.h"
 #include "SocketAddressIPv4.h"
 #include "SocketException.h"
+#include "util/AnsiStringStorage.h"
 
 #include "thread/AutoLock.h"
 
@@ -128,13 +130,9 @@ SocketAddressIPv4 SocketAddressIPv4::resolve(const TCHAR *host, unsigned short m
   {
     AutoLock l(&s_resolveMutex);
 
-    char *hostAnsi = new char[hostStorage.getLength() + 1];
-    hostStorage.toAnsiString(hostAnsi, hostStorage.getLength() + 1);
+    AnsiStringStorage hostAnsi(&hostStorage);
 
-    hostent *hent = gethostbyname(hostAnsi);
-
-    delete[] hostAnsi;
-
+    hostent *hent = gethostbyname(hostAnsi.getString());
     if (hent == 0) {
       throw SocketException();
     }

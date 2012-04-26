@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "Process.h"
 #include "SystemException.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 Process::Process(const TCHAR *path, const TCHAR *args)
 : m_hProcess(0),
@@ -94,6 +94,7 @@ void Process::start()
 
   StringStorage commandLine = getCommandLineString();
 
+  _ASSERT(!commandLine.isEmpty());
   if (CreateProcess(NULL, (LPTSTR) commandLine.getString(),
                     NULL, NULL, m_handlesIsInherited, NULL, NULL, NULL,
                     &sti, &pi) == 0) {

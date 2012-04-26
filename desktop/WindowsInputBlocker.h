@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,14 +32,19 @@
 #include "win-system/WindowsEvent.h"
 #include "InputBlocker.h"
 
+// Only one instance of this class may be created.
+
 class WindowsInputBlocker : public InputBlocker, protected Thread
 {
 public:
   WindowsInputBlocker();
   virtual ~WindowsInputBlocker();
 
+  // This functions set/unset blocks on a local keyboard and mouse.
   virtual void setKeyboardBlocking(bool block);
   virtual void setMouseBlocking(bool block);
+  // This functions set/unset blocks on a local keyboard and mouse on the
+  // timeInterval interval from a last software event generation.
   virtual void setSoftKeyboardBlocking(bool block, unsigned int timeInterval);
   virtual void setSoftMouseBlocking(bool block, unsigned int timeInterval);
 
@@ -89,4 +94,4 @@ protected:
   static LocalMutex m_lastInputTimeMutex;
 };
 
-#endif 
+#endif // __WINDOWSINPUTBLOCKER_H__

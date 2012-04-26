@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,17 +30,34 @@
 #include "io-lib/InputStream.h"
 #include "io-lib/IOException.h"
 
+/**
+ * Socket's input stream.
+ */
 class SocketInputStream : public InputStream
 {
 public:
+  /**
+   * Creates new socket input stream.
+   * @param sock Win32 socket handle.
+   */
   SocketInputStream(SOCKET sock);
+  /**
+   * Deletes socket input stream.
+   */
   virtual ~SocketInputStream();
 
 public:
 
+  /**
+   * Inherited from InputStream.
+   * @see InputStream class for details.
+   */
   virtual size_t read(void *buffer, size_t len) throw(IOException);
 
 protected:
+  /**
+   * Socket handle.
+   */
   SOCKET m_sock;
 };
 

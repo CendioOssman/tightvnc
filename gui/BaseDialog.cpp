@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,23 +30,26 @@
 #include <crtdbg.h>
 
 BaseDialog::BaseDialog()
-: m_ctrlParent(NULL), m_resourceName(0), m_resourceId(0)
+: m_ctrlParent(NULL), m_resourceName(0), m_resourceId(0), m_hicon(0)
 {
 }
 
 BaseDialog::BaseDialog(DWORD resourceId)
-: m_ctrlParent(NULL), m_resourceName(0), m_resourceId(resourceId)
+: m_ctrlParent(NULL), m_resourceName(0), m_resourceId(resourceId), m_hicon(0)
 {
 }
 
 BaseDialog::BaseDialog(const TCHAR *resourceName)
-: m_ctrlParent(NULL), m_resourceName(0), m_resourceId(0)
+: m_ctrlParent(NULL), m_resourceName(0), m_resourceId(0), m_hicon(0)
 {
   setResourceName(resourceName);
 }
 
 BaseDialog::~BaseDialog()
 {
+  if (m_hicon) {
+    DeleteObject(m_hicon);
+  }
   if (m_resourceName != 0) {
     free(m_resourceName);
   }
@@ -93,11 +96,13 @@ void BaseDialog::hide()
 
 void BaseDialog::kill(int code)
 {
+  // Destroy dialog
   if (!m_isModal) {
     DestroyWindow(m_ctrlThis.getWindow());
   } else {
     EndDialog(m_ctrlThis.getWindow(), code);
   }
+  // We have no valid hwnd, so forse set hwnd to NULL
   m_ctrlThis.setWindow(NULL);
 }
 
@@ -123,13 +128,17 @@ int BaseDialog::showModal()
   if (m_ctrlThis.getWindow() == NULL) {
     m_isModal = true;
     HWND parentWindow = (m_ctrlParent != NULL) ? m_ctrlParent->getWindow() : NULL;
-    result = DialogBoxParam(GetModuleHandle(NULL),
-                            getResouceName(),
-                            parentWindow, dialogProc, (LPARAM)this);
+    result = (int)DialogBoxParam(GetModuleHandle(NULL),
+                                 getResouceName(),
+                                 parentWindow, dialogProc, (LPARAM)this);
   } else {
     m_ctrlThis.setVisible(true);
     m_ctrlThis.setForeground();
   }
+
+  //
+  // TODO: Place error notification here
+  //
 
   if (result == -1) {
   }
@@ -139,48 +148,63 @@ int BaseDialog::showModal()
 
 bool BaseDialog::isCreated()
 {
-  return m_ctrlThis.getWindow() != 0;
+  bool isInit = m_ctrlThis.getWindow() != 0;
+
+  if (!isInit) {
+    return false;
+  }
+
+  return !!IsWindow(m_ctrlThis.getWindow());
 }
 
-BOOL BaseDialog::onDrawItem(UINT controlID, LPDRAWITEMSTRUCT dis)
+BOOL BaseDialog::onDrawItem(WPARAM controlID, LPDRAWITEMSTRUCT dis)
 {
   return TRUE;
 }
 
-void BaseDialog::onMessageRecieved(UINT uMsg, WPARAM wParam, LPARAM lParam)
+void BaseDialog::onMessageReceived(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 }
 
-BOOL CALLBACK BaseDialog::dialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{  
+INT_PTR CALLBACK BaseDialog::dialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
   BaseDialog *_this;
+  BOOL bResult;
+
+  bResult = FALSE;
   if (uMsg == WM_INITDIALOG) {
     _this = (BaseDialog *)lParam;
-    SetWindowLong(hwnd, GWL_USERDATA, (LONG)_this);
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)_this);
     _this->m_ctrlThis.setWindow(hwnd);
+    _this->updateIcon();
   } else {
-    _this = (BaseDialog *)GetWindowLong(hwnd, GWL_USERDATA);
+    _this = (BaseDialog *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     if (_this == 0) {
       return FALSE;
     }
   }
 
-  _this->onMessageRecieved(uMsg, wParam, lParam);
+  _this->onMessageReceived(uMsg, wParam, lParam);
 
   switch (uMsg) {
   case WM_INITDIALOG:
-    return _this->onInitDialog();
+    bResult = _this->onInitDialog();
+    break;
   case WM_NOTIFY:
-    return _this->onNotify(LOWORD(wParam), lParam);
+    bResult = _this->onNotify(LOWORD(wParam), lParam);
+    break;
   case WM_COMMAND:
-    return _this->onCommand(LOWORD(wParam), HIWORD(wParam));
+    bResult =_this->onCommand(LOWORD(wParam), HIWORD(wParam));
+    break;
   case WM_DESTROY:
-    return _this->onDestroy();
+    bResult = _this->onDestroy();
+    break;
   case WM_DRAWITEM:
-    return _this->onDrawItem(wParam, (LPDRAWITEMSTRUCT)lParam);
+    bResult = _this->onDrawItem(wParam, (LPDRAWITEMSTRUCT)lParam);
+    break;
   }
 
-  return FALSE;
+  return bResult;
 }
 
 TCHAR *BaseDialog::getResouceName()
@@ -189,4 +213,49 @@ TCHAR *BaseDialog::getResouceName()
     return MAKEINTRESOURCE(m_resourceId);
   }
   return m_resourceName;
+}
+
+void BaseDialog::setControlById(Control &control, DWORD id) 
+{
+  control = GetDlgItem(m_ctrlThis.getWindow(), id);
+}
+
+void BaseDialog::updateIcon()
+{
+  if (m_hicon) {
+    SetClassLongPtr(m_ctrlThis.getWindow(), GCLP_HICON, (LONG_PTR)m_hicon);
+  }
+}
+
+void BaseDialog::loadIcon(DWORD id)
+{
+  if (m_hicon) {
+    DeleteObject(m_hicon);
+  }
+  m_hicon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(id));
+}
+
+bool BaseDialog::setForeground()
+{
+  return m_ctrlThis.setForeground();
+}
+
+BOOL BaseDialog::onInitDialog() 
+{
+  return FALSE;
+}
+
+BOOL BaseDialog::onNotify(UINT controlID, LPARAM data)
+{
+  return FALSE;
+}
+
+BOOL BaseDialog::onCommand(UINT controlID, UINT notificationID)
+{
+  return FALSE;
+}
+
+BOOL BaseDialog::onDestroy()
+{
+  return FALSE;
 }

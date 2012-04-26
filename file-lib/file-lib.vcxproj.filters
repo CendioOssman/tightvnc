@@ -17,19 +17,13 @@
     <ClCompile Include="File.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileDescriptor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FileInputStream.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FileNotFoundException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileOutputStream.cpp">
+    <ClCompile Include="WinFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileSeeker.cpp">
+    <ClCompile Include="WinFileChannel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -40,19 +34,16 @@
     <ClInclude Include="File.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileDescriptor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FileInputStream.h">
+    <ClInclude Include="FileChannel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FileNotFoundException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileOutputStream.h">
+    <ClInclude Include="WinFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileSeeker.h">
+    <ClInclude Include="WinFileChannel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

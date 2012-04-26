@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,11 +27,22 @@
 
 #include "IOException.h"
 
+/**
+ * Input stream interface (abstract class).
+ */
 class InputStream
 {
 public:
   virtual ~InputStream();
 
+  /**
+   * Read some bytes from stream.
+   * @param buffer [out] target buffer to receive data.
+   * @param len bytes to read.
+   * @return count of bytes read.
+   * @throws any exception on fail(type of exception depends on
+   * implementation of input stream).
+   */
   virtual size_t read(void *buffer, size_t len) = 0;
 };
 

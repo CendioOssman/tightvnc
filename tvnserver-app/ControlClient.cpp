@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,6 +25,7 @@
 #include "ControlClient.h"
 #include "TvnServer.h"
 #include "OutgoingRfbConnectionThread.h"
+#include "ConnectToTcpDispatcherThread.h"
 
 #include "tvncontrol-app/ControlProto.h"
 
@@ -33,7 +34,7 @@
 #include "server-config-lib/Configurator.h"
 
 #include "util/VncPassCrypt.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 #include "rfb/HostPath.h"
 
@@ -42,13 +43,20 @@
 #include "tvnserver/resource.h"
 
 #include <time.h>
+#include "util/AnsiStringStorage.h"
 
 const UINT32 ControlClient::REQUIRES_AUTH[] = { ControlProto::ADD_CLIENT_MSG_ID,
                                                 ControlProto::DISCONNECT_ALL_CLIENTS_MSG_ID,
                                                 ControlProto::GET_CONFIG_MSG_ID,
                                                 ControlProto::RELOAD_CONFIG_MSG_ID,
                                                 ControlProto::SET_CONFIG_MSG_ID,
-                                                ControlProto::SHUTDOWN_SERVER_MSG_ID };
+                                                ControlProto::SHUTDOWN_SERVER_MSG_ID,
+                                                ControlProto::SHARE_PRIMARY_MSG_ID,
+                                                ControlProto::SHARE_DISPLAY_MSG_ID,
+                                                ControlProto::SHARE_WINDOW_MSG_ID,
+                                                ControlProto::SHARE_RECT_MSG_ID,
+                                                ControlProto::SHARE_FULL_MSG_ID,
+                                                ControlProto::CONNECT_TO_TCPDISP_MSG_ID };
 
 ControlClient::ControlClient(Transport *transport,
                              RfbClientManager *rfbClientManager,
@@ -56,6 +64,7 @@ ControlClient::ControlClient(Transport *transport,
                              HANDLE pipeHandle)
 : m_transport(transport), m_rfbClientManager(rfbClientManager),
   m_authenticator(authenticator),
+  m_tcpDispId(0),
   m_pipeHandle(pipeHandle)
 {
   m_stream = m_transport->getIOStream();
@@ -76,6 +85,7 @@ ControlClient::~ControlClient()
 
 void ControlClient::execute()
 {
+  // Client passes authentication by default if server does not uses control authentication.
   if (!Configurator::getInstance()->getServerConfig()->isControlAuthEnabled()) {
     m_authPassed = true;
   }
@@ -90,6 +100,7 @@ void ControlClient::execute()
 
       bool requiresControlAuth = false;
 
+       // Check if message requires TightVNC admin privilegies.
       if (Configurator::getInstance()->getServerConfig()->isControlAuthEnabled()) {
         for (size_t i = 0; i < sizeof(REQUIRES_AUTH) / sizeof(UINT32); i++) {
           if (messageId == REQUIRES_AUTH[i]) {
@@ -100,6 +111,7 @@ void ControlClient::execute()
       }
 
       try {
+        // Message requires control auth: skip message body and sent reply.
         if (requiresControlAuth && !m_authPassed) {
           Log::detail(_T("Message requires control authentication"));
 
@@ -130,6 +142,10 @@ void ControlClient::execute()
           Log::detail(_T("Command requested: Attach listening viewer"));
           addClientMsgRcvd();
           break;
+        case ControlProto::CONNECT_TO_TCPDISP_MSG_ID:
+          Log::message(_T("Connect to a tcp dispatcher command requested"));
+          connectToTcpDispatcher();
+          break;
         case ControlProto::GET_SERVER_INFO_MSG_ID:
           Log::detail(_T("Control client requests server info"));
           getServerInfoMsgRcvd();
@@ -154,17 +170,38 @@ void ControlClient::execute()
           Log::detail(_T("Control client sends process ID"));
           updateTvnControlProcessIdMsgRcvd();
           break;
+        case ControlProto::SHARE_PRIMARY_MSG_ID:
+          Log::message(_T("Share primary message recieved"));
+          sharePrimaryIdMsgRcvd();
+          break;
+        case ControlProto::SHARE_DISPLAY_MSG_ID:
+          Log::message(_T("Share display message recieved"));
+          shareDisplayIdMsgRcvd();
+          break;
+        case ControlProto::SHARE_WINDOW_MSG_ID:
+          Log::message(_T("Share window message recieved"));
+          shareWindowIdMsgRcvd();
+          break;
+        case ControlProto::SHARE_RECT_MSG_ID:
+          Log::message(_T("Share rect message recieved"));
+          shareRectIdMsgRcvd();
+          break;
+        case ControlProto::SHARE_FULL_MSG_ID:
+          Log::message(_T("Share full message recieved"));
+          shareFullIdMsgRcvd();
+          break;
         default:
           m_gate->skipBytes(messageSize);
           Log::warning(_T("Received unsupported message from control client"));
-        } 
+          throw ControlException(_T("Unknown command"));
+        } // switch (messageId).
       } catch (ControlException &controlEx) {
         Log::error(_T("Exception while processing control client's request: \"%s\""),
                    controlEx.getMessage());
 
         sendError(controlEx.getMessage());
       }
-    } 
+    } // while
   } catch (Exception &ex) {
     Log::error(_T("Exception in control client thread: \"%s\""), ex.getMessage());
   }
@@ -181,6 +218,10 @@ void ControlClient::sendError(const TCHAR *message)
   m_gate->writeUTF8(message);
 }
 
+//
+// FIXME: Code duplicate (see RfbInitializer class).
+//
+
 void ControlClient::authMsgRcdv()
 {
   UINT8 challenge[16];
@@ -193,6 +234,11 @@ void ControlClient::authMsgRcdv()
 
   m_gate->writeFully(challenge, sizeof(challenge));
   m_gate->readFully(response, sizeof(response));
+
+  //
+  // FIXME: Is it right to check if password is set after client
+  // sent password to us.
+  //
 
   ServerConfig *config = Configurator::getInstance()->getServerConfig();
   UINT8 cryptPassword[8];
@@ -218,7 +264,8 @@ void ControlClient::getClientsListMsgRcvd()
   m_rfbClientManager->getClientsInfo(&clients);
 
   m_gate->writeUInt32(ControlProto::REPLY_OK);
-  m_gate->writeUInt32(clients.size());
+  _ASSERT(clients.size() == (unsigned int)clients.size());
+  m_gate->writeUInt32((unsigned int)clients.size());
 
   for (RfbClientInfoList::iterator it = clients.begin(); it != clients.end(); it++) {
     m_gate->writeUInt32((*it).m_id);
@@ -238,11 +285,24 @@ void ControlClient::getServerInfoMsgRcvd()
 
   TvnServer::getInstance()->getServerInfo(&info);
 
+  StringStorage status;
+  {
+    AutoLock al(&m_tcpDispValuesMutex);
+    if (m_tcpDispId != 0) {
+      status.format(_T("ID = %u; Dispatcher Name = %s; %s"),
+                    m_tcpDispId,
+                    m_gotDispatcherName.getString(),
+                    info.m_statusText.getString());
+    } else {
+      status.setString(info.m_statusText.getString());
+    }
+  }
+
   m_gate->writeUInt32(ControlProto::REPLY_OK);
 
   m_gate->writeUInt8(info.m_acceptFlag ? 1 : 0);
   m_gate->writeUInt8(info.m_serviceFlag ? 1 : 0);
-  m_gate->writeUTF8(info.m_statusText.getString());
+  m_gate->writeUTF8(status.getString());
 }
 
 void ControlClient::reloadConfigMsgRcvd()
@@ -257,6 +317,7 @@ void ControlClient::disconnectAllMsgRcvd()
   m_gate->writeUInt32(ControlProto::REPLY_OK);
 
   m_rfbClientManager->disconnectAllClients();
+  m_connectingSocketThreadCollector.destroyAllThreads();
 }
 
 void ControlClient::shutdownMsgRcvd()
@@ -270,27 +331,33 @@ void ControlClient::addClientMsgRcvd()
 {
   m_gate->writeUInt32(ControlProto::REPLY_OK);
 
+  //
+  // Read parameters.
+  //
+
   StringStorage connectString;
 
   m_gate->readUTF8(&connectString);
 
   bool viewOnly = m_gate->readUInt8() == 1;
 
-  char connectStringAnsi[1024];
-
-  if (!connectString.toAnsiString(connectStringAnsi, 1024)) {
-    return;
-  }
-
-  HostPath hp(connectStringAnsi, 5500);
+  //
+  // Parse host and port from connection string.
+  //
+  AnsiStringStorage connectStringAnsi(&connectString);
+  HostPath hp(connectStringAnsi.getString(), 5500);
 
   if (!hp.isValid()) {
     return;
   }
 
   StringStorage host;
-  host.fromAnsiString(hp.getVncHost());
+  AnsiStringStorage ansiHost(hp.getVncHost());
+  ansiHost.toStringStorage(&host);
 
+  //
+  // Make outgoing connection in separate thread.
+  //
   OutgoingRfbConnectionThread *newConnectionThread =
                                new OutgoingRfbConnectionThread(host.getString(),
                                                                hp.getVncPort(), viewOnly,
@@ -299,6 +366,50 @@ void ControlClient::addClientMsgRcvd()
   newConnectionThread->resume();
 
   ZombieKiller::getInstance()->addZombie(newConnectionThread);
+}
+
+void ControlClient::connectToTcpDispatcher()
+{
+  m_gate->writeUInt32(ControlProto::REPLY_OK);
+
+  // Read a hostname.
+  StringStorage connectString;
+  m_gate->readUTF8(&connectString);
+
+  // Read a dispatcher name.
+  StringStorage dispatcherName;
+  m_gate->readUTF8(&dispatcherName);
+  // Read a keyword.
+  StringStorage keyword;
+  m_gate->readUTF8(&keyword);
+  // Read a connection id.
+  UINT32 connectionId = m_gate->readUInt32();
+
+  // Parse host and port from connection string.
+  AnsiStringStorage connectStringAnsi(&connectString);
+  HostPath hp(connectStringAnsi.getString(), 5900);
+  if (!hp.isValid()) {
+    return;
+  }
+  StringStorage host;
+  AnsiStringStorage ansiHost(hp.getVncHost());
+  ansiHost.toStringStorage(&host);
+
+  // Converting got TCHAR strings to AnsiStringStorage format
+  AnsiStringStorage ansiDispName(&dispatcherName);
+  AnsiStringStorage ansiKeyword(&keyword);
+
+  // Make connection in separate thread.
+  ConnectToTcpDispatcherThread *newConnectionThread =
+    new ConnectToTcpDispatcherThread(host.getString(),
+                                     hp.getVncPort(),
+                                     &ansiDispName,
+                                     connectionId,
+                                     &ansiKeyword,
+                                     m_rfbClientManager,
+                                     this);
+
+  m_connectingSocketThreadCollector.addThread(newConnectionThread);
 }
 
 void ControlClient::setServerConfigMsgRcvd()
@@ -337,4 +448,72 @@ void ControlClient::getServerConfigMsgRcvd()
   m_gate->writeUInt32(ControlProto::REPLY_OK);
 
   Configurator::getInstance()->getServerConfig()->serialize(m_gate);
+}
+
+void ControlClient::sharePrimaryIdMsgRcvd()
+{
+  m_gate->writeUInt32(ControlProto::REPLY_OK);
+  ViewPortState dynViewPort;
+  dynViewPort.setPrimaryDisplay();
+  m_rfbClientManager->setDynViewPort(&dynViewPort);
+}
+
+void ControlClient::shareDisplayIdMsgRcvd()
+{
+  unsigned char displayNumber = m_gate->readUInt8();
+  m_gate->writeUInt32(ControlProto::REPLY_OK);
+
+  ViewPortState dynViewPort;
+  dynViewPort.setDisplayNumber(displayNumber);
+  m_rfbClientManager->setDynViewPort(&dynViewPort);
+}
+
+void ControlClient::shareWindowIdMsgRcvd()
+{
+  StringStorage windowName;
+  m_gate->readUTF8(&windowName);
+
+  m_gate->writeUInt32(ControlProto::REPLY_OK);
+
+  ViewPortState dynViewPort;
+  dynViewPort.setWindowName(&windowName);
+  m_rfbClientManager->setDynViewPort(&dynViewPort);
+}
+
+void ControlClient::shareRectIdMsgRcvd()
+{
+  Rect shareRect;
+  shareRect.left = m_gate->readInt32();
+  shareRect.top = m_gate->readInt32();
+  shareRect.right = m_gate->readInt32();
+  shareRect.bottom = m_gate->readInt32();
+  m_gate->writeUInt32(ControlProto::REPLY_OK);
+
+  ViewPortState dynViewPort;
+  dynViewPort.setArbitraryRect(&shareRect);
+  m_rfbClientManager->setDynViewPort(&dynViewPort);
+}
+
+void ControlClient::shareFullIdMsgRcvd()
+{
+  m_gate->writeUInt32(ControlProto::REPLY_OK);
+
+  ViewPortState dynViewPort;
+  dynViewPort.setFullDesktop();
+  m_rfbClientManager->setDynViewPort(&dynViewPort);
+}
+
+void ControlClient::onGetId(unsigned int id,
+                            const AnsiStringStorage *dispatcherName)
+{
+  AutoLock al(&m_tcpDispValuesMutex);
+  m_tcpDispId = id;
+  dispatcherName->toStringStorage(&m_gotDispatcherName);
+}
+
+void ControlClient::onClearId()
+{
+  AutoLock al(&m_tcpDispValuesMutex);
+  m_tcpDispId = 0;
+  m_gotDispatcherName.setString(_T(""));
 }

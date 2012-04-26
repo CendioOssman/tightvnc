@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,46 +37,85 @@ public:
   virtual ~BaseDialog();
 public:
 
+  // Method creates non modal window but not shows it
   void create();
+
+  //
+  // Methods creates windows and show it in nonmodal/modal mode
+  //
 
   int show();
   int showModal();
 
+  // Returns true if dialog is already created.
   bool isCreated();
 
+  // Method hides window
   void hide();
+  // Method closes dialog
   virtual void kill(int code);
+  // Method sets parent window
   void setParent(Control *ctrlParent);
+  // Set resource name for dialog
   void setResourceName(const TCHAR *resourceName);
+  // Set resource id for dialog.
   void setResourceId(DWORD id);
+  // Return
   Control *getControl() { return &m_ctrlThis; }
+  // Setup control by ID
+  void setControlById(Control &control, DWORD id);
+  // Icon manipulation 
+  void loadIcon(DWORD id);
+  void updateIcon();
+
+  // Puts this control foreground and activates it
+  bool setForeground();
+
 protected:
+  /**
+   * Sets default push button for dialog.
+   * @pararm buttonId new default push button id.
+   */
   void setDefaultPushButton(UINT buttonId);
 
 protected:
 
-  virtual BOOL onInitDialog() = 0;
-  virtual BOOL onNotify(UINT controlID, LPARAM data) = 0;
-  virtual BOOL onCommand(UINT controlID, UINT notificationID) = 0;
-  virtual BOOL onDestroy() = 0;
+  //
+  // This methods must be overrided by child classes.
+  //
 
-  virtual BOOL onDrawItem(UINT controlID, LPDRAWITEMSTRUCT dis);
-  virtual void onMessageRecieved(UINT uMsg, WPARAM wParam, LPARAM lParam);
+  virtual BOOL onInitDialog();
+  virtual BOOL onNotify(UINT controlID, LPARAM data);
+  virtual BOOL onCommand(UINT controlID, UINT notificationID);
+  virtual BOOL onDestroy();
 
-  static BOOL CALLBACK dialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+  //
+  // This methods can be overrided by child classes.
+  //
+
+  virtual BOOL onDrawItem(WPARAM controlID, LPDRAWITEMSTRUCT dis);
+  virtual void onMessageReceived(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+  //
+  // Window message proccessing method
+  //
+
+  static INT_PTR CALLBACK dialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
   TCHAR *getResouceName();
 
 protected:
 
-  TCHAR *m_resourceName;        
-  DWORD m_resourceId;            
-  Control m_ctrlThis;           
-  Control *m_ctrlParent;        
+  TCHAR *m_resourceName;        // Name of dialog resource
+  DWORD m_resourceId;            // Id of dialog resouce
+  Control m_ctrlThis;           // This dialog control
+  Control *m_ctrlParent;        // Parent dialog or NULL if no parent
 
   bool m_isModal;
   bool m_isCreated;
+
+  HICON m_hicon;
 };
 
 #endif

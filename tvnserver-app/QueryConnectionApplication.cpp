@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,12 +31,17 @@
 #include "server-config-lib/Configurator.h"
 #include "win-system/Environment.h"
 #include "win-system/Process.h"
-#include "util/Log.h"
+#include "win-system/WinCommandLineArgs.h"
+#include "log-server/Log.h"
 #include "util/ResourceLoader.h"
 #include "tvnserver/resource.h"
+#include "tvnserver-app/NamingDefs.h"
 
-QueryConnectionApplication::QueryConnectionApplication(HINSTANCE hInstance, const TCHAR *cmdLine)
-: LocalWindowsApplication(hInstance), m_cmdLine(cmdLine)
+QueryConnectionApplication::QueryConnectionApplication(HINSTANCE hInstance,
+                                                       const TCHAR *windowClassName,
+                                                       const TCHAR *cmdLine)
+: LocalWindowsApplication(hInstance, windowClassName),
+  m_cmdLine(cmdLine)
 {
 }
 
@@ -49,7 +54,8 @@ int QueryConnectionApplication::run()
   QueryConnectionCommandLine parser;
 
   try {
-    parser.parse(m_cmdLine.getString());
+    WinCommandLineArgs cmdArgs(m_cmdLine.getString());
+    parser.parse(&cmdArgs);
   } catch (Exception &) {
     TvnServerHelp::showUsage();
     return 0;
@@ -70,6 +76,7 @@ int QueryConnectionApplication::run()
 
 int QueryConnectionApplication::execute(const TCHAR *peerAddr, bool acceptByDefault, DWORD timeOutSec)
 {
+   // Prepare command for execution.
 
   StringStorage curModulePath;
   StringStorage command;
@@ -90,6 +97,8 @@ int QueryConnectionApplication::execute(const TCHAR *peerAddr, bool acceptByDefa
   int defaultRetCode = acceptByDefault ? 0 : 1;
   int retCode = defaultRetCode;
 
+  // Run command in separate process.
+
   if (Configurator::getInstance()->getServiceFlag()) {
     process = new CurrentConsoleProcess(command.getString());
   } else {
@@ -106,6 +115,8 @@ int QueryConnectionApplication::execute(const TCHAR *peerAddr, bool acceptByDefa
 
   delete process;
 
+   // If application ret code is unknown then application then return default
+   // ret code.
   if (retCode != 0 && retCode != 1) {
     retCode = defaultRetCode;
   }

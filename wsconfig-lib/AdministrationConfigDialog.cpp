@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -117,6 +117,7 @@ bool AdministrationConfigDialog::validateInput()
     return false;
   }
 
+  // FIXME: Code duplicate (see ServerConfigDialog class).
   if (!m_cpControl->hasPassword() && m_useControlAuth.isChecked()) {
     MessageBox(m_ctrlThis.getWindow(),
                StringTable::getString(IDS_SET_CONTROL_PASSWORD_NOTIFICATION),
@@ -137,7 +138,7 @@ void AdministrationConfigDialog::updateUI()
 
   StringStorage logPath;
 
-  m_config->getLogFilePath(&logPath);
+  m_config->getLogFileDir(&logPath);
 
   if (logPath.isEmpty()) {
     logPath.setString(StringTable::getString(IDS_LOGPATH_UNAVALIABLE));
@@ -146,6 +147,12 @@ void AdministrationConfigDialog::updateUI()
   }
 
   m_logPathTB.setText(logPath.getString());
+
+  //
+  // Trying to open log file for reading. if we cannot open it
+  // when disable "Open path ..." button
+  // FIXME: Use File classes instead of Win32 API.
+  //
 
   StringStorage folder;
   getFolderName(logPath.getString(), &folder);
@@ -178,6 +185,10 @@ void AdministrationConfigDialog::updateUI()
   if (!m_config->isAlwaysShared() && !m_config->isNeverShared() && m_config->isDisconnectingExistingClients()) {
     m_shared[4].check(true);
   }
+
+  //
+  // When last client disconnects
+  //
 
   for (int i = 0; i < 3; i++) {
     m_disconnectAction[i].check(false);
@@ -305,17 +316,17 @@ void AdministrationConfigDialog::onShareRadioButtonClick(int number)
     for (int i = 0; i < 5; i++) {
       if (i != number) {
         m_shared[i].check(false);
-      } 
-    } 
+      } // if
+    } // for
     ((ConfigDialog *)m_parentDialog)->updateApplyButtonState();
-  } 
+  } // if
 }
 
 void AdministrationConfigDialog::onOpenFolderButtonClick()
 {
   StringStorage logDir;
 
-  m_config->getLogFileDirectory(&logDir);
+  m_config->getLogFileDir(&logDir);
 
   StringStorage command;
 
@@ -326,6 +337,7 @@ void AdministrationConfigDialog::onOpenFolderButtonClick()
   try {
     explorer.start();
   } catch (...) {
+    // TODO: Place error notification here.
   }
 }
 
@@ -336,10 +348,10 @@ void AdministrationConfigDialog::onDARadioButtonClick(int number)
     for (int i = 0; i < 3; i++) {
       if (i != number) {
         m_disconnectAction[i].check(false);
-      } 
-    } 
+      } // if
+    } // for
     ((ConfigDialog *)m_parentDialog)->updateApplyButtonState();
-  } 
+  } // if
 }
 
 void AdministrationConfigDialog::onLogForAllUsersClick()
@@ -373,16 +385,19 @@ void AdministrationConfigDialog::onLogLevelUpdate()
   ((ConfigDialog *)m_parentDialog)->updateApplyButtonState();
 }
 
+//
+// FIXME: Dublicating code (see RegistrySettingsManager::getFolderName method)
+//
+
 void AdministrationConfigDialog::getFolderName(const TCHAR *key, StringStorage *folder)
 {
-  TCHAR *folderString = new TCHAR[_tcslen(key) + 1];
-  _tcscpy(folderString, key);
-  TCHAR *token = _tcsrchr(folderString, _T('\\'));
+  std::vector<TCHAR> folderString(_tcslen(key) + 1);
+  memcpy(&folderString.front(), key, folderString.size());
+  TCHAR *token = _tcsrchr(&folderString.front(), _T('\\'));
   if (token != NULL) {
     *token = _T('\0');
-    folder->setString(folderString);
+    folder->setString(&folderString.front());
   } else {
     folder->setString(_T(""));
   }
-  delete[] folderString;
 }

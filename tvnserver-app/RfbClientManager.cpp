@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,11 +25,15 @@
 #include "RfbClientManager.h"
 #include "thread/ZombieKiller.h"
 #include "QueryConnectionApplication.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
+#include "server-config-lib/Configurator.h"
+#include "desktop/Desktop.h"
 
-RfbClientManager::RfbClientManager(const TCHAR *serverName)
+RfbClientManager::RfbClientManager(const TCHAR *serverName,
+                                   NewConnectionEvents *newConnectionEvents)
 : m_nextClientId(0),
-  m_desktop(0)
+  m_desktop(0),
+  m_newConnectionEvents(newConnectionEvents)
 {
   Log::info(_T("Starting rfb client manager"));
 }
@@ -47,14 +51,19 @@ void RfbClientManager::onClientTerminate()
   validateClientList();
 }
 
-WinDesktop *RfbClientManager::onClientAuth(RfbClient *client)
+DesktopInterface *RfbClientManager::onClientAuth(RfbClient *client)
 {
+  // The client is now authenticated, so remove its IP from the ban list.
   StringStorage ip;
   client->getPeerHost(&ip);
   updateIpInBan(&ip, true);
 
+  m_newConnectionEvents->onSuccAuth(&ip);
+
   AutoLock al(&m_clientListLocker);
 
+  // Checking if this client is allowed to connect, depending on its "shared"
+  // flag and the server's configuration.
   ServerConfig *servConf = Configurator::getInstance()->getServerConfig();
   bool isAlwaysShared = servConf->isAlwaysShared();
   bool isNeverShared = servConf->isNeverShared();
@@ -68,16 +77,22 @@ WinDesktop *RfbClientManager::onClientAuth(RfbClient *client)
     isResultShared = client->getSharedFlag();
   }
 
+  // If the client wishes to have exclusive access then remove other clients.
   if (!isResultShared) {
+    // Which client takes priority, existing or incoming?
     if (servConf->isDisconnectingExistingClients()) {
+      // Incoming
       disconnectAuthClients();
     } else {
+      // Existing
       if (!m_clientList.empty()) {
-        return 0; 
+        throw Exception(_T("Cannot disconnect existing clients and therefore")
+                        _T(" the client will be disconected")); // Disconnect this client
       }
     }
   }
 
+  // Removing the client from the non-authorized clients list.
   for (ClientListIter iter = m_nonAuthClientList.begin();
        iter != m_nonAuthClientList.end(); iter++) {
     RfbClient *clientOfList = *iter;
@@ -87,16 +102,16 @@ WinDesktop *RfbClientManager::onClientAuth(RfbClient *client)
     }
   }
 
+  // Adding to the authorized list.
   m_clientList.push_back(client);
 
   if (m_desktop == 0 && !m_clientList.empty()) {
-    try {
-      m_desktop = new WinDesktop(this, this, this);
-      vector<RfbClientManagerEventListener *>::iterator iter;
-      for (iter = m_listeners.begin(); iter != m_listeners.end(); iter++) {
-        (*iter)->afterFirstClientConnect();
-      }
-    } catch (...) {
+    // Create WinDesktop and notify listeners that the first client has been
+    // connected.
+    m_desktop = new Desktop(this, this, this);
+    vector<RfbClientManagerEventListener *>::iterator iter;
+    for (iter = m_listeners.begin(); iter != m_listeners.end(); iter++) {
+      (*iter)->afterFirstClientConnect();
     }
   }
   return m_desktop;
@@ -116,6 +131,8 @@ void RfbClientManager::onAuthFailed(RfbClient *client)
   client->getPeerHost(&ip);
 
   updateIpInBan(&ip, false);
+
+  m_newConnectionEvents->onAuthFailed(&ip);
 }
 
 void RfbClientManager::onCheckAccessControl(RfbClient *client)
@@ -139,6 +156,8 @@ void RfbClientManager::onCheckAccessControl(RfbClient *client)
   } else {
     action = IpAccessRule::ACTION_TYPE_ALLOW;
   }
+
+  // Promt user to know what to do with incmoing connection.
 
   if (action == IpAccessRule::ACTION_TYPE_QUERY) {
     StringStorage peerHost;
@@ -238,9 +257,11 @@ void RfbClientManager::waitUntilAllClientAreBeenDestroyed()
 
 void RfbClientManager::validateClientList()
 {
-  WinDesktop *objectToDestroy = 0;
+  DesktopInterface *objectToDestroy = 0;
   {
     AutoLock al(&m_clientListLocker);
+    // If clients are in the IN_READY_TO_REMOVE phase, remove them from the
+    // non-authorized clients list.
     ClientListIter iter = m_nonAuthClientList.begin();
     while (iter != m_nonAuthClientList.end()) {
       RfbClient *client = *iter;
@@ -252,6 +273,8 @@ void RfbClientManager::validateClientList()
         iter++;
       }
     }
+    // If clients are in the IN_READY_TO_REMOVE phase, remove them from the
+    // authorized clients list.
     iter = m_clientList.begin();
     while (iter != m_clientList.end()) {
       RfbClient *client = *iter;
@@ -307,12 +330,15 @@ void RfbClientManager::updateIpInBan(const StringStorage *ip, bool success)
   BanListIter it = m_banList.find(*ip);
   if (success) {
     if (it != m_banList.end()) {
+      // Even if client is already banned!
       m_banList.erase(it);
     }
   } else {
     if (it != m_banList.end()) {
+      // Increase ban count
       (*it).second.count += 1;
     } else {
+      // Add new element to ban list with ban count == 0
       BanProp banProp;
       banProp.banFirstTime = DateTime::now();
       banProp.count = 0;
@@ -325,6 +351,7 @@ void RfbClientManager::refreshBan()
 {
   AutoLock al(&m_banListMutex);
 
+  // Clear the ban list from deprecated bans.
   BanListIter it = m_banList.begin();
   while (it != m_banList.end()) {
     DateTime banFirstTime = (*it).second.banFirstTime;
@@ -336,14 +363,19 @@ void RfbClientManager::refreshBan()
   }
 }
 
-void RfbClientManager::addNewConnection(SocketIPv4 *socket, const Rect *viewPort,
+void RfbClientManager::addNewConnection(SocketIPv4 *socket,
+                                        ViewPortState *constViewPort,
                                         bool viewOnly, bool isOutgoing)
 {
   AutoLock al(&m_clientListLocker);
 
-  m_nonAuthClientList.push_back(new RfbClient(socket, this, this, viewOnly,
+  _ASSERT(constViewPort != 0);
+  m_nonAuthClientList.push_back(new RfbClient(m_newConnectionEvents,
+                                              socket, this, this, viewOnly,
                                               isOutgoing,
-                                              m_nextClientId, viewPort));
+                                              m_nextClientId,
+                                              constViewPort,
+                                              &m_dynViewPort));
   m_nextClientId++;
 }
 
@@ -360,5 +392,21 @@ void RfbClientManager::getClientsInfo(RfbClientInfoList *list)
 
       list->push_back(RfbClientInfo(each->getId(), peerHost.getString()));
     }
+  }
+}
+
+void RfbClientManager::setDynViewPort(const ViewPortState *dynViewPort)
+{
+  AutoLock al(&m_clientListLocker);
+  m_dynViewPort = *dynViewPort;
+
+  // Assign the dynViewPort value for all already run clients too.
+  for (ClientListIter iter = m_clientList.begin();
+       iter != m_clientList.end(); iter++) {
+    (*iter)->changeDynViewPort(dynViewPort);
+  }
+  for (ClientListIter iter = m_nonAuthClientList.begin();
+       iter != m_nonAuthClientList.end(); iter++) {
+    (*iter)->changeDynViewPort(dynViewPort);
   }
 }

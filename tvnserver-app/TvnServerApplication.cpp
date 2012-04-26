@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,11 +30,19 @@
 
 #include "util/ResourceLoader.h"
 #include "util/StringTable.h"
+#include "tvnserver-app/NamingDefs.h"
+#include "win-system/WinCommandLineArgs.h"
 
 #include "tvnserver/resource.h"
 
-TvnServerApplication::TvnServerApplication(HINSTANCE hInstance, const TCHAR *commandLine)
-: WindowsApplication(hInstance), m_tvnServer(0), m_commandLine(commandLine)
+TvnServerApplication::TvnServerApplication(HINSTANCE hInstance,
+                                           const TCHAR *windowClassName,
+                                           const TCHAR *commandLine,
+                                           NewConnectionEvents *newConnectionEvents)
+: WindowsApplication(hInstance, windowClassName),
+  m_tvnServer(0),
+  m_commandLine(commandLine),
+  m_newConnectionEvents(newConnectionEvents)
 {
 }
 
@@ -44,18 +52,27 @@ TvnServerApplication::~TvnServerApplication()
 
 int TvnServerApplication::run()
 {
+  // FIXME: May be an unhandled exception.
+  // Check wrong command line and situation when we need to show help.
 
-  ServerCommandLine parser;
-
-  if (!parser.parse(m_commandLine.getString()) || parser.showHelp()) {
+  try {
+    ServerCommandLine parser;
+    WinCommandLineArgs cmdArgs(m_commandLine.getString());
+    if (!parser.parse(&cmdArgs) || parser.showHelp()) {
+      throw Exception(_T("Wrong command line argument"));
+    }
+  } catch (...) {
     TvnServerHelp::showUsage();
     return 0;
   }
 
+  // Reject 2 instances of TightVNC server application.
+
   GlobalMutex *appInstanceMutex;
 
   try {
-    appInstanceMutex = new GlobalMutex(_T("tvnserverApplication"), false, true);
+    appInstanceMutex = new GlobalMutex(
+      ServerApplicationNames::SERVER_INSTANCE_MUTEX_NAME, false, true);
   } catch (...) {
     MessageBox(0,
                StringTable::getString(IDS_SERVER_ALREADY_RUNNING),
@@ -63,23 +80,28 @@ int TvnServerApplication::run()
     return 1;
   }
 
-  m_tvnServer = new TvnServer(false);
+  // Start TightVNC server and TightVNC control application.
+  try {
+    m_tvnServer = new TvnServer(false, m_newConnectionEvents);
+    m_tvnServer->addListener(this);
+    m_tvnControlRunner = new WsConfigRunner();
 
-  m_tvnServer->addListener(this);
+    int exitCode = WindowsApplication::run();
 
-  m_tvnControlRunner = new WsConfigRunner();
-
-  int exitCode = WindowsApplication::run();
-
-  delete m_tvnControlRunner;
-
-  m_tvnServer->removeListener(this);
-
-  delete m_tvnServer;
-
-  delete appInstanceMutex;
-
-  return exitCode;
+    delete m_tvnControlRunner;
+    m_tvnServer->removeListener(this);
+    delete m_tvnServer;
+    delete appInstanceMutex;
+    return exitCode;
+  } catch (Exception &e) {
+    // FIXME: Move string to resource
+    StringStorage message;
+    message.format(_T("Couldn't run the server: %s"), e.getMessage());
+    MessageBox(0,
+               message.getString(),
+               _T("Server error"), MB_OK | MB_ICONEXCLAMATION);
+    return 1;
+  }
 }
 
 void TvnServerApplication::onTvnServerShutdown()

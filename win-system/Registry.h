@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,15 +37,12 @@ public:
   const static int QWORD_TYPE = REG_QWORD;
 
 public:
+  static HKEY getCurrentUserKey();
+  static HKEY getCurrentLocalMachineKey();
+
+private:
   Registry();
   ~Registry();
-
-  static RegistryKey *getCurrentUserKey();
-  static RegistryKey *getCurrentLocalMachineKey();
-
-protected:
-  static RegistryKey *s_currentUser;
-  static RegistryKey *s_localMachine;
 };
 
 #endif

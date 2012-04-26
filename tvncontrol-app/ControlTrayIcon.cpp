@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,12 +24,14 @@
 
 #include "ControlTrayIcon.h"
 #include "OutgoingConnectionDialog.h"
+#include "TcpDispatcherConnectionDialog.h"
 #include "ControlApplication.h"
 
 #include "UpdateRemoteConfigCommand.h"
 #include "DisconnectAllCommand.h"
 #include "ShutdownCommand.h"
 #include "MakeRfbConnectionCommand.h"
+#include "MakeTcpDispatcherConnCommand.h"
 #include "ControlCommand.h"
 #include "UpdateLocalConfigCommand.h"
 
@@ -40,6 +42,8 @@
 #include "tvnserver/resource.h"
 
 #include <crtdbg.h>
+
+UINT ControlTrayIcon::WM_USER_TASKBAR;
 
 ControlTrayIcon::ControlTrayIcon(ControlProxy *serverControl,
                                  Notificator *notificator,
@@ -59,6 +63,7 @@ ControlTrayIcon::ControlTrayIcon(ControlProxy *serverControl,
 
   setWindowProcHolder(this);
 
+  // Prepare commands for configration dialog.
   m_updateRemoteConfigCommand = new UpdateRemoteConfigCommand(m_serverControl);
   m_updateLocalConfigCommand = new UpdateLocalConfigCommand(m_serverControl);
   m_applyChangesMacroCommand = new MacroCommand();
@@ -66,12 +71,17 @@ ControlTrayIcon::ControlTrayIcon(ControlProxy *serverControl,
   m_applyChangesMacroCommand->addCommand(m_updateLocalConfigCommand);
   m_applyChangesControlCommand = new ControlCommand(m_applyChangesMacroCommand, m_notificator);
 
+  // Create config dialog.
   m_configDialog = new ConfigDialog();
   m_configDialog->setConfigReloadCommand(m_applyChangesControlCommand);
 
+  // Default icon state.
   setNotConnectedState();
 
+  // Update status.
   syncStatusWithServer();
+
+  WM_USER_TASKBAR = RegisterWindowMessage(_T("TaskbarCreated"));
 }
 
 ControlTrayIcon::~ControlTrayIcon()
@@ -92,6 +102,7 @@ LRESULT ControlTrayIcon::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
                                     bool *useDefWindowProc)
 {
   if (m_inWindowProc) {
+    // This call is recursive, do not do any real work.
     *useDefWindowProc = true;
     return 0;
   }
@@ -101,6 +112,8 @@ LRESULT ControlTrayIcon::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     return 0;
   }
 
+  // Make sure to reset it back to false before leaving this function for any
+  // reason (check all return statements, exceptions should not happen here).
   m_inWindowProc = true;
 
   switch (uMsg) {
@@ -112,9 +125,12 @@ LRESULT ControlTrayIcon::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_LBUTTONDOWN:
       onLeftButtonDown();
       break;
-    } 
+    } // switch (lParam)
     break;
   default:
+    if (uMsg == WM_USER_TASKBAR) {
+      hide();
+    }
     *useDefWindowProc = true;
   }
 
@@ -158,6 +174,9 @@ void ControlTrayIcon::onRightButtonUp()
   case ID_OUTGOING_CONN:
     onOutgoingConnectionMenuItemClick();
     break;
+  case IDM_ATTACH_TO_DISPATCHER:
+    onAttachToDispatcher();
+    break;
   case ID_ABOUT_TIGHTVNC_MENUITEM:
     onAboutMenuItemClick();
     break;
@@ -186,6 +205,7 @@ void ControlTrayIcon::onConfigurationMenuItemClick()
 
   Configurator::getInstance()->setServiceFlag(isConnectedToService);
 
+  // Copy running tightvnc config to our global server config.
   if (!m_configDialog->isCreated()) {
     UpdateLocalConfigCommand updateLocalConfigCommand(m_serverControl);
 
@@ -198,6 +218,7 @@ void ControlTrayIcon::onConfigurationMenuItemClick()
     }
   }
 
+  // Show dialog.
   m_configDialog->setServiceFlag(isConnectedToService);
   m_configDialog->show();
 
@@ -215,7 +236,9 @@ void ControlTrayIcon::onDisconnectAllClientsMenuItemClick()
 
 void ControlTrayIcon::onShutdownServerMenuItemClick()
 {
+  // Promt user if any client is connected to rfb server.
 
+  // FIXME: Bad way to determinate connected clients.
   bool someoneConnected = (getIcon() == m_iconWorking);
 
   if (someoneConnected) {
@@ -244,6 +267,8 @@ void ControlTrayIcon::onShutdownServerMenuItemClick()
     }
   }
 
+  // Shutdown TightVNC server.
+
   ShutdownCommand unsafeCommand(m_serverControl);
 
   ControlCommand safeCommand(&unsafeCommand, m_notificator);
@@ -267,6 +292,23 @@ void ControlTrayIcon::onOutgoingConnectionMenuItemClick()
   }
 }
 
+void ControlTrayIcon::onAttachToDispatcher()
+{
+  TcpDispatcherConnectionDialog connDialog;
+
+  if (connDialog.showModal() == IDOK) {
+    MakeTcpDispatcherConnCommand unsafeCommand(m_serverControl,
+                                               connDialog.getConnectString(),
+                                               connDialog.getDispatcherName(),
+                                               connDialog.getKeyword(),
+                                               connDialog.getConnectionId());
+
+    ControlCommand safeCommand(&unsafeCommand, m_notificator);
+
+    safeCommand.execute();
+  }
+}
+
 void ControlTrayIcon::onAboutMenuItemClick()
 {
   m_aboutDialog.show();
@@ -282,10 +324,12 @@ void ControlTrayIcon::onCloseControlInterfaceMenuItemClick()
 void ControlTrayIcon::syncStatusWithServer()
 {
   try {
+     // Get TightVNC server info.
     TvnServerInfo info = m_serverControl->getServerInfo();
     std::list<RfbClientInfo *> clients;
     m_serverControl->getClientsList(&clients);
 
+    // Change icon status.
     if (clients.size() > 0) {
       setIcon(m_iconWorking);
     } else if (info.m_acceptFlag) {
@@ -296,6 +340,7 @@ void ControlTrayIcon::syncStatusWithServer()
 
     setText(info.m_statusText.getString());
 
+    // Cleanup.
     for (std::list<RfbClientInfo *>::iterator it = clients.begin(); it != clients.end(); it++) {
       delete *it;
     }
@@ -309,7 +354,7 @@ void ControlTrayIcon::syncStatusWithServer()
     setNotConnectedState();
   } catch (Exception &) {
     _ASSERT(FALSE);
-  } 
+  } // try / catch.
 }
 
 void ControlTrayIcon::setNotConnectedState()
@@ -321,6 +366,7 @@ void ControlTrayIcon::setNotConnectedState()
 void ControlTrayIcon::terminate()
 {
   m_termination = true;
+  // Forcing window message
   PostMessage(getWindow(), WM_USER + 1, 0, 0);
 }
 

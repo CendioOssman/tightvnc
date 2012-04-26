@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,21 +27,47 @@
 
 #include "OutputStream.h"
 
+/**
+ * Output stream to write data to memory.
+ */
 class ByteArrayOutputStream : public OutputStream
 {
 public:
   static const size_t DEFAULT_INNER_BUFFER_CAPACITY = 1024;
 public:
+  /**
+   * Creates new memory output stream with inner memory buffer.
+   * @param max capacity of buffer (in bytes).
+   */
   ByteArrayOutputStream(size_t max);
+  /**
+   * Creates new memory output stream  with inner memory buffer with default capacity.
+   */
   ByteArrayOutputStream();
+  /**
+   * Creates memory output stream for writting into alien (but
+   * owned by ByteArrayOutputStream class) memory.
+   * @fixme stub.
+   */
   ByteArrayOutputStream(void *alienMemory);
 
   virtual ~ByteArrayOutputStream();
 
+  /**
+   * Writes data to memory.
+   * @param buffer source buffer.
+   * @param len count to bytes to write.
+   */
   virtual size_t write(const void *buffer, size_t len);
 
+  /**
+   * Returns size of written data.
+   */
   size_t size() const;
 
+  /**
+   * Returns written data.
+   */
   const char *toByteArray() const;
 
 protected:

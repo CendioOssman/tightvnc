@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,34 +37,103 @@
 
 #include "thread/ZombieKiller.h"
 #include "thread/LocalMutex.h"
-
+#include "LogManager.h"
 #include "util/Singleton.h"
-#include "util/FileLog.h"
 #include "util/ListenerContainer.h"
+#include "NewConnectionEvents.h"
 
-#include "server-config-lib/ConfigReloadListener.h"
+#include "server-config-lib/Configurator.h"
 
 #include "tvncontrol-app/TvnServerInfo.h"
 
+/**
+ * TightVNC server singleton that includes serveral components:
+ *   1) Zombie killer singleton.
+ *   2) Configurator singleton.
+ *   3) Log singleton.
+ *   4) Rfb servers (main rfb server and extra servers).
+ *   5) Http server.
+ *   6) Control server.
+ *   7) Other features:
+     1) Do action when last client disconnects.
+ */
 class TvnServer : public Singleton<TvnServer>,
                   public ListenerContainer<TvnServerListener *>,
                   public ConfigReloadListener,
                   public RfbClientManagerEventListener
 {
 public:
-  TvnServer(bool runsInServiceContext);
+  /**
+   * Creates and starts TightVNC server execution (in separate thread).
+   *
+   * Makes sereval steps:
+   *  1) Instanizes zombie killer.
+   *  2) Instanizes configurator and load configuration.
+   *  3) Instanizes log.
+   *  4) Starts all servers.
+   *
+   * @param runsInServiceContext must be set to true if TvnServer is running in service context,
+   * false, if in context of single application. Parameter determinates control client behavour and
+   * initial place for loading TightVNC configuration.
+   *
+   * @remark doesn't block calling thread execution cause all servers runs in it's own threads.
+   * To know when need to shutdown TightVNC server you need to use addListener method.
+   */
+  TvnServer(bool runsInServiceContext,
+            NewConnectionEvents *newConnectionEvents);
+  /**
+   * Stops and destroys TightVNC server.
+   * @remark don't generate shutdown signal(like shutdown() method does) for listeners.
+   */
   virtual ~TvnServer();
 
+  /**
+   * Fills structure with information of current state of TvnServer.
+   * @param info [out] output parameter that will contain TightVNC server information
+   * after call of this method.
+   * @fixme place extended information to server info.
+   */
   void getServerInfo(TvnServerInfo *info);
 
+  /**
+   * Inherited from ConfigReloadListener interface to catch configuration reload event.
+   *
+   * Make several things:
+   *  1) Changes log level.
+   *  2) Restarts rfb servers.
+   *  3) Restarts http server.
+   */
   virtual void onConfigReload(ServerConfig *serverConfig);
 
+  /**
+   * Only generates shutdown signal (event) for TvnServer listeners.
+   *
+   * @remark used by ControlClient, when it recieves command to shutdown TightVNC.
+   * @remark doesn't stop TightVNC server.
+   * @fixme rename this method.
+   */
   void generateExternalShutdownSignal();
 
+  /**
+   * Checks if TightVNC server runs in service context.
+   * @returns true if runs in service context.
+   * @deprecated use getServerInfo() instead or move to private.
+   */
   bool isRunningAsService() const;
 
+  /**
+   * Implemented from RfbClientManagerEventListener.
+   *
+   * Does nothing.
+   */
   virtual void afterFirstClientConnect();
 
+  /**
+   * Implemented from RfbClientManagerEventListener.
+   *
+   * Does specifed in configuration action when last client disconnects from
+   * rfb server.
+   */
   virtual void afterLastClientDisconnect();
 
 protected:
@@ -76,22 +145,64 @@ protected:
   void stopControlServer();
   void stopMainRfbServer();
 
-  void resetLogFilePath();
+  // Updates log directory path in the configuration.
+  // Call this function before log server creation.
+  void updateLogDirPath();
 
 protected:
-  FileLog m_log;
+  ZombieKiller m_zombieKiller;
 
+  Configurator m_config;
+  /**
+   * Shortcut to global server configuration.
+   */
+  ServerConfig *m_srvConfig;
+
+  // Start the log server scheme or simle FileLog depend on running as service
+  // or not.
+  // This declaration must be after than the ServerConfig declaration because
+  // LogManager uses it.
+  LogManager m_logManager;
+
+  /**
+   * Mutex for protecting servers.
+   */
   LocalMutex m_mutex;
 
+  /**
+   * Flag that determitates if we run in server context.
+   * true if service, false if application.
+   */
   const bool m_runAsService;
 
+  /**
+   * Rfb client manager (for all rfb servers), used by rfb servers
+   * rfb clients, control server and control clients.
+   */
   RfbClientManager *m_rfbClientManager;
+  /**
+   * Control server.
+   */
   ControlServer *m_controlServer;
+  /**
+   * Builtin http server.
+   */
   HttpServer *m_httpServer;
+  /**
+   * Main rfb server.
+   */
   RfbServer *m_rfbServer;
+  /**
+   * Extra servers for extra ports. This object is not protected by any mutex
+   * and it does not implement any internal locking, so it should be used with
+   * caution. Here we change its state on owner creation, on owner deletion
+   * and on each configuration change (via a listener function called from
+   * other threads). The listener function is registered after the object
+   * creation and unregistered before the owner destruction, and its calls are
+   * properly synchronized. Thus, we can be sure that m_extraRfbServers is not
+   * used by different threads simultaneously.
+   */
   ExtraRfbServers m_extraRfbServers;
-
-  ServerConfig *m_config;
 };
 
 #endif

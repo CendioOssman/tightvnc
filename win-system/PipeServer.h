@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,22 +27,57 @@
 
 #include "util/CommonHeader.h"
 
-#include "Pipe.h"
+#include "NamedPipe.h"
 #include "thread/LocalMutex.h"
 #include "SecurityAttributes.h"
 
+/**
+ * Server fabric of pipes.
+ *
+ * @author yuri, enikey.
+ * @fixme not thread-safe, undone, strange code inside.
+ */
 class PipeServer
 {
 public:
+  /**
+   * Creates new pipe server ready to accept connections.
+   *
+   * @param pipeName name of pipe to bind.
+   * @throws PipeException on fail.
+   *
+   * @fixme stub.
+   */
   PipeServer(const TCHAR *name, SecurityAttributes *secAttr = 0,
              DWORD milliseconds = INFINITE) throw(Exception);
+  /**
+   * Destroys pipe server.
+   */
   virtual ~PipeServer();
 
-  Pipe *accept() throw(Exception);
+  /**
+   * Waits until pipe client connects.
+   * @return connected pipe.
+   * @throws PipeException on fail.
+   * @note accept() method can be breaked by call of close() method.
+   *
+   * @fixme stub.
+   */
+  NamedPipe *accept() throw(Exception);
 
+  /**
+   * Closes pipe server.
+   * @throws PipeException on fail.
+   */
   void close() throw(Exception);
 
+  /**
+   * @deprecated.
+   */
   void waitForConnect(DWORD milliseconds = INFINITE);
+  /**
+   * @deprecated.
+   */
   virtual void closeConnection();
 
 private:
@@ -55,4 +90,4 @@ private:
   HANDLE m_serverPipe;
 };
 
-#endif 
+#endif // __PIPESERVER_H__

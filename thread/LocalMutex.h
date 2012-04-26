@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,19 +29,40 @@
 
 #include "Lockable.h"
 
+/**
+ * Local mutex (cannot be used within separate processes).
+ *
+ * @remark local mutex uses Windows critical sections to implement
+ * lockable interface..
+ */
 class LocalMutex : public Lockable
 {
 public:
+  /**
+   * Creates new local mutex.
+   */
   LocalMutex();
 
+  /**
+   * Deletes local mutex.
+   */
   virtual ~LocalMutex();
 
+  /**
+   * Inherited from Lockable.
+   */
   virtual void lock();
 
+  /**
+   * Inherited from Lockable.
+   */
   virtual void unlock();
 
 private:
+  /**
+   * Windows critical section.
+   */
   CRITICAL_SECTION m_criticalSection;
 };
 
-#endif 
+#endif // __LOCALMUTEX_H__

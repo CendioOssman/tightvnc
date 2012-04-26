@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,6 +29,7 @@
 
 #include "security/SecurityIdentifier.h"
 #include "security/SecurityDescriptor.h"
+#include <vector>
 
 class SecurityAttributes
 {
@@ -36,12 +37,19 @@ public:
   SecurityAttributes();
   virtual ~SecurityAttributes();
 
+  // Sets the security attributes to default values. After calling this
+  // function the getSecurityAttributes() function will to return zero until
+  // attributes was changed by another functions.
   void setDefaultAttributes();
 
+  // Sets security attributes that allow all access to all.
   void shareToAllUsers();
 
+  // If immediately before was called the setDefaultAttributes() function
+  // returns zero otherwise returns pointer to SECURITY_ATTRIBUTES structure.
   SECURITY_ATTRIBUTES *getSecurityAttributes();
 
+  // Set inheritable flag of the SECURITY_ATTRIBUTES structure to true
   void setInheritable();
 
 private:
@@ -49,9 +57,10 @@ private:
 
   bool m_isDefaultAttributes;
 
+  /**
+   * Members that needed for shareToAllUsers() method.
+   */
   SecurityDescriptor m_sd;
-  SecurityIdentifier *m_localUsers;
-  EXPLICIT_ACCESS *m_rules;
 };
 
-#endif 
+#endif // __SECURITYATTRIBUTES_H__

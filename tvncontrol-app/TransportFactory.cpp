@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -61,13 +61,12 @@ Transport *TransportFactory::createSocketServerTransport(const TCHAR *bindHost,
 
 Transport *TransportFactory::createPipeClientTransport(const TCHAR *name)
 {
-  PipeClient factory;
-
-  return new NamedPipeTransport(factory.connect(name));
+  return new NamedPipeTransport(PipeClient::connect(name));
 }
 
 Transport *TransportFactory::createPipeServerTransport(const TCHAR *name)
 {
+  // FIXME: Memory leak.
   SecurityAttributes *pipeSecurity = new SecurityAttributes();
 
   pipeSecurity->setInheritable();

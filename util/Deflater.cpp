@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "Deflater.h"
+#include <crtdbg.h>
 
 Deflater::Deflater()
 {
@@ -49,17 +50,16 @@ void Deflater::deflate()
   size_t avaliableOutput = m_inputSize + reserve;
   size_t prevTotalOut = m_zlibStream.total_out;
 
-  if (m_output != NULL) {
-    delete[] m_output;
-  }
+  unsigned int constrainedValue = (unsigned int)avaliableOutput;
+  _ASSERT(avaliableOutput == constrainedValue);
 
-  m_output = new char[avaliableOutput];
+  m_output.resize(avaliableOutput);
 
   m_zlibStream.next_in = (Bytef *)m_input;
-  m_zlibStream.avail_in = m_inputSize;
+  m_zlibStream.avail_in = (unsigned int)m_inputSize;
 
-  m_zlibStream.next_out = (Bytef *)m_output;
-  m_zlibStream.avail_out = avaliableOutput;
+  m_zlibStream.next_out = (Bytef *)&m_output.front();
+  m_zlibStream.avail_out = (unsigned int)avaliableOutput;
 
   if (::deflate(&m_zlibStream, Z_SYNC_FLUSH) != Z_OK) {
     throw ZLibException(_T("Deflate method return error"));

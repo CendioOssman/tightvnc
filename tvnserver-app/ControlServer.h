@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,16 +33,42 @@
 
 #include "win-system/PipeServer.h"
 
+/**
+ * Tcp server that listens for incoming control connections
+ * and give management over these connection to ControlClient instances.
+ */
 class ControlServer : private Thread
 {
 public:
+  /**
+   * Creates and starts control server execution.
+   * @param serverTransport ready transport for control server.
+   * @param rfbClientManager active TightVNC rfb client manager.
+   * @throws Exception when fail to create server.
+   * @remark control server takes ownership over server transport.
+   * @remark rfbClientManager and rfbServers parameters are needed for
+   * executing some of control commands and cannot be 0.
+   */
   ControlServer(PipeServer *pipeServer,
                 RfbClientManager *rfbClientManager) throw(Exception);
+  /**
+   * Stops and deletes control server and deletes transport.
+   */
   virtual ~ControlServer();
 
 protected:
+  /**
+   * Inherited from Thread.
+   *
+   * Awaits for incoming connections.
+   */
   virtual void execute();
 
+  /**
+   * Inherited from Thread.
+   *
+   * Forced closes transport.
+   */
   virtual void onTerminate();
 
 private:
@@ -50,6 +76,9 @@ private:
   ThreadCollector m_threadCollector;
 
   PipeServer *m_pipeServer;
+  /**
+   * Active rfb client manager that used in TightVNC server.
+   */
   RfbClientManager *m_rfbClientManager;
 };
 

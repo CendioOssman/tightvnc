@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,9 +24,6 @@
 
 #include "Registry.h"
 
-RegistryKey *Registry::s_currentUser = NULL;
-RegistryKey *Registry::s_localMachine = NULL;
-
 Registry::Registry()
 {
 }
@@ -35,18 +32,12 @@ Registry::~Registry()
 {
 }
 
-RegistryKey *Registry::getCurrentUserKey()
+HKEY Registry::getCurrentUserKey()
 {
-  if (s_currentUser == 0) {
-    s_currentUser = new RegistryKey(HKEY_CURRENT_USER);
-  }
-  return s_currentUser;
+  return HKEY_CURRENT_USER;
 }
 
-RegistryKey *Registry::getCurrentLocalMachineKey()
+HKEY Registry::getCurrentLocalMachineKey()
 {
-  if (s_localMachine == 0) {
-    s_localMachine = new RegistryKey(HKEY_LOCAL_MACHINE);
-  }
-  return s_localMachine;
+  return HKEY_LOCAL_MACHINE;
 }

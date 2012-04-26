@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,6 +29,7 @@
 
 #include "ControlProxy.h"
 
+// Command that requests server to reload it configuration from the registry
 class ReloadConfigCommand : public Command
 {
 public:
@@ -41,4 +42,4 @@ private:
   ControlProxy* m_proxy;
 };
 
-#endif 
+#endif // __RELOADCONFIGCOMMAND_H__

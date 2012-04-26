@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,7 +22,7 @@
 //-------------------------------------------------------------------------
 //
 
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "UpdateSender.h"
 #include "rfb/VendorDefs.h"
 #include "rfb/EncodingDefs.h"
@@ -30,20 +30,25 @@
 #include <vector>
 #include "util/inttypes.h"
 #include "util/Exception.h"
+#include "UpdSenderMsgDefs.h"
 
 UpdateSender::UpdateSender(RfbCodeRegistrator *codeRegtor,
                            UpdateRequestListener *updReqListener,
                            RfbOutputGate *output, int id)
 : m_updReqListener(updReqListener),
   m_busy(false),
-  m_blockCurPosTime(0),
+  m_incrUpdIsReq(false),
+  m_fullUpdIsReq(false),
   m_setColorMapEntr(false),
   m_output(output),
   m_enbox(&m_pixelConverter, m_output),
-  m_id(id)
+  m_id(id),
+  m_videoFrozen(false)
 {
+  // FIXME: argument must be defined
   m_updateKeeper = new UpdateKeeper(&Rect());
 
+  // Capabilities
   codeRegtor->addEncCap(EncodingDefs::COPYRECT,          VendorDefs::STANDARD,
                         EncodingDefs::SIG_COPYRECT);
   codeRegtor->addEncCap(EncodingDefs::HEXTILE,           VendorDefs::STANDARD,
@@ -61,6 +66,12 @@ UpdateSender::UpdateSender(RfbCodeRegistrator *codeRegtor,
   codeRegtor->addEncCap(PseudoEncDefs::DESKTOP_SIZE,     VendorDefs::TIGHTVNC,
                         PseudoEncDefs::SIG_DESKTOP_SIZE);
 
+  codeRegtor->addClToSrvCap(UpdSenderClientMsgDefs::RFB_VIDEO_FREEZE,
+                            VendorDefs::TIGHTVNC,
+                            UpdSenderClientMsgDefs::RFB_VIDEO_FREEZE_SIG);
+
+  // Request codes
+  codeRegtor->regCode(UpdSenderClientMsgDefs::RFB_VIDEO_FREEZE, this);
   codeRegtor->regCode(ClientMsgDefs::FB_UPDATE_REQUEST, this);
   codeRegtor->regCode(ClientMsgDefs::SET_PIXEL_FORMAT, this);
   codeRegtor->regCode(ClientMsgDefs::SET_ENCODINGS, this);
@@ -81,6 +92,7 @@ void UpdateSender::onTerminate()
 
 void UpdateSender::onRequest(UINT32 reqCode, RfbInputGate *input)
 {
+  // UpdateSender internal dispatcher
   switch (reqCode) {
   case ClientMsgDefs::FB_UPDATE_REQUEST:
     readUpdateRequest(input);
@@ -91,6 +103,9 @@ void UpdateSender::onRequest(UINT32 reqCode, RfbInputGate *input)
   case ClientMsgDefs::SET_ENCODINGS:
     readSetEncodings(input);
     break;
+  case UpdSenderClientMsgDefs::RFB_VIDEO_FREEZE:
+    readVideoFreeze(input);
+    break;
   default:
     StringStorage errMess;
     errMess.format(_T("Unknown %d protocol code received"), (int)reqCode);
@@ -99,15 +114,16 @@ void UpdateSender::onRequest(UINT32 reqCode, RfbInputGate *input)
   }
 }
 
-void UpdateSender::init(const Dimension *fbDim, const PixelFormat *pf)
+void UpdateSender::init(const Dimension *viewPortDimension,
+                        const PixelFormat *pf)
 {
   setClientPixelFormat(pf, false);
   {
     AutoLock al(&m_viewPortMut);
-    m_clientDim = *fbDim;
+    m_clientDim = *viewPortDimension;
   }
-  m_lastViewPortDim = *fbDim;
-  m_updateKeeper->setBorderRect(&fbDim->getRect());
+  m_lastViewPortDim = *viewPortDimension;
+  m_updateKeeper->setBorderRect(&viewPortDimension->getRect());
 }
 
 void UpdateSender::newUpdates(const UpdateContainer *updateContainer,
@@ -118,10 +134,7 @@ void UpdateSender::newUpdates(const UpdateContainer *updateContainer,
   Log::debug(_T("New updates passed to client #%d"), m_id);
   addUpdateContainer(updateContainer, frameBuffer, viewPort);
 
-  {
-    AutoLock al(&m_curShapeLocMut);
-    m_cursorShape.clone(cursorShape);
-  }
+  m_cursorUpdates.updateCursorShape(cursorShape);
 
   AutoLock al(&m_reqRectLocMut);
   if (clientIsReady()) {
@@ -139,9 +152,16 @@ void UpdateSender::addUpdateContainer(const UpdateContainer *updateContainer,
 {
   UpdateContainer updCont = *updateContainer;
 
+  bool viewPortChanged = false;
   {
     AutoLock al(&m_viewPortMut);
+    viewPortChanged = !m_viewPort.isEqualTo(viewPort);
     m_viewPort = *viewPort;
+  }
+
+  if (viewPortChanged) {
+    updCont.changedRegion.addRect(viewPort);
+    updCont.copiedRegion.clear();
   }
 
   updCont.videoRegion.translate(-viewPort->left, -viewPort->top);
@@ -152,9 +172,16 @@ void UpdateSender::addUpdateContainer(const UpdateContainer *updateContainer,
   FrameBuffer *fbForReceive = m_fbAccessor.getFbForWriting(srcFb,
                                                            &m_viewPort);
 
-  Region changedAndCopyRgns = updCont.changedRegion;
+  // Frame buffers synchronizing
+  // Use stored information too.
+  UpdateContainer storedUpdCont;
+  m_updateKeeper->getUpdateContainer(&storedUpdCont);
+
+  Region changedAndCopyRgns = storedUpdCont.changedRegion;
+  changedAndCopyRgns.add(&updCont.changedRegion);
   changedAndCopyRgns.add(&updCont.copiedRegion);
   changedAndCopyRgns.add(&updCont.videoRegion);
+  changedAndCopyRgns.addRect(&m_cursorUpdates.getBackgroundRect());
   {
     AutoLock al(&m_reqRectLocMut);
     changedAndCopyRgns.add(&m_requestedFullReg);
@@ -175,18 +202,7 @@ void UpdateSender::addUpdateContainer(const UpdateContainer *updateContainer,
 
 void UpdateSender::blockCursorPosSending()
 {
-  AutoLock al(&m_curPosLocMut);
-  m_blockCurPosTime = DateTime::now();
-}
-
-bool UpdateSender::isCursorPosBlocked()
-{
-  AutoLock al(&m_curPosLocMut);
-  if ((DateTime::now() - m_blockCurPosTime).getTime() > 1000) {
-    return false; 
-  } else {
-    return true; 
-  }
+  m_cursorUpdates.blockCursorPosSending();
 }
 
 Rect UpdateSender::getViewPort()
@@ -198,12 +214,12 @@ Rect UpdateSender::getViewPort()
 bool UpdateSender::clientIsReady()
 {
   AutoLock al(&m_reqRectLocMut);
-  return (!m_requestedIncrReg.isEmpty() || !m_requestedFullReg.isEmpty()) &&
-          !m_busy;
+  return (m_incrUpdIsReq || m_fullUpdIsReq) && !m_busy;
 }
 
 void UpdateSender::sendRectHeader(const Rect *rect, INT32 encodingType)
 {
+  // FIXME: Why no warnings on passing bigger integer types?
   m_output->writeUInt16(rect->left);
   m_output->writeUInt16(rect->top);
   m_output->writeUInt16(rect->getWidth());
@@ -223,9 +239,10 @@ void UpdateSender::sendRectHeader(UINT16 x, UINT16 y, UINT16 w, UINT16 h,
 
 void UpdateSender::sendNewFBSize(Dimension *dim)
 {
-  m_output->writeUInt8(ServerMsgDefs::FB_UPDATE); 
-  m_output->writeUInt8(0); 
-  m_output->writeUInt16(1); 
+  // Header
+  m_output->writeUInt8(ServerMsgDefs::FB_UPDATE); // message type
+  m_output->writeUInt8(0); // padding
+  m_output->writeUInt16(1); // one rectangle
 
   Rect r(dim->width, dim->height);
   sendRectHeader(&r, PseudoEncDefs::DESKTOP_SIZE);
@@ -236,6 +253,9 @@ void UpdateSender::sendFbInClientDim(const EncodeOptions *encodeOptions,
                                      const Dimension *dim,
                                      const PixelFormat *pf)
 {
+  // On the black frame buffer will be overlayed the current framebuffer.
+  // This is needed to combine the server frame buffer with a client frame
+  // buffer when the dimensions are not equal.
   FrameBuffer blankFrameBuffer;
   blankFrameBuffer.setProperties(dim, pf);
   blankFrameBuffer.setColor(0, 0, 0);
@@ -245,41 +265,40 @@ void UpdateSender::sendFbInClientDim(const EncodeOptions *encodeOptions,
   std::vector<Rect> rects;
   splitRegion(m_enbox.getEncoder(), &region, &rects, &blankFrameBuffer, encodeOptions);
 
-  m_output->writeUInt8(0); 
-  m_output->writeUInt8(0); 
-  m_output->writeUInt16(rects.size());
+  // Header
+  m_output->writeUInt8(0); // message type
+  m_output->writeUInt8(0); // padding
+  UINT16 numRects = (UINT16)rects.size();
+  _ASSERT(numRects == rects.size());
+  m_output->writeUInt16(numRects);
   sendRectangles(m_enbox.getEncoder(), &rects, &blankFrameBuffer, encodeOptions);
 }
 
-void UpdateSender::sendCursorShapeUpdate(const PixelFormat *fmt)
+void UpdateSender::sendCursorShapeUpdate(const PixelFormat *fmt,
+                                         const CursorShape *cursorShape)
 {
-  CursorShape cursorShape;
-  {
-    AutoLock al(&m_curShapeLocMut);
-    cursorShape.clone(&m_cursorShape);
-  }
-
-  Point hotSpot = cursorShape.getHotSpot();
-  Dimension dim = cursorShape.getDimension();
+  // Send pseudo-rectangle.
+  Point hotSpot = cursorShape->getHotSpot();
+  Dimension dim = cursorShape->getDimension();
   sendRectHeader(hotSpot.x, hotSpot.y, dim.width, dim.height,
                  PseudoEncDefs::RICH_CURSOR);
 
   FrameBuffer fbConverted;
   fbConverted.setProperties(&dim, fmt);
   m_pixelConverter.convert(&dim.getRect(), &fbConverted,
-                           cursorShape.getPixels());
+                           cursorShape->getPixels());
 
-  m_output->writeFully(fbConverted.getBuffer(), fbConverted.getBufferSize());
-  m_output->writeFully(cursorShape.getMask(), cursorShape.getMaskSize());
+  if (fbConverted.getBufferSize()) {
+    m_output->writeFully(fbConverted.getBuffer(), fbConverted.getBufferSize());
+  }
+  if (cursorShape->getMaskSize()) {
+    m_output->writeFully(cursorShape->getMask(), cursorShape->getMaskSize());
+  }
 }
 
 void UpdateSender::sendCursorPosUpdate()
 {
-  Point pos;
-  {
-    AutoLock al(&m_curPosLocMut);
-    pos = m_cursorPos;
-  }
+  Point pos = m_cursorUpdates.getCurPos();
   sendRectHeader(pos.x, pos.y, 0, 0, PseudoEncDefs::POINTER_POS);
 }
 
@@ -292,6 +311,8 @@ void UpdateSender::sendCopyRect(const std::vector<Rect> *rects, const Point *sou
 
     sendRectHeader(rect, EncodingDefs::COPYRECT);
 
+    // Send copyRect data
+    // FIXME: Each dest rect should have own source point
     m_output->writeUInt16(source->x);
     m_output->writeUInt16(source->y);
   }
@@ -299,84 +320,47 @@ void UpdateSender::sendCopyRect(const std::vector<Rect> *rects, const Point *sou
 
 void UpdateSender::sendPalette(PixelFormat *pf)
 {
-  m_output->writeUInt8(1); 
-  m_output->writeUInt8(0); 
-  m_output->writeUInt16(0); 
-  m_output->writeUInt16(256); 
+  m_output->writeUInt8(1); // type
+  m_output->writeUInt8(0); // pad
+  m_output->writeUInt16(0); // first color
+  m_output->writeUInt16(256); // number of colors
   for (unsigned int i = 0; i < 256; i++) {
-    m_output->writeUInt16(((i >> pf->redShift) & pf->redMax) * 65535 / pf->redMax); 
-    m_output->writeUInt16(((i >> pf->greenShift) & pf->greenMax) * 65535 / pf->greenMax); 
-    m_output->writeUInt16(((i >> pf->blueShift) & pf->blueMax) * 65535 / pf->blueMax); 
-  }
-}
-
-void UpdateSender::checkCursorPos(UpdateContainer *updCont,
-                                  const Rect *viewPort)
-{
-  AutoLock al(&m_curPosLocMut);
-  Point cursorPos = updCont->cursorPos;
-  cursorPos.x -= viewPort->left;
-  cursorPos.y -= viewPort->top;
-
-  if (cursorPos.x < 0) {
-    cursorPos.x = 0;
-  } else if (cursorPos.x >= viewPort->getWidth()) {
-    cursorPos.x = viewPort->getWidth() - 1;
-  }
-  if (cursorPos.y < 0) {
-    cursorPos.y = 0;
-  } else if (cursorPos.y >= viewPort->getHeight()) {
-    cursorPos.y = viewPort->getHeight() - 1;
-  }
-
-  if (cursorPos.x == m_cursorPos.x && cursorPos.y == m_cursorPos.y ||
-      isCursorPosBlocked()) {
-    updCont->cursorPosChanged = false;
-  } else {
-    m_cursorPos.x = cursorPos.x;
-    m_cursorPos.y = cursorPos.y;
+    m_output->writeUInt16(((i >> pf->redShift) & pf->redMax) * 65535 / pf->redMax); // red
+    m_output->writeUInt16(((i >> pf->greenShift) & pf->greenMax) * 65535 / pf->greenMax); // green
+    m_output->writeUInt16(((i >> pf->blueShift) & pf->blueMax) * 65535 / pf->blueMax); // blue
   }
 }
 
 void UpdateSender::sendUpdate()
 {
-  Log::debug(_T("Entering sendUpdate() function"));
+  Log::debug(_T("Entered to the sendUpdate() function"));
 
+  // Check requested regions and immediately return if the client did not
+  // request anything.
   Region requestedFullReg, requestedIncrReg;
-  {
-    AutoLock al(&m_reqRectLocMut);
-    if (m_requestedFullReg.isEmpty() && m_requestedIncrReg.isEmpty()) {
-      Log::debug(_T("Requested regions are empty, exiting sendUpdate()"));
-      return;
-    } else {
-      requestedFullReg = m_requestedFullReg;
-      requestedIncrReg = m_requestedIncrReg;
-      m_requestedFullReg.clear();
-      m_requestedIncrReg.clear();
-    }
+  bool incrUpdIsReq, fullUpdIsReq;
+  DateTime reqTimePoint;
+  if (!extractReqRegions(&requestedIncrReg, &requestedFullReg,
+                         &incrUpdIsReq, &fullUpdIsReq,
+                         &reqTimePoint)) {
+    Log::debug(_T("No request, exiting from the sendUpdate()"));
+    return;
   }
-
-  Log::debug(_T("Requested regions are not empty, continuing"));
-
-  EncodeOptions encodeOptions;
-  {
-    AutoLock lock(&m_newEncodeOptionsLocker);
-    encodeOptions = m_newEncodeOptions;
-  }
-
-  m_enbox.selectEncoder(encodeOptions.getPreferredEncoding());
-
-  AutoLock al(&m_fbAccessor);
-  FrameBuffer *frameBuffer = m_fbAccessor.getFbForReading();
+  Log::debug(_T("A request has been made, continuing"));
+  Log::debug(_T("The incremental region has %d rectangles"),
+             (int)requestedIncrReg.getCount());
+  Log::debug(_T("The full region has %d rectangles"),
+             (int)requestedFullReg.getCount());
 
   UpdateContainer updCont;
-  m_updateKeeper->extract(&updCont);
-  Region outRegion = updCont.changedRegion;
-  Region combinedReqRegion = requestedIncrReg;
-  combinedReqRegion.add(&requestedFullReg);
-  outRegion.subtract(&combinedReqRegion);
-  updCont.changedRegion.intersect(&combinedReqRegion);
-  m_updateKeeper->addChangedRegion(&outRegion);
+  extractUpdates(&updCont, &requestedIncrReg, &requestedFullReg);
+
+  EncodeOptions encodeOptions;
+  selectEncoder(&encodeOptions);
+
+  // Frame buffer remember
+  AutoLock al(&m_fbAccessor);
+  FrameBuffer *frameBuffer = m_fbAccessor.getFbForReading();
 
   AutoLock l(m_output);
 
@@ -387,17 +371,21 @@ void UpdateSender::sendUpdate()
     lastViewPortDim = m_lastViewPortDim;
   }
 
+  // Viewport calculating
   Rect viewPort;
   {
     AutoLock al(&m_viewPortMut);
     viewPort = m_viewPort;
   }
+  // If client does not support the desktop resizing then view port dimension
+  // must be no more than client dimension.
   if (!encodeOptions.desktopSizeEnabled()) {
     Rect clientRect = clientDim.getRect();
     clientRect.setLocation(viewPort.left, viewPort.top);
     viewPort = viewPort.intersection(&clientRect);
   }
 
+  // Checking for screen size changing
   if (lastViewPortDim != Dimension(&viewPort) ||
       updCont.screenSizeChanged) {
     updCont.screenSizeChanged = true;
@@ -410,14 +398,18 @@ void UpdateSender::sendUpdate()
       clientDim = m_clientDim;
       m_updateKeeper->setBorderRect(&clientDim.getRect());
       updCont.changedRegion.crop(&clientDim.getRect());
+      // Dazzle changedRegion
       updCont.changedRegion.addRect(&clientDim.getRect());
     } else {
       m_updateKeeper->setBorderRect(&lastViewPortDim.getRect());
       updCont.changedRegion.crop(&lastViewPortDim.getRect());
+      // Dazzle changedRegion
       updCont.changedRegion.addRect(&lastViewPortDim.getRect());
     }
   }
 
+  // Update pixel converter for effective pixel formats. We must do this
+  // before using encoders.
   const PixelFormat serverPixelFormat = frameBuffer->getPixelFormat();
   bool setColorMapEntr;
   PixelFormat clientPixelFormat;
@@ -432,12 +424,15 @@ void UpdateSender::sendUpdate()
   }
   m_pixelConverter.setPixelFormats(&clientPixelFormat, &serverPixelFormat);
 
+  // Send updates
   if (updCont.screenSizeChanged || (!requestedFullReg.isEmpty() &&
                                     !encodeOptions.desktopSizeEnabled())) {
     Log::debug(_T("Screen size changed or full region requested"));
     if (encodeOptions.desktopSizeEnabled()) {
-      Log::debug(_T("Desktop resize is enabled, sending NewFBSize"));
+      Log::debug(_T("Desktop resize is enabled, sending NewFBSize %dx%d"),
+                 lastViewPortDim.width, lastViewPortDim.height);
       sendNewFBSize(&lastViewPortDim);
+      // FIXME: "Dazzle" does not seem like a good word here.
       Log::debug(_T("Dazzle changed region"));
       m_updateKeeper->dazzleChangedReg();
     } else {
@@ -449,32 +444,18 @@ void UpdateSender::sendUpdate()
     }
   } else {
     Log::debug(_T("Processing normal updates"));
-    if (!encodeOptions.richCursorEnabled() ||
-        !encodeOptions.pointerPosEnabled()) {
-      Log::debug(_T("Clearing cursorPosChanged")
-                 _T(" (RichCursor or PointerPos are not requested)"));
-      updCont.cursorPosChanged = false;
-    } else if (!requestedFullReg.isEmpty()) {
-      Log::debug(_T("Raising cursorPosChanged (full region requested)"));
-      updCont.cursorPosChanged = true;
-    }
-    if (!encodeOptions.richCursorEnabled()) {
-      Log::debug(_T("Clearing cursorShapeChanged (RichCursor disabled)"));
-      updCont.cursorShapeChanged = false;
-    } else if (!requestedFullReg.isEmpty()) {
-      Log::debug(_T("Raising cursorShapeChanged (RichCursor enabled")
-                 _T(" and full region requested)"));
-      updCont.cursorShapeChanged = true;
-    }
+    CursorShape cursorShape;
+    m_cursorUpdates.update(&encodeOptions,
+                           &updCont,
+                           !requestedFullReg.isEmpty(),
+                           &viewPort,
+                           frameBuffer,
+                           &cursorShape);
+
     if (!encodeOptions.copyRectEnabled()) {
       Log::debug(_T("CopyRect is disabled, converting to normal updates"));
       updCont.changedRegion.add(&updCont.copiedRegion);
       updCont.copiedRegion.clear();
-    }
-
-    if (updCont.cursorPosChanged) {
-      Log::debug(_T("Checking cursor position"));
-      checkCursorPos(&updCont, &viewPort);
     }
 
     Region videoRegion = updCont.videoRegion;
@@ -482,36 +463,52 @@ void UpdateSender::sendUpdate()
 
     videoRegion.subtract(&requestedFullReg);
     changedRegion.subtract(&videoRegion);
+    if (getVideoFrozen()) {
+      videoRegion.clear();
+    }
     changedRegion.add(&requestedFullReg);
 
+    // FIXME: Are these two lines really needed? Check that carefully.
     Rect frameBufferRect = frameBuffer->getDimension().getRect();
     videoRegion.crop(&frameBufferRect);
     changedRegion.crop(&frameBufferRect);
 
+    // If Tight encoding is not supported by the client, convert video updates
+    // to normal updates so that the preferred encoding will be used.
     if (!encodeOptions.encodingEnabled(EncodingDefs::TIGHT)) {
       changedRegion.add(&videoRegion);
       videoRegion.clear();
     }
 
+    //
+    // At this point, we've got final regions in changedRegion and videoRegion.
+    //
+
+    // Convert changedRegion to the final list of rectangles.
+    Log::debug(_T("Number of normal rectangles before splitting: %d"),
+               changedRegion.getCount());
     std::vector<Rect> normalRects;
     splitRegion(m_enbox.getEncoder(), &changedRegion, &normalRects,
                 frameBuffer, &encodeOptions);
 
+    // Do the same for the videoRegion.
     std::vector<Rect> videoRects;
     if (!videoRegion.isEmpty()) {
       Log::debug(_T("Video region is not empty"));
-      m_enbox.validateJpegEncoder(); 
+      m_enbox.validateJpegEncoder(); // make sure JpegEncoder is allocated
       splitRegion(m_enbox.getJpegEncoder(), &videoRegion, &videoRects,
                   frameBuffer, &encodeOptions);
     }
 
+    // Get the final list of CopyRect rectangles.
     std::vector<Rect> copyRects;
     updCont.copiedRegion.getRectVector(&copyRects);
 
+    // Calculate the total number of rectangles and pseudo-rectangles.
     Log::debug(_T("Number of normal rectangles: %d"), normalRects.size());
     Log::debug(_T("Number of video rectangles: %d"), videoRects.size());
     Log::debug(_T("Number of CopyRect rectangles: %d"), copyRects.size());
-    int numTotalRects =
+    size_t numTotalRects =
       normalRects.size() + videoRects.size() + copyRects.size();
 
     if (updCont.cursorPosChanged) {
@@ -525,12 +522,14 @@ void UpdateSender::sendUpdate()
     Log::debug(_T("Total number of rectangles and pseudo-rectangles: %d"),
                numTotalRects);
 
+    // FIXME: Handle this better, e.g. send first 65534 rectangles.
     _ASSERT(numTotalRects <= 65534);
 
     if (numTotalRects != 0) {
       Log::debug(_T("Sending FramebufferUpdate message header"));
-      m_output->writeUInt8(0); 
-      m_output->writeUInt8(0); 
+      // FIXME: Use constant for FramebufferUpdate message type.
+      m_output->writeUInt8(0); // message type
+      m_output->writeUInt8(0); // padding
       m_output->writeUInt16((UINT16)numTotalRects);
 
       if (updCont.cursorPosChanged) {
@@ -539,7 +538,8 @@ void UpdateSender::sendUpdate()
       }
       if (updCont.cursorShapeChanged) {
         Log::debug(_T("Sending cursor shape update"));
-        sendCursorShapeUpdate(&clientPixelFormat);
+        sendCursorShapeUpdate(&clientPixelFormat,
+                              &cursorShape);
       }
       if (copyRects.size() > 0) {
         Log::debug(_T("Sending CopyRect rectangles"));
@@ -549,13 +549,21 @@ void UpdateSender::sendUpdate()
       Log::debug(_T("Sending video rectangles"));
       sendRectangles(m_enbox.getJpegEncoder(), &videoRects, frameBuffer, &encodeOptions);
       Log::debug(_T("Sending normal rectangles"));
+      Log::debug(_T("Time between request and a point before send and coding (in milliseconds): %u"),
+                 (unsigned int)(DateTime::now() - reqTimePoint).getTime());
       sendRectangles(m_enbox.getEncoder(), &normalRects, frameBuffer, &encodeOptions);
+      Log::debug(_T("Time between request and answer is (in milliseconds): %u"),
+                 (unsigned int)(DateTime::now() - reqTimePoint).getTime());
     } else {
       Log::debug(_T("Nothing to send, restoring requested regions"));
       AutoLock al(&m_reqRectLocMut);
       m_requestedFullReg.add(&requestedFullReg);
       m_requestedIncrReg.add(&requestedIncrReg);
+      m_incrUpdIsReq = incrUpdIsReq;
+      m_fullUpdIsReq = fullUpdIsReq;
     }
+    m_cursorUpdates.restoreFrameBuffer(frameBuffer);
+
   }
 
   Log::debug(_T("Flushing output"));
@@ -612,6 +620,7 @@ void UpdateSender::execute()
 
 void UpdateSender::readUpdateRequest(RfbInputGate *io)
 {
+  // Read the rest of the message:
   bool incremental = io->readUInt8() != 0;
   Rect reqRect;
   reqRect.left = io->readUInt16();
@@ -623,9 +632,12 @@ void UpdateSender::readUpdateRequest(RfbInputGate *io)
     AutoLock al(&m_reqRectLocMut);
     if (incremental) {
       m_requestedIncrReg.addRect(&reqRect);
+      m_incrUpdIsReq = true;
     } else {
       m_requestedFullReg.addRect(&reqRect);
+      m_fullUpdIsReq = true;
     }
+    m_requestTimePoint = DateTime::now();
   }
 
   Log::detail(_T("update requested (%d, %d, %dx%d, incremental = %d)")
@@ -641,9 +653,11 @@ void UpdateSender::readUpdateRequest(RfbInputGate *io)
 void UpdateSender::readSetPixelFormat(RfbInputGate *io)
 {
   PixelFormat pf;
+  // Read padding
   io->readUInt16();
   io->readUInt8();
 
+  // Read pixel format
   int bpp = io->readUInt8();
   if (bpp == 8 || bpp == 16 || bpp == 32) {
     pf.bitsPerPixel = bpp;
@@ -664,9 +678,11 @@ void UpdateSender::readSetPixelFormat(RfbInputGate *io)
   pf.greenShift = io->readUInt8();
   pf.blueShift = io->readUInt8();
 
+  // Read padding
   io->readUInt16();
   io->readUInt8();
 
+  // If palette rewuested fill the pixel format own values
   if (setColorMapEntr) {
     pf.redMax = 7;
     pf.greenMax = 7;
@@ -688,7 +704,7 @@ void UpdateSender::setClientPixelFormat(const PixelFormat *pf,
 
 void UpdateSender::readSetEncodings(RfbInputGate *io)
 {
-  io->readUInt8(); 
+  io->readUInt8(); // padding
   int numCodes = io->readUInt16();
 
   std::vector<int> list;
@@ -700,4 +716,72 @@ void UpdateSender::readSetEncodings(RfbInputGate *io)
 
   AutoLock lock(&m_newEncodeOptionsLocker);
   m_newEncodeOptions.setEncodings(&list);
+}
+
+void UpdateSender::setVideoFrozen(bool value)
+{
+  AutoLock al(&m_vidFreezeLocMut);
+  m_videoFrozen = value;
+}
+
+bool UpdateSender::getVideoFrozen()
+{
+  AutoLock al(&m_vidFreezeLocMut);
+  return m_videoFrozen;
+}
+
+void UpdateSender::readVideoFreeze(RfbInputGate *io)
+{
+  setVideoFrozen(io->readUInt8() != 0);
+}
+
+bool UpdateSender::extractReqRegions(Region *incrReqReg,
+                                     Region *fullReqReg,
+                                     bool *incrUpdIsReq,
+                                     bool *fullUpdIsReq,
+                                     DateTime *reqTimePoint)
+{
+  AutoLock al(&m_reqRectLocMut);
+
+  *incrReqReg = m_requestedIncrReg;
+  *fullReqReg = m_requestedFullReg;
+  *incrUpdIsReq = m_incrUpdIsReq;
+  *fullUpdIsReq = m_fullUpdIsReq;
+
+  m_requestedFullReg.clear();
+  m_requestedIncrReg.clear();
+  m_incrUpdIsReq = false;
+  m_fullUpdIsReq = false;
+
+  *reqTimePoint = m_requestTimePoint;
+
+  return *incrUpdIsReq || *fullUpdIsReq;
+}
+
+void UpdateSender::extractUpdates(UpdateContainer *updCont,
+                                  const Region *incrReqReg,
+                                  const Region *fullReqReg)
+{
+  m_updateKeeper->extract(updCont);
+  // Crop by requested region
+  Region outRegion = updCont->changedRegion;
+  Region combinedReqRegion = *incrReqReg;
+  combinedReqRegion.add(fullReqReg);
+  outRegion.subtract(&combinedReqRegion);
+  updCont->changedRegion.intersect(&combinedReqRegion);
+  // Return back the out region to the update keeper.
+  m_updateKeeper->addChangedRegion(&outRegion);
+}
+
+void UpdateSender::selectEncoder(EncodeOptions *encodeOptions)
+{
+  // Make new encode options take effect. They might have been changed on
+  // receiving SetEncodings client message.
+  {
+    AutoLock lock(&m_newEncodeOptionsLocker);
+    *encodeOptions = m_newEncodeOptions;
+  }
+  // Make sure the encoder object corresponds to the preferred encoding
+  // requested in the most recent SetEncodings client message.
+  m_enbox.selectEncoder(encodeOptions->getPreferredEncoding());
 }

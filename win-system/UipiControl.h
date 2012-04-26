@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,13 +27,20 @@
 
 #include "util/CommonHeader.h"
 
+// This class allow to control the uipi for the current process.
 class UipiControl
 {
 public:
   UipiControl();
   ~UipiControl();
 
+  // This function allow to receive the message from a lower integrity
+  // level sender. The function will take effect only for an application
+  // running at Windows Vista and later.
+  // @param hwnd - handle to a window that will be to receive the allowed
+  // message (ignored at Windows Vista or older).
+  // @throws Exception on a fail (Only for Vista and later).
   void allowMessage(UINT message, HWND hwnd);
 };
 
-#endif 
+#endif // __UIPICONTROL_H__

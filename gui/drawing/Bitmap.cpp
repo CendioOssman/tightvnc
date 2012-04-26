@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,18 +24,19 @@
 
 #include "Bitmap.h"
 
-Bitmap::Bitmap(size_t width, size_t height)
+Bitmap::Bitmap(int width, int height)
 : m_bitmap(NULL)
 {
+  // Prepare buffer
   int bpp = 32;
   size_t size = width * height * (bpp / 8);
-  unsigned char *bits = new unsigned char[size];
-  memset(bits, 0, size);
-  m_bitmap = CreateBitmap(width, height, 1, bpp, bits);
-  delete []bits;
+  std::vector<unsigned char> bits(size);
+  memset(&bits.front(), 0, size);
+  // Create bitmap handle
+  m_bitmap = CreateBitmap(width, height, 1, bpp, &bits.front());
 }
 
-Bitmap::Bitmap(HDC dc, size_t width, size_t height)
+Bitmap::Bitmap(HDC dc, int width, int height)
 {
   m_bitmap = CreateCompatibleBitmap(dc, width, height);
 }
@@ -52,14 +53,14 @@ Bitmap::~Bitmap()
   }
 }
 
-size_t Bitmap::getWidth() const
+int Bitmap::getWidth() const
 {
   BITMAP bitmap;
   GetObject(m_bitmap, sizeof(BITMAP), &bitmap);
   return bitmap.bmWidth;
 }
 
-size_t Bitmap::getHeight() const
+int Bitmap::getHeight() const
 {
   BITMAP bitmap;
   GetObject(m_bitmap, sizeof(BITMAP), &bitmap);

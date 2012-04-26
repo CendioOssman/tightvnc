@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "SocketInputStream.h"
+#include <crtdbg.h>
 
 SocketInputStream::SocketInputStream(SOCKET sock)
 : m_sock(sock)
@@ -35,7 +36,8 @@ SocketInputStream::~SocketInputStream()
 
 size_t SocketInputStream::read(void *buffer, size_t len)
 {
-  int read = ::recv(m_sock, (char *)buffer, len, 0);
+  _ASSERT((int)len == len);
+  int read = ::recv(m_sock, (char *)buffer, (int)len, 0);
 
   if (read == SOCKET_ERROR) {
     throw IOException(_T("Cannot read from socket"));

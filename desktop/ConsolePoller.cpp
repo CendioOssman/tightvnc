@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "ConsolePoller.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
 
 ConsolePoller::ConsolePoller(UpdateKeeper *updateKeeper,
@@ -82,6 +82,7 @@ void ConsolePoller::execute()
         }
       }
 
+      // Send event
       if (!region.isEmpty()) {
         m_updateKeeper->addChangedRegion(&region);
         doUpdate();

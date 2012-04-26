@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,9 @@
 
 #include "Impersonator.h"
 
+// This class automaticly impesonates at the constructor and
+// revertes at the destructor.
+// This class doesn't throw Exception.
 class AutoImpersonator
 {
 public:
@@ -36,4 +39,4 @@ private:
   Impersonator *m_imp;
 };
 
-#endif 
+#endif // __AUTOIMPERSONATOR_H__

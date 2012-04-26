@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,7 +25,7 @@
 #include "InputInjector.h"
 #include "Keyboard.h"
 #include "win-system/Environment.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include <vector>
 
 #include <crtdbg.h>
@@ -38,6 +38,9 @@ InputInjector::InputInjector(bool ctrlAltDelEnabled)
   m_winIsPressed(false),
   m_ctrlAltDelEnabled(ctrlAltDelEnabled)
 {
+  // FIXME: Better to call this function from an owner (Now, its
+  // possible only from trunk code because in the stable hive the owner is
+  // the deprecated KeyEvent class)
   resetModifiers();
 }
 
@@ -125,6 +128,8 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
       if (errCode != ERROR_SUCCESS) {
         throw SystemException(errCode);
       } else {
+        // Under Vista or later the SendInput() function doesn't return error
+        // code if inputs blocked by UIPI.
         throw Exception(_T("SendInput() function failed"));
       }
     }
@@ -174,9 +179,13 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
   } else {
     controlSym = false;
   }
+  // Not all keys must be typed with the SHIFT to get the lower case when the
+  // CAPS pressed, e.g. the numerical keys.
   bool resistantToCaps = isResistantToCaps((BYTE)vkKeyScanResult, hklCurrent);
   bool invariantToShift = isInvariantToShift((BYTE)vkKeyScanResult, hklCurrent);
 
+  // If code belonged with high registr we must generate shift up and shift
+  // down also.
   bool shiftedKey = (vkKeyScanResult >> 8 & 1) != 0;
   shiftedKey = shiftedKey && !capsToggled() ||
                shiftedKey && capsToggled() && resistantToCaps ||
@@ -248,10 +257,12 @@ bool InputInjector::isAscii(WCHAR ch)
 
 SHORT InputInjector::searchVirtKey(WCHAR ch, HKL hklCurrent)
 {
+  // Test for special case
   bool modifiersPressed = m_controlIsPressed || m_menuIsPressed ||
                           m_shiftIsPressed;
   bool onlyCtrlPressed = m_controlIsPressed && !m_menuIsPressed &&
                          !m_shiftIsPressed;
+  // Try get virtual code in the current keyboard layout
   SHORT vkKeyScanResult = VkKeyScanExW(ch, hklCurrent);
   if (vkKeyScanResult == -1) {
     if (onlyCtrlPressed) {
@@ -276,11 +287,19 @@ SHORT InputInjector::searchVirtKey(WCHAR ch, HKL hklCurrent)
                    (unsigned int)ch);
     throw Exception(errMess.getString());
   }
+  // Special trick to get round a problem when printing the ^6 characters
+  // instead of estimated 6.
   if (!modifiersPressed) {
     if (((unsigned int)hklCurrent & 0xffff0000) == 0xf0010000 &&
         ch == _T('6')) {
       throw Exception(_T("Special case for the '6' character on the USA")
                       _T(" international keyboard, it will be inserted as")
+                      _T(" an unicode"));
+    }
+    if (((unsigned int)hklCurrent & 0xffff0000) == 0x04140000 &&
+        ch == _T('\\')) {
+      throw Exception(_T("Special case for the '\\' character on the norwegian")
+                      _T(" keyboard, it will be inserted as")
                       _T(" an unicode"));
     }
   }
@@ -346,6 +365,7 @@ bool InputInjector::isOneKeyEventChar(WCHAR ch, SHORT scanResult,
 
 HKL InputInjector::getCurrentKbdLayout()
 {
+  // Determine current owning thread.
   HWND hwnd = GetForegroundWindow();
   if (hwnd == 0) {
     throw Exception(_T("Can't insert key event because")
@@ -362,15 +382,17 @@ bool InputInjector::isDifferentWith(BYTE modifier, BYTE modStateValueOfOn,
   memset(kbdState, 0, sizeof(kbdState));
   WCHAR outBuff1[20], outBuff2[20];
 
+  // Get symbol(s) without the modifier.
   int count1 = ToUnicodeEx(virtKey, 0, kbdState, outBuff1,
                            sizeof(outBuff1) / sizeof(WCHAR),
                            0, keyboardLayout);
 
+  // Get symbol(s) with modifier.
   kbdState[modifier & 255] = modStateValueOfOn;
   int count2 = ToUnicodeEx(virtKey, 0, kbdState, outBuff2,
                           sizeof(outBuff2) / sizeof(WCHAR),
                           0, keyboardLayout);
-  if (count1 != count2) return false; 
+  if (count1 != count2) return false; // It isn't invariant
   if (memcmp(outBuff1, outBuff2, count1 * sizeof(WCHAR)) != 0) {
     return false;
   } else {
@@ -390,16 +412,21 @@ bool InputInjector::isResistantToCaps(BYTE virtKey, HKL keyboardLayout)
 
 void InputInjector::resetModifiers()
 {
+  // The Alt key.
   injectKeyEvent(VK_MENU, true);
   injectKeyEvent(VK_LMENU, true);
   injectKeyEvent(VK_RMENU, true);
+  // The Shift key.
   injectKeyEvent(VK_SHIFT, true);
   injectKeyEvent(VK_LSHIFT, true);
   injectKeyEvent(VK_RSHIFT, true);
+  // The Ctrl key.
   injectKeyEvent(VK_CONTROL, true);
   injectKeyEvent(VK_LCONTROL, true);
   injectKeyEvent(VK_RCONTROL, true);
+  // The Win key.
   injectKeyEvent(VK_LWIN, true);
   injectKeyEvent(VK_RWIN, true);
+  // The Delete key.
   injectKeyEvent(VK_DELETE, true);
 }

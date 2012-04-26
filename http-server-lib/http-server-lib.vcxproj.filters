@@ -17,12 +17,6 @@
     <ClCompile Include="ArgList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ByteBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CharString.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="HttpClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -44,12 +38,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ArgList.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ByteBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CharString.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HttpClient.h">

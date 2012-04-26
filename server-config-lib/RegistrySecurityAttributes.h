@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,14 +33,35 @@
 #include <AccCtrl.h>
 #include <Aclapi.h>
 
+/**
+ * Contains security attributes (security descriptor) for protecting
+ * TightVNC server and service configuration.
+ * @author enikey.
+*/
 class RegistrySecurityAttributes
 {
 public:
+  /**
+   * Creates TightVNC configuration registry entry security attributes.
+   * @throws SystemException if failed to create security attributes.
+   */
   RegistrySecurityAttributes() throw(SystemException);
   virtual ~RegistrySecurityAttributes();
 
+  /**
+  Returns security attributes for protecting tightvnc configuration entry for
+  service.
+  @return pointer to WinAPI security attributes structure needed for protecting
+  securable objects (like registry entry).
+  */
   SECURITY_ATTRIBUTES *getServiceSA();
 
+  /**
+  Returns security attributes for protecting tightvnc configuration entry for
+  application.
+  @return pointer to WinAPI security attributes structure needed for protecting
+  securable objects (like registry entry).
+  */
   SECURITY_ATTRIBUTES *getApplicationSA();
 
 private:

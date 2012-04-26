@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,11 +26,13 @@
 
 void IpAccessControl::serialize(DataOutputStream *output)
 {
-  output->writeUInt32(size());
+  _ASSERT((unsigned int)size() == size());
+  unsigned int count = (unsigned int)size();
+  output->writeUInt32(count);
 
   StringStorage string;
 
-  for (size_t i = 0; i < size(); i++) {
+  for (size_t i = 0; i < count; i++) {
     IpAccessRule *rule = at(i);
 
     rule->toString(&string);

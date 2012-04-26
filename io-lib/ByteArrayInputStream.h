@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,12 +28,26 @@
 #include "InputStream.h"
 #include "IOException.h"
 
+/**
+ * Input stream for reading data from memory.
+ */
 class ByteArrayInputStream : public InputStream
 {
 public:
+  /**
+   * Creates new input stream for reading data from memory.
+   * @param buffer source buffer.
+   * @param bufferSize count of bytes in memory buffer.
+   */
   ByteArrayInputStream(const char *buffer, size_t bufferSize);
   virtual ~ByteArrayInputStream();
 
+  /**
+   * Reads data from memory.
+   * @param buffer target buffer to write data.
+   * @param len count of bytes to write.
+   * @throws IOException when no data left in memory buffer.
+   */
   virtual size_t read(void *buffer, size_t len) throw(IOException);
 
 protected:

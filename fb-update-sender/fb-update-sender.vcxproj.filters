@@ -11,6 +11,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CursorUpdates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="FrameBufferAccessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -20,8 +23,17 @@
     <ClCompile Include="ViewPort.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ViewPortState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UpdSenderMsgDefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CursorUpdates.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="FrameBufferAccessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -32,6 +44,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ViewPort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewPortState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UpdSenderMsgDefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

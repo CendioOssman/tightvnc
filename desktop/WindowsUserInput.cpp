@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,12 +26,14 @@
 #include "thread/DesktopSelector.h"
 #include "win-system/Environment.h"
 #include "win-system/Keyboard.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
+#include "gui/WindowFinder.h"
+#include "util/BrokenHandleException.h"
 
 WindowsUserInput::WindowsUserInput(ClipboardListener *clipboardListener,
                                    bool ctrlAltDelEnabled)
 : m_prevKeyFlag(0),
-  m_keyEvent(ctrlAltDelEnabled)
+  m_inputInjector(ctrlAltDelEnabled)
 {
   m_clipboard = new WindowsClipboard(clipboardListener);
 }
@@ -41,14 +43,18 @@ WindowsUserInput::~WindowsUserInput(void)
   delete m_clipboard;
 }
 
+// FIXME: refactor this horror.
 void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
 {
 
   if (GetSystemMetrics(SM_SWAPBUTTON))
   {
+    // read values of first and third bytes..
     UINT8 left = keyFlag & 1;
     UINT8 right = keyFlag & 4;
+    // set them to zero..
     keyFlag &= 0xFA;
+    // and set swapped values
     keyFlag |= (right & 4)  >> 2;
     keyFlag |= left << 2;
   }
@@ -58,6 +64,7 @@ void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
 
   bool prevState;
   bool currState;
+  // Check the left button on change state
   prevState = (m_prevKeyFlag & 1) != 0;
   currState = (keyFlag       & 1) != 0;
   if (currState != prevState) {
@@ -67,6 +74,7 @@ void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
       dwFlags |= MOUSEEVENTF_LEFTUP;
     }
   }
+  // Check the middle button on change state
   prevState = (m_prevKeyFlag & 2) != 0;
   currState = (keyFlag       & 2) != 0;
   if (currState != prevState) {
@@ -76,6 +84,7 @@ void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
       dwFlags |= MOUSEEVENTF_MIDDLEUP;
     }
   }
+  // Check the right button on change state
   prevState = (m_prevKeyFlag & 4) != 0;
   currState = (keyFlag       & 4) != 0;
   if (currState != prevState) {
@@ -86,6 +95,7 @@ void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
     }
   }
 
+  // Check on a mouse wheel
   DWORD mouseWheelValue = 0;
   bool prevWheelUp = (m_prevKeyFlag & 8) != 0;
   bool currWheelUp = (keyFlag       & 8) != 0;
@@ -102,6 +112,7 @@ void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
 
   m_prevKeyFlag = keyFlag;
 
+  // Normilize pointer position
   UINT16 desktopWidth = GetSystemMetrics(SM_CXSCREEN);
   UINT16 desktopHeight = GetSystemMetrics(SM_CYSCREEN);
   int fbOffsetX = GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -129,7 +140,21 @@ void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
 {
   try {
     Log::info(_T("Received the %#4.4x keysym, down = %d"), keySym, (int)down);
-    m_keyEvent.generate(keySym, !down);
+    // Generate single key event.
+    BYTE vkCode;
+    WCHAR ch;
+    bool release = !down;
+    bool extended;
+
+    if (m_keyMap.keySymToVirtualCode(keySym, &vkCode, &extended)) {
+      m_inputInjector.injectKeyEvent(vkCode, release, extended);
+    } else if (m_keyMap.keySymToUnicodeChar(keySym, &ch)) {
+      m_inputInjector.injectCharEvent(ch, release);
+    } else {
+      StringStorage message;
+      message.format(_T("Unknown %d keysym"), keySym);
+      throw Exception(message.getString());
+    }
   } catch (Exception &someEx) {
     Log::error(_T("Exception while processing key event: %s"), someEx.getMessage());
   }
@@ -138,6 +163,42 @@ void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
 void WindowsUserInput::getCurrentUserInfo(StringStorage *desktopName,
                                           StringStorage *userName)
 {
-  DesktopSelector::getCurrentDesktopName(desktopName); 
-  Environment::getCurrentUserName(userName); 
+  DesktopSelector::getCurrentDesktopName(desktopName); // FIXME: Check return value.
+  Environment::getCurrentUserName(userName); // FIXME: Check return value.
+}
+
+void WindowsUserInput::getPrimaryDisplayCoords(Rect *rect)
+{
+  rect->left = 0;
+  rect->top = 0;
+  rect->right = GetSystemMetrics(SM_CXSCREEN);
+  rect->bottom = GetSystemMetrics(SM_CYSCREEN);
+  rect->move(-GetSystemMetrics(SM_XVIRTUALSCREEN),
+             -GetSystemMetrics(SM_YVIRTUALSCREEN));
+}
+
+void WindowsUserInput::getDisplayNumberCoords(Rect *rect,
+                                              unsigned char dispNumber)
+{
+  m_winDisplays.getDisplayCoordinates(dispNumber, rect);
+}
+
+void WindowsUserInput::getWindowCoords(HWND hwnd, Rect *rect)
+{
+  rect->clear();
+  RECT winRect;
+  if (GetWindowRect(hwnd, &winRect)) {
+    rect->fromWindowsRect(&winRect);
+    rect->move(-GetSystemMetrics(SM_XVIRTUALSCREEN),
+               -GetSystemMetrics(SM_YVIRTUALSCREEN));
+  } else {
+    StringStorage errMess;
+    Environment::getErrStr(_T("Can't get window coordinates"), &errMess);
+    throw BrokenHandleException(errMess.getString());
+  }
+}
+
+HWND WindowsUserInput::getWindowHandleByName(const StringStorage *windowName)
+{
+  return WindowFinder::findFirstWindowByName(windowName);
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,15 +29,39 @@
 
 #include "util/Exception.h"
 
+/**
+ * Abstract control transport that can be used by client and server side
+ * both.
+ *
+ * Hides real transport (Pipe or Socket for example) behind interface.
+ *
+ * @fixme separate client and server part of transport.
+ */
 class Transport
 {
 public:
+  /**
+   * Transport destructor, does nothing.
+   */
   virtual ~Transport();
 
+  /**
+   * Returns transport's IO stream for client transport or 0 for
+   * server transport.
+   */
   virtual Channel *getIOStream() = 0;
 
+  /**
+   * Accepts new connection using underlying transport.
+   * @return accepted transport or 0 if this transport is client.
+   * @throw Exception on fail.
+   */
   virtual Transport *accept() = 0;
 
+  /**
+   * Closes transport.
+   * @throws Exception on fail.
+   */
   virtual void close() throw(Exception) = 0;
 };
 

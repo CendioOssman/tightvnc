@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,9 +25,15 @@
 #ifndef _TVNSERVER_HELP_H_
 #define _TVNSERVER_HELP_H_
 
+/**
+ * tvnserver.exe help class.
+ */
 class TvnServerHelp
 {
 public:
+  /**
+   * Shows tvnserver.exe usage message.
+   */
   static void showUsage();
 private:
   TvnServerHelp();

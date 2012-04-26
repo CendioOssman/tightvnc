@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,13 +26,14 @@
 
 #include "util/VncPassCrypt.h"
 #include "util/StringTable.h"
+#include "util/AnsiStringStorage.h"
 
 #include "ChangePasswordDialog.h"
 
 #include "tvnserver/resource.h"
 
 PasswordControl::PasswordControl(Control *changeButton, Control *unsetButton)
-: m_enabled(true), m_changeButton(changeButton), m_unsetButton(unsetButton), m_cryptedPassword(0)
+: m_enabled(true), m_changeButton(changeButton), m_unsetButton(unsetButton)
 {
   updateControlsState();
 }
@@ -44,7 +45,7 @@ PasswordControl::~PasswordControl()
 
 bool PasswordControl::hasPassword() const
 {
-  return m_cryptedPassword != 0;
+  return m_cryptedPassword.size() != 0;
 }
 
 void PasswordControl::setEnabled(bool enabled)
@@ -73,8 +74,9 @@ void PasswordControl::setPassword(const TCHAR *plainText)
 {
   char plainTextInANSI[9];
   memset(plainTextInANSI, 0, sizeof(plainTextInANSI));
-  StringStorage plainTextStorage(plainText);
-  plainTextStorage.toAnsiString(plainTextInANSI, 9);
+  AnsiStringStorage ansiPlainTextStorage(&StringStorage(plainText));
+  memcpy(plainTextInANSI, ansiPlainTextStorage.getString(),
+         min(ansiPlainTextStorage.getLength(), sizeof(plainTextInANSI)));
 
   UINT8 cryptedPassword[8];
   memset(cryptedPassword, 0, 8);
@@ -90,16 +92,15 @@ void PasswordControl::setCryptedPassword(const char *cryptedPass)
 {
   releaseCryptedPassword();
 
-  m_cryptedPassword = new char[8];
-
-  memcpy(m_cryptedPassword, cryptedPass, 8);
+  m_cryptedPassword.resize(8);
+  memcpy(&m_cryptedPassword.front(), cryptedPass, m_cryptedPassword.size());
 
   updateControlsState();
 }
 
 const char *PasswordControl::getCryptedPassword() const
 {
-  return m_cryptedPassword;
+  return &m_cryptedPassword.front();
 }
 
 bool PasswordControl::showChangePasswordModalDialog(Control *parent)
@@ -132,8 +133,5 @@ void PasswordControl::updateControlsState()
 
 void PasswordControl::releaseCryptedPassword()
 {
-  if (m_cryptedPassword != 0) {
-    delete[] m_cryptedPassword;
-  }
-  m_cryptedPassword = 0;
+  m_cryptedPassword.resize(0);
 }

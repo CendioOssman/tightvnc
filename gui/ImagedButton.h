@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,11 +28,20 @@
 #include "Control.h"
 #include "ThemeLib.h"
 
+//
+// Owner draw button, that displays button with image and text.
+//
+
 class ImagedButton : public Control
 {
 public:
   ImagedButton();
   ~ImagedButton();
+
+  //
+  // Draws this ownder-draw button.
+  // This method must be called in WM_DRAWITEM message handler of parent control
+  //
 
   void drawItem(LPDRAWITEMSTRUCT dis);
 
@@ -41,6 +50,19 @@ public:
   void setIcon(HICON *icon, int width, int height);
 
 private:
+
+  //
+  // Parameters:
+  //
+  // IN buttonRect - button area rectangle
+  // IN isButtonPressed - flag that true if button pressed
+  // IN textWidth - width of button text that will be drawn in pixels
+  // IN textHeight - height of button text that will be drawn in pixels
+  // IN imageWidth - width of image in pixels
+  // IN imageHeight - height of image in pixels
+  // OUT textRect - output text rectangle
+  // OUT imageRect - output image rectangle
+  //
 
   void calcRect(RECT* buttonRect, bool isButtonPressed,
                 DWORD textWidth, DWORD textHeight,
@@ -52,6 +74,10 @@ protected:
   bool m_isUsingTheme;
   bool m_mouseOver;
   HTHEME m_theme;
+
+  //
+  // Icon to display
+  //
 
   HICON *m_icon;
 

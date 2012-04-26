@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,9 +29,18 @@
 #include "thread/AutoLock.h"
 #include "thread/LocalMutex.h"
 
+//
+// Class contains information about
+// host access (allow, deny hosts etc).
+//
+
 class IpAccessRule : public Lockable
 {
 public:
+
+  //
+  // Host access type
+  //
 
   enum ActionType {
     ACTION_TYPE_ALLOW = 0,
@@ -59,6 +68,14 @@ public:
   static bool parseIpRange(const TCHAR *string, IpAccessRule *rule);
   static bool parseSubnet(const TCHAR *string, IpAccessRule *rule);
 
+  //
+  // Method to access protected members
+  //
+
+  //
+  // m_action
+  //
+
   ActionType getAction() const {
     return m_action;
   }
@@ -67,16 +84,36 @@ public:
     m_action = value;
   }
 
+  //
+  // Ip range
+  //
+
   void getFirstIp(StringStorage *firstIp) const;
   void getLastIp(StringStorage *lastIp) const;
 
   void setFirstIp(const TCHAR *firstIp);
   void setLastIp(const TCHAR *lastIp);
 
+  //
+  // Helper methods
+  //
+
   bool isEqualTo(IpAccessRule *other) const;
+
+  //
+  // Determinates belong address to subnetwork which associated
+  // with this IpAccessRule instanse or not.
+  //
 
   bool isIncludingAddress(unsigned long ip) const;
   static bool isIpAddressStringValid(const TCHAR *string);
+
+  //
+  // Return values:
+  // 0  - equal
+  // -1 - ip1 < ip2
+  // 1  - ip1 > ip2
+  //
 
   static int compareIp(unsigned long ip1, unsigned long ip2);
 
@@ -87,8 +124,16 @@ protected:
 protected:
   ActionType m_action;
 
+  //
+  // Ip range
+  //
+
   StringStorage m_firstIp;
   StringStorage m_lastIp;
+
+  //
+  // Critical section
+  //
 
   LocalMutex m_objectCS;
 };

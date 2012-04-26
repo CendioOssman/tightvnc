@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,6 +25,7 @@
 #include "IniFileSettingsManager.h"
 
 #include <crtdbg.h>
+#include <vector>
 
 IniFileSettingsManager::IniFileSettingsManager(const TCHAR *pathToFile, const TCHAR *appName)
 {
@@ -62,10 +63,16 @@ bool IniFileSettingsManager::isOk()
 
 bool IniFileSettingsManager::keyExist(const TCHAR *name)
 {
+  //
+  // To determinate key exists or not, place some non-standart default text
+  // to default value of GetPrivateProfileString and if output returns is equals
+  // to default, then key does not exists.
+  //
 
   StringStorage value;
 
-  const TCHAR * defaultValue = _T("TightVNC_Ini_File_Key_Does_Not_Exist_Test");
+  // FIXME: Use random generated string instead of static text
+  const TCHAR * defaultValue = _T("_Ini_File_Key_Does_Not_Exist_Test");
 
   getPrivateProfileString(name, &value, defaultValue);
 
@@ -99,12 +106,14 @@ bool IniFileSettingsManager::setString(const TCHAR *name, const TCHAR *value)
                                    value, m_pathToFile.getString()) == TRUE;
 }
 
+// FIXME: Stub
 bool IniFileSettingsManager::getLong(const TCHAR *name, long *value)
 {
   _ASSERT(FALSE);
   return false;
 }
 
+// FIXME: Stub
 bool IniFileSettingsManager::setLong(const TCHAR *name, long value)
 {
   _ASSERT(FALSE);
@@ -141,6 +150,10 @@ bool IniFileSettingsManager::setUINT(const TCHAR *name, UINT value)
 
 bool IniFileSettingsManager::getInt(const TCHAR *name, int *value)
 {
+  // We really cannot determinate result of GetPrivateProfileInt,
+  // so use this trick, if returning value is defVal, than key does not
+  // exists and method must return false.
+  // FIXME: This trick will not work in some cases
   UINT defVal = 0xABCDEF;
   UINT ret = GetPrivateProfileInt(m_appName.getString(), name, defVal,
                                   m_pathToFile.getString());
@@ -171,49 +184,45 @@ bool IniFileSettingsManager::setByte(const TCHAR *name, char value)
   return setInt(name, value);
 }
 
+// FIXME: Stub
 bool IniFileSettingsManager::getBinaryData(const TCHAR *name, void *value, size_t *size)
 {
   _ASSERT(FALSE);
   return false;
 }
 
+// FIXME: Stub
 bool IniFileSettingsManager::setBinaryData(const TCHAR *name, const void *value, size_t size)
 {
   _ASSERT(FALSE);
   return false;
 }
 
+// FIXME: Code not testted
 void
 IniFileSettingsManager::getPrivateProfileString(const TCHAR *name,
                                                 StringStorage *value,
                                                 const TCHAR *defaultValue)
 {
-  TCHAR *buffer = 0;
-  size_t bufferSize = 0;
-  size_t increaseStep = 1024;
+  std::vector<TCHAR> buffer;
+  DWORD bufferSize = 0;
+  DWORD increaseStep = 1024;
 
   bool tooSmall = false;
 
   do {
+    // Allocate buffer
     bufferSize += increaseStep;
-    buffer = new TCHAR[bufferSize];
+    buffer.resize(bufferSize);
 
+    // Try to get string value from storage
     DWORD ret = GetPrivateProfileString(m_appName.getString(), name,
-                                        defaultValue, buffer, bufferSize,
+                                        defaultValue, &buffer[0], bufferSize,
                                         m_pathToFile.getString());
 
+    // This mean that output buffer size is too small
     tooSmall = (ret == bufferSize - 1);
-
-    if (!tooSmall) {
-      value->setString(buffer);
-    }
-
-    delete[] buffer;
-
-    if (!tooSmall) {
-      break;
-    }
-
   } while (tooSmall);
 
+  value->setString(&buffer.front());
 }

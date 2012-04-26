@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -45,6 +45,13 @@ Icon::Icon(Bitmap *bitmap, Bitmap *mask)
 : m_hasOwnIcon(true), m_icon(NULL)
 {
   fromBitmap(bitmap, mask);
+}
+
+Icon::Icon(DWORD icon)
+: m_hasOwnIcon(false)
+{
+  HINSTANCE hInstance = GetModuleHandle(NULL);
+  m_icon = LoadIcon(hInstance, MAKEINTRESOURCE(icon));
 }
 
 Icon::~Icon()

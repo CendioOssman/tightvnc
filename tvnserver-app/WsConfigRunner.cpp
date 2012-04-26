@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "WsConfigRunner.h"
 #include "win-system/CurrentConsoleProcess.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "win-system/Environment.h"
 #include "server-config-lib/Configurator.h"
 #include "tvncontrol-app/ControlCommandLine.h"
@@ -46,16 +46,18 @@ void WsConfigRunner::execute()
   Process *process = 0;
 
   try {
-    StringStorage folder;
-    Environment::getCurrentModuleFolderPath(&folder);
-    StringStorage path;
-    path.format(_T("\"%s\\tvnserver.exe\""), folder.getString());
+     // Prepare path to executable.
+    StringStorage pathToBin;
+    Environment::getCurrentModulePath(&pathToBin);
+    pathToBin.quoteSelf();
+    // Prepare arguments.
     StringStorage args;
     args.format(_T("%s %s"),
       m_serviceMode ? ControlCommandLine::CONTROL_SERVICE :
                       ControlCommandLine::CONTROL_APPLICATION,
       ControlCommandLine::SLAVE_MODE);
-    process = new Process(path.getString(), args.getString());
+    // Start process.
+    process = new Process(pathToBin.getString(), args.getString());
     process->start();
   } catch (Exception &e) {
     Log::error(_T("Cannot start the WsControl process (%s)"), e.getMessage());

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,6 +31,7 @@ RfbOutputGate::RfbOutputGate(OutputStream *stream)
 {
   m_tunnel = new BufferedOutputStream(stream);
 
+  // Change real output stream for data output stream to our tunnel.
   m_outStream = m_tunnel;
 }
 

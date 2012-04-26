@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,16 +27,34 @@
 
 #include "FileTransferOperation.h"
 
+//
+// File operation that used for receiving file list
+// from remote file system.
+//
+
 class RemoteFileListOperation : public FileTransferOperation
 {
 public:
   RemoteFileListOperation(const TCHAR *remotePath);
   virtual ~RemoteFileListOperation();
 
+  //
+  // Methods inherited from FileTransferOperation class
+  //
+
   virtual void start() throw(IOException);
+
+  //
+  // File transfer message handlers
+  //
 
   virtual void onFileListReply();
   virtual void onLastRequestFailedReply();
+
+  //
+  // Returns true if operation is finished and was no error,
+  // false otherwise
+  //
 
   bool isOk();
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,6 +24,14 @@
 
 #ifndef _FILE_TRANSFER_EVENT_HANDLER_H_
 #define _FILE_TRANSFER_EVENT_HANDLER_H_
+
+//
+// Abstract class with abstract methods that must be
+// overrided by child classes to process file transfer
+// extension messages.
+//
+// FIXME: It can be renamed to FileTransferMessageListener
+//
 
 class FileTransferEventHandler
 {

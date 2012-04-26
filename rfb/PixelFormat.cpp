@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,7 +29,10 @@
 PixelFormat::PixelFormat()
 {
   memset(this, 0, sizeof(PixelFormat));
+}
 
+void PixelFormat::initBigEndianByNative()
+{
   union {
     char test;
     int i;

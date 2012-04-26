@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,27 +35,45 @@ public:
   HttpRequest(DataInputStream *dataInput);
   virtual ~HttpRequest();
 
+  // Reads HTTP header.
   void readHeader() throw(IOException);
 
+  // Parse read header.
+  // Returns true if header is valid, false otherwise.
+  // Remark: method must be called after readHeader().
   bool parseHeader();
 
+  // Returns read request.
   const char *getRequest() const;
+  // Returns requested filename.
   const char *getFilename() const;
+  // Return true if request has at least one argument specified.
   bool hasArguments() const;
+  // Returns request arguments container.
   ArgList *getArguments() const;
 
 protected:
+  // Skips HTTP headers until end.
   void skipHeader(bool lastWasEndLn) throw(IOException);
+  // Reads line that ends with specified character from data input stream
+  // and storage it output buffer parameter.
+  // If line is more than specified max size that string will be trunkated to
+  // maxSize.
   void readLine(char endLnChar, char *buffer, size_t maxSize) throw(IOException);
 
 protected:
   static const size_t REQUEST_BUFFER_SIZE = 2048;
 
 protected:
+  // Stream for reading data.
   DataInputStream *m_dataInput;
+  // Read request.
   char m_request[REQUEST_BUFFER_SIZE];
+  // Requested filename.
   char m_filename[REQUEST_BUFFER_SIZE];
+  // Arguments string.
   char m_args[REQUEST_BUFFER_SIZE];
+  // Arguments list.
   ArgList *m_argList;
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,11 +25,23 @@
 #ifndef __COMMONHEADER_H__
 #define __COMMONHEADER_H__
 
+//
+// Disable warning C4290 cause
+//
+// "A function is declared using exception specification,
+// which Visual C++ accepts but does not implement" (c) MSDN.
+//
+// "Visual C++ departs from the ANSI Standard in its implementation
+// of exception specifications" (c) MSDN.
+//
+// For more info read topic "Exception Specifications" on MSDN.
+//
+
 #ifdef WIN32
 #include "winhdr.h"
-#endif 
+#endif // WIN32
 
 #include "StringStorage.h"
 #include "StringTable.h"
 
-#endif 
+#endif // __COMMONHEADER_H__

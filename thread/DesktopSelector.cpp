@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "DesktopSelector.h"
+#include <vector>
 
 HDESK DesktopSelector::getInputDesktop()
 {
@@ -80,17 +81,16 @@ bool DesktopSelector::getDesktopName(HDESK desktop, StringStorage *desktopName)
   DWORD nameLength;
   GetUserObjectInformation(desktop, UOI_NAME, 0, 0, &nameLength);
 
-  TCHAR *name = new TCHAR[nameLength];
+  std::vector<TCHAR> name(nameLength);
 
   bool result = GetUserObjectInformation(desktop,
                                          UOI_NAME,
-                                         name,
+                                         &name[0],
                                          nameLength,
                                          0) != 0;
   if (result) {
-    desktopName->setString(name);
+    desktopName->setString(&name[0]);
   }
-  delete[] name;
   return result;
 }
 

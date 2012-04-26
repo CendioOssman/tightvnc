@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,22 @@
 
 #include "util/inttypes.h"
 #include "ft-common/FileInfo.h"
+
+//
+// This class is used to easy listing files from specified directory
+// or system root to array of FileInfo[].
+//
+// Also it calculates data size in bytes that needed for
+// file transfer protocol if server supportes compression.
+//
+// If specified folder name is empty it will return system roots,
+// file list from specified catalog otherwise.
+//
+// Class usage:
+//
+// First, create instance, call list() method,
+// after that get needed information through get methods
+//
 
 class FolderListener
 {

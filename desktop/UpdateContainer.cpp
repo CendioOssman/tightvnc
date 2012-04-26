@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -42,12 +42,11 @@ void UpdateContainer::clear()
   cursorPosChanged = false;
   cursorShapeChanged = false;
   copySrc.clear();
+  //cursorPos.clear();
 }
 
 UpdateContainer& UpdateContainer::operator=(const UpdateContainer& src)
 {
-  clear();
-
   copiedRegion        = src.copiedRegion;
   changedRegion       = src.changedRegion;
   videoRegion         = src.videoRegion;

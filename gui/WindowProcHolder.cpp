@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,7 +34,7 @@ WindowProcHolder::~WindowProcHolder()
 
 LRESULT CALLBACK WindowProcHolder::defWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-  WindowProcHolder *wph = (WindowProcHolder *)GetWindowLong(hWnd, GWL_USERDATA);
+  WindowProcHolder *wph = (WindowProcHolder *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
   if (wph == 0) {
     return DefWindowProc(hWnd, uMsg, wParam, lParam);

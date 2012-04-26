@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -41,8 +41,10 @@
 #include <ws2tcpip.h>
 #include <wspiapi.h>
 #include <windows.h>
+#include <psapi.h>
+#include <Wtsapi32.h>
 #include <tchar.h>
 #include <commctrl.h>
 #include <Dbghelp.h>
 
-#endif 
+#endif // __WINHDR_H__

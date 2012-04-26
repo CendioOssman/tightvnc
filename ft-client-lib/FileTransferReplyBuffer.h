@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,7 +27,7 @@
 
 #include "FileTransferEventHandler.h"
 
-#include "io-lib/DataInputStream.h"
+#include "network/RfbInputGate.h"
 
 #include "ft-common/FileInfo.h"
 #include "util/Inflater.h"
@@ -35,16 +35,13 @@
 
 #include "ft-common/OperationNotSupportedException.h"
 
-#include "omnithread/omnithread.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 class FileTransferReplyBuffer : public FileTransferEventHandler
 {
 public:
-  FileTransferReplyBuffer(InputStream *inputStream, omni_mutex *readMutex);
+  FileTransferReplyBuffer(RfbInputGate *input);
   virtual ~FileTransferReplyBuffer();
-
-  void setInflater(Inflater *inflater);
 
   void getLastErrorMessage(StringStorage *storage);
 
@@ -54,12 +51,16 @@ public:
   FileInfo *getFilesInfo();
 
   UINT32 getDownloadBufferSize();
-  UINT8 *getDownloadBuffer();
+  vector<UINT8> getDownloadBuffer();
 
   UINT8 getDownloadFileFlags();
   UINT64 getDownloadLastModified();
 
   UINT64 getDirSize();
+
+  //
+  // Inherited from FileTransferEventHandler abstract class
+  //
 
   virtual void onCompressionSupportReply() throw(IOException);
   virtual void onFileListReply() throw(IOException, ZLibException);
@@ -82,34 +83,48 @@ public:
 
 private:
 
-  UINT8 *readCompressedDataBlock(UINT32 compressedSize,
-                                 UINT32 uncompressedSize,
-                                 UINT8 compressionLevel)
-         throw(IOException, ZLibException);
+  vector<UINT8> readCompressedDataBlock(UINT32 compressedSize,
+                                        UINT32 uncompressedSize,
+                                        UINT8 compressionLevel)
+                throw(IOException, ZLibException);
 
 protected:
+  //
+  // Base stream for reading byte data
+  //
 
-  omni_mutex *m_readMutex;
+  RfbInputGate *m_input;
 
-  DataInputStream *m_dataInputStream;
 
-  InputStream *m_inputStream;
+  //
+  // ZLib stream for decompression of compressed data
+  //
 
-  Inflater *m_inflater;
+  Inflater m_inflater;
 
+  //
+  // Members than have access from public methods
+  //
+
+  // Compression support reply
   bool m_isCompressionSupported;
 
+  // File list reply
   UINT32 m_filesInfoCount;
   FileInfo *m_filesInfo;
 
+  // Last request message failed reply
   StringStorage m_lastErrorMessage;
 
-  UINT8 *m_downloadBuffer;
+  // Download data reply
+  vector<UINT8> m_downloadBuffer;
   UINT32 m_downloadBufferSize;
 
+  // Download end reply
   UINT8 m_downloadFileFlags;
   UINT64 m_downloadLastModified;
 
+  // Dirsize reply data
   UINT64 m_dirSize;
 };
 

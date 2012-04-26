@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,8 +31,11 @@ LocalMutex WindowsApplication::m_MDLMutex;
 
 list<HWND> WindowsApplication::m_modelessDialogList;
 
-WindowsApplication::WindowsApplication(HINSTANCE appInstance)
-: m_appInstance(appInstance), m_mainWindow(0)
+WindowsApplication::WindowsApplication(HINSTANCE appInstance,
+                                       const TCHAR *windowClassName)
+: m_appInstance(appInstance),
+  m_mainWindow(0),
+  m_windowClassName(windowClassName)
 {
 }
 
@@ -43,21 +46,17 @@ WindowsApplication::~WindowsApplication()
 int WindowsApplication::run()
 {
   WNDCLASS wndClass;
-  memset(&wndClass, 0, sizeof(wndClass));
+  registerWindowClass(&wndClass);
+  createWindow(wndClass.lpszClassName);
+  try {
+    return processMessages();
+  } catch (...) {
+    return 1;
+  }
+}
 
-  wndClass.lpfnWndProc = wndProc;
-  wndClass.hInstance = m_appInstance;
-  wndClass.lpszClassName = _T("TvnWindowsApplicationClass");
-
-  RegisterClass(&wndClass);
-
-  m_mainWindow = CreateWindow(wndClass.lpszClassName,
-                              0, 0,
-                              0, 0, 0, 0,
-                              HWND_MESSAGE, 0,
-                              m_appInstance,
-                              0);
-
+int WindowsApplication::processMessages()
+{
   MSG msg;
   BOOL ret;
   while ((ret = GetMessage(&msg, NULL, 0, 0)) != 0) {
@@ -70,7 +69,29 @@ int WindowsApplication::run()
     }
   }
 
-  return msg.wParam;
+  return (int)msg.wParam;
+}
+
+void WindowsApplication::createWindow(const TCHAR *className)
+{
+  m_mainWindow = CreateWindow(className,
+                              0, 0,
+                              0, 0, 0, 0,
+                              HWND_MESSAGE, 0,
+                              m_appInstance,
+                              0);
+}
+
+void WindowsApplication::registerWindowClass(WNDCLASS *wndClass)
+{
+  memset(wndClass, 0, sizeof(WNDCLASS));
+
+  // Set default values. Derived classes can redefine this fields
+  wndClass->lpfnWndProc = wndProc;
+  wndClass->hInstance = m_appInstance;
+  wndClass->lpszClassName = m_windowClassName.getString();
+
+  RegisterClass(wndClass);
 }
 
 void WindowsApplication::shutdown()

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,13 +23,13 @@
 //
 
 #include "WindowsClipboard.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
+#include "tvnserver-app/NamingDefs.h"
 
-const TCHAR WindowsClipboard::m_clipbWinClassName[] = _T("Tvnserver.Clipboard.Window");
 const HINSTANCE WindowsClipboard::m_hinst = GetModuleHandle(0);
 
 WindowsClipboard::WindowsClipboard(ClipboardListener *clipboardListener)
-: Window(m_hinst, m_clipbWinClassName),
+: MessageWindow(m_hinst, ClipboardNames::CLIPBOARD_WIN_CLASS_NAME),
   m_hwndNextViewer(0),
   m_clipboardListener(clipboardListener)
 {
@@ -61,10 +61,11 @@ bool WindowsClipboard::writeToClipBoard(const TCHAR *text)
 #else
       SetClipboardData(CF_TEXT, hglb);
 
+      // Store locale information in the clipboard as well.
       HGLOBAL hmemLocale = GlobalAlloc(GMEM_MOVEABLE, sizeof(LCID));
       if (hmemLocale != NULL) {
         LCID *pLocale = (LCID *)GlobalLock(hmemLocale);
-        *pLocale = GetSystemDefaultLCID(); 
+        *pLocale = GetSystemDefaultLCID(); // or maybe GetUserDefaultLCID()?
         GlobalUnlock(hmemLocale);
         if (SetClipboardData(CF_LOCALE, hmemLocale) == NULL) {
           GlobalFree(hmemLocale);
@@ -81,6 +82,8 @@ bool WindowsClipboard::writeToClipBoard(const TCHAR *text)
 
 void WindowsClipboard::readFromClipBoard(StringStorage *clipDest) const
 {
+// NOTE: In non-Unicode version, conversion correctness may depend on current
+//       input language. We should always use Unicode in all programs.
 #ifdef _UNICODE
   const UINT CF_TCTEXT = CF_UNICODETEXT;
 #else
@@ -126,7 +129,7 @@ bool WindowsClipboard::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
     ChangeClipboardChain(m_hwnd, m_hwndNextViewer);
     break;
 
-  case WM_DRAWCLIPBOARD:  
+  case WM_DRAWCLIPBOARD:  // clipboard contents changed.
     {
       StringStorage winClip, rfbClip;
       readFromClipBoard(&winClip);
@@ -138,7 +141,7 @@ bool WindowsClipboard::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
     break;
 
   default:
-    return false; 
+    return false; // Message not processing
   }
 
   return true;
@@ -193,6 +196,7 @@ void WindowsClipboard::convertToRfbFormat(const StringStorage *source,
 void WindowsClipboard::convertFromRfbFormat(const TCHAR *source,
                                             StringStorage *dest)
 {
+  // Count of 'LF' symbols.
   size_t lfCount = 0;
   size_t sourceLen = _tcslen(source);
   for (size_t i = 0; i < sourceLen; i++) {

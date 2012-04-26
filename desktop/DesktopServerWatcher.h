@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,6 +30,14 @@
 #include "desktop-ipc/ReconnectionListener.h"
 #include "win-system/SharedMemory.h"
 
+/**
+ * Thread that used to execute desktop server application.
+ *
+ * @behavour:
+ *   Thread in infinity loop executes (and waits until it dies) desktop
+ *   server application.
+ *   It will break only if thread will be terminated.
+ */
 class DesktopServerWatcher : public Thread
 {
 public:
@@ -40,6 +48,13 @@ protected:
   virtual void execute();
   virtual void onTerminate();
 
+  // Runs desktop server with XP trick if it's needed.
+  void start();
+
+  // Changes active physical session to session0 and locks workstation.
+  // @throws SystemException on fail.
+  void doXPTrick();
+
   Process *m_process;
   ReconnectionListener *m_recListener;
 
@@ -47,4 +62,4 @@ protected:
   StringStorage m_shMemName;
 };
 
-#endif 
+#endif // __DESKTOPSERVERWATCHER_H__

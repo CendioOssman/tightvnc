@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,7 +27,9 @@
 
 #include "UserInput.h"
 #include "WindowsClipboard.h"
-#include "KeyEvent.h"
+#include "util/Keymap.h"
+#include "win-system/InputInjector.h"
+#include "win-system/WindowsDisplays.h"
 
 class WindowsUserInput : public UserInput
 {
@@ -42,14 +44,22 @@ public:
 
   virtual void getCurrentUserInfo(StringStorage *desktopName,
                                   StringStorage *userName);
+  virtual void getDisplayNumberCoords(Rect *rect,
+                                      unsigned char dispNumber);
+  virtual void getPrimaryDisplayCoords(Rect *rect);
+  virtual void getWindowCoords(HWND hwnd, Rect *rect);
+  virtual HWND getWindowHandleByName(const StringStorage *windowName);
 
   virtual void initKeyFlag(UINT8 initValue) { m_prevKeyFlag = initValue; }
 
 protected:
   WindowsClipboard *m_clipboard;
-  KeyEvent m_keyEvent;
+  WindowsDisplays m_winDisplays;
+
+  Keymap m_keyMap;
+  InputInjector m_inputInjector;
 
   UINT8 m_prevKeyFlag;
 };
 
-#endif 
+#endif // __WINDOWSUSERINPUT_H__

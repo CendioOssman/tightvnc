@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 
 #include <list>
 #include "RfbServer.h"
+#include "server-config-lib/PortMappingContainer.h"
 
 class ExtraRfbServers
 {
@@ -46,13 +47,24 @@ public:
   ExtraRfbServers();
   virtual ~ExtraRfbServers();
 
+  // Check current configuration and restart the servers if necessary.
+  // Returns true on success (either no work was required or everything has
+  // been restarted successfully), false if there were failures on restarting
+  // servers (see startUp() for more details).
   bool reload(bool asService, RfbClientManager *mgr);
 
+  // Stop all extra RFB servers, clear the list.
   void shutDown();
 
 protected:
+  // Construct and start RFB servers as specified in the Extra Ports
+  // configuration. If some servers fail to start, this function does not add
+  // it to the internally maintained list of RFB servers.
+  // Returns true if all the servers have been started sucessfully, false if
+  // at least one failed.
   bool startUp(bool asService, RfbClientManager *mgr);
 
+  // Read configuration into the specified structure.
   static void getConfiguration(Conf *out);
 
 protected:
@@ -60,8 +72,9 @@ protected:
   Conf m_effectiveConf;
 
 private:
+  // Do not allow copying objects.
   ExtraRfbServers(const ExtraRfbServers &);
   ExtraRfbServers &operator=(const ExtraRfbServers &);
 };
 
-#endif 
+#endif // __TVNSERVERAPP_EXTRA_RFB_SERVERS_H__

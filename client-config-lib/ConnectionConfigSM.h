@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,7 +30,8 @@
 class ConnectionConfigSM : public RegistrySettingsManager
 {
 public:
-  ConnectionConfigSM(const TCHAR *entryName);
+  ConnectionConfigSM(const TCHAR registryPath[],
+                     const TCHAR entryName[]);
   virtual ~ConnectionConfigSM();
 };
 

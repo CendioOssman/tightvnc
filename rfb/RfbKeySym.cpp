@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "RfbKeySym.h"
 #include "util/CommonHeader.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 #define XK_MISCELLANY
 #include "rfb/keysymdef.h"
@@ -59,7 +59,7 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
 {
   Log::debug(_T("processKeyEvent() function called: virtKey = %#4.4x, addKeyData")
              _T(" = %#x"), (unsigned int)virtKey, addKeyData);
-  if (virtKey == VK_LWIN || virtKey == VK_RWIN) { 
+  if (virtKey == VK_LWIN || virtKey == VK_RWIN) { // Ignoring the Win key
     Log::debug(_T("Ignoring the Win key event"));
     return;
   }
@@ -77,16 +77,20 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
              (unsigned int)shiftPressed,
              (unsigned int)capsToggled);
 
+  // Without distinguishing between left and right modifiers.
   m_viewerKeyState[virtKey & 255] = down ? 128 : 0;
   m_viewerKeyState[VK_CAPITAL & 255] = capsToggled ? 1 : 0;
 
-  bool extended = (addKeyData & 0x1000000) != 0; 
+  bool extended = (addKeyData & 0x1000000) != 0; // 24 bit
   virtKey = distinguishLeftRightModifier((unsigned char)virtKey, extended);
 
+  // With distinguishing between left and right modifiers.
   m_serverKeyState[virtKey & 255] = down ? 128 : 0;
 
   UINT32 rfbSym;
   if (m_keyMap.virtualCodeToKeySym(&rfbSym, virtKey & 255)) {
+    // Special case for VK_RETURN that have no self numpad code.
+    // FIXME: May be replace this code to the virtualCodeToKeySym() function?
     if (rfbSym == XK_Return && extended) {
       rfbSym = XK_KP_Enter;
     }
@@ -148,6 +152,8 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
     } else if (count == 0) {
       Log::debug(_T("Was get a not printable symbol then try get a printable")
                  _T(" with turned off the ctrl and alt modifiers"));
+      // E.g if pressed Ctrl + Alt + A
+      // Try found char without modificators
       unsigned char withoutCtrlAltKbdState[256];
       memcpy(withoutCtrlAltKbdState, m_viewerKeyState, sizeof(withoutCtrlAltKbdState));
       withoutCtrlAltKbdState[VK_LCONTROL] = 0;
@@ -160,7 +166,7 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
                           sizeof(outBuff) / sizeof(WCHAR),
                           0, currentLayout);
       Log::debug(_T("ToUnicodeEx() without ctrl and alt return %d"), count);
-      if (count == 1) { 
+      if (count == 1) { // other case will be ignored
         if (m_keyMap.unicodeCharToKeySym(outBuff[0], &rfbSym)) {
           sendKeySymEvent(rfbSym, down);
         } else {
@@ -216,6 +222,7 @@ void RfbKeySym::processFocusLoss()
   Log::info(_T("Process focus loss in the RfbKeySym class"));
 
   Sleep(100);
+  // Send a modifier key up only if the key is down.
   checkAndSendDiff(VK_CONTROL, 0);
   checkAndSendDiff(VK_RCONTROL, 0);
   checkAndSendDiff(VK_LCONTROL, 0);
@@ -336,19 +343,21 @@ bool RfbKeySym::isPressed(unsigned char virtKey)
 
 void RfbKeySym::sendKeySymEvent(unsigned int rfbKeySym, bool down)
 {
+  // Translate Alt to Meta if Scroll Lock is on.
   if (rfbKeySym == XK_Alt_L || rfbKeySym == XK_Alt_R) {
     bool scrollLockOn = (GetKeyState(VK_SCROLL) & 1) != 0;
     if (scrollLockOn) {
       if (rfbKeySym == XK_Alt_L) {
         rfbKeySym = XK_Meta_L;
         m_leftMetaIsPressed = down;
-      } else { 
+      } else { // assuming (rfbKeySym == XK_Alt_R)
         rfbKeySym = XK_Meta_R;
         m_rightMetaIsPressed = down;
       }
     }
   }
 
+  // Send the keyboard event.
   sendVerbatimKeySymEvent(rfbKeySym, down);
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -44,10 +44,18 @@ public:
 
 public:
 
+  //
+  // BaseDialog overrided methods
+  //
+
   virtual BOOL onInitDialog();
   virtual BOOL onNotify(UINT controlID, LPARAM data);
   virtual BOOL onCommand(UINT controlID, UINT notificationID);
   virtual BOOL onDestroy() { return TRUE; }
+
+  //
+  // Helper methods
+  //
 
   bool validateInput();
   void updateUI();
@@ -56,6 +64,10 @@ public:
 private:
   void initControls();
   void updateControlDependencies();
+
+  //
+  // Contol event handlers
+  //
 
   void onAcceptRfbConnectionsClick();
   void onAcceptHttpConnectionsClick();
@@ -74,6 +86,10 @@ private:
   void onRemoveWallpaperCheckBoxClick();
   void onGrabTransparentWindowsChanged();
 
+  //
+  // Input handling
+  //
+
   void onBlockLocalInputChanged();
   void onBlockRemoteInputChanged();
   void onLocalInputPriorityChanged();
@@ -81,11 +97,14 @@ private:
   void updateCheckboxesState();
 
 protected:
+  // Configuration
   ServerConfig *m_config;
+  // Controls
   TextBox m_rfbPort;
   TextBox m_httpPort;
   TextBox m_pollingInterval;
   CheckBox m_grabTransparentWindows;
+  CheckBox m_useMirrorDriver;
   CheckBox m_enableFileTransfers;
   CheckBox m_removeWallpaper;
   CheckBox m_acceptRfbConnections;
@@ -95,11 +114,14 @@ protected:
   Control m_readOnlyPassword;
   Control m_unsetPrimaryPassword;
   Control m_unsetReadOnlyPassword;
-  CheckBox m_enableAppletParamInUrl;
   CheckBox m_useAuthentication;
   SpinControl m_rfbPortSpin;
   SpinControl m_httpPortSpin;
   SpinControl m_pollingIntervalSpin;
+
+  //
+  // Begin of input handling members
+  //
 
   CheckBox m_blockRemoteInput;
   CheckBox m_blockLocalInput;
@@ -107,8 +129,14 @@ protected:
   TextBox m_localInputPriorityTimeout;
   SpinControl m_inactivityTimeoutSpin;
 
+  //
+  // End of input handling members
+  //
+
+  // Error notifications
   BaseDialog *m_parentDialog;
 
+  // Primary password control.
   PasswordControl *m_ppControl;
   PasswordControl *m_vpControl;
 };

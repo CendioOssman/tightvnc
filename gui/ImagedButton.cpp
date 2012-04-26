@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "ImagedButton.h"
+#include "util/UnicodeStringStorage.h"
 #include <crtdbg.h>
 
 ImagedButton::ImagedButton()
@@ -44,6 +45,7 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
 {
   HDC dc = dis->hDC;
 
+  // button state
   BOOL isPressed = (dis->itemState & ODS_SELECTED);
   BOOL isFocused = (dis->itemState & ODS_FOCUS);
   BOOL isDisabled = (dis->itemState & ODS_DISABLED);
@@ -52,19 +54,21 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
   RECT itemRect = dis->rcItem;
   SetBkMode(dc, TRANSPARENT);
 
+  // Prepare draw... paint button background
+
   if (m_isUsingTheme) {
     DWORD state = (isPressed) ? PBS_PRESSED : PBS_NORMAL;
     if (state == PBS_NORMAL) {
       if (isFocused) {
         state = PBS_DEFAULTED;
-      } 
+      } // is focused
       if (m_mouseOver) {
         state = PBS_HOT;
-      } 
+      } // is mouse over button
       if (isDisabled) {
         state = PBS_DISABLED;
       }
-    } 
+    } // if state is normal
     ThemeLib::DrawThemeBackground(m_theme, dc, BP_PUSHBUTTON, state, &itemRect, NULL);
   } else {
     if (isFocused) {
@@ -72,11 +76,13 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
       FrameRect(dc, &itemRect, br);
       InflateRect(&itemRect, -1, -1);
       DeleteObject(br);
-    } 
+    } // if
 
     HBRUSH background = CreateSolidBrush(GetSysColor(COLOR_BTNFACE));
     FillRect(dc, &itemRect, background);
     DeleteObject(background);
+
+    // Draw pressed button
 
     if (isPressed) {
       HBRUSH shadow = CreateSolidBrush(GetSysColor(COLOR_BTNSHADOW));
@@ -88,13 +94,17 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
                     ((isPressed) ? DFCS_PUSHED : 0);
 
       DrawFrameControl(dc, &itemRect, DFC_BUTTON, uState);
-    } 
-  } 
+    } // if not pressed
+  } // if not themed
 
   StringStorage title;
   getText(&title);
 
   RECT captionRect = dis->rcItem;
+
+  //
+  // Draw icon
+  //
 
   TEXTMETRIC metric;
   GetTextMetrics(dc, &metric);
@@ -109,14 +119,13 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
   }
 
   if (!title.isEmpty()) {
+    // If button is pressed then "press" title also
     if (isPressed && !m_isUsingTheme) {
       OffsetRect(&captionRect, 1, 1);
     }
 
     if (m_isUsingTheme) {
-      WCHAR *unicodeString = new WCHAR[title.getLength() + 1];
-      size_t len = title.getLength();
-      title.toUnicodeString(unicodeString, &len);
+      UnicodeStringStorage uniTitle(&title);
 
       DWORD state = PBS_NORMAL;
 
@@ -125,10 +134,9 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
       }
 
       ThemeLib::DrawThemeText(m_theme, dc, BP_PUSHBUTTON, state,
-                              unicodeString, len,
+                              uniTitle.getString(), (int)uniTitle.getLength(),
                               DT_CENTER | DT_VCENTER | DT_SINGLELINE,
                               0, &captionRect);
-      delete[] unicodeString;
     } else {
       SetBkMode(dc, TRANSPARENT);
 
@@ -143,21 +151,24 @@ void ImagedButton::drawItem(LPDRAWITEMSTRUCT dis)
         SetTextColor(dc, ::GetSysColor(COLOR_BTNTEXT));
         SetBkColor(dc, ::GetSysColor(COLOR_BTNFACE));
         DrawText(dc, title.getString(), -1, &captionRect, DT_WORDBREAK | DT_CENTER);
-      } 
-    } 
-  } 
+      } // if not disabled
+    } // if not themed
+  } // if has title
 
+  // Draw the focus rect
   if (isFocused && drawFocusRect) {
     RECT focusRect = itemRect;
     InflateRect(&focusRect, -3, -3);
     DrawFocusRect(dc, &focusRect);
-  } 
-} 
+  } // if
+} // void
 
 void ImagedButton::setWindow(HWND hwnd)
 {
   Control::setWindow(hwnd);
+  // Replace window event handler
   replaceWindowProc(ImagedButton::wndProc);
+  // Add owner draw style to button
   Control::addStyle(BS_OWNERDRAW);
 
   if (ThemeLib::isLoaded())  {
@@ -190,13 +201,16 @@ void ImagedButton::calcRect(RECT* buttonRect, bool isButtonPressed,
     long buttonWidth = buttonRect->right - buttonRect->left;
     long buttonHeight = -buttonRect->top + buttonRect->bottom;
 
+    // Center image horizontally
     imageRect->left += ((buttonWidth - (long)imageWidth) / 2);
+    // Center image vertically
     imageRect->top += (((buttonHeight) - (long)imageHeight) / 2) - textHeight;
 
     DWORD margin = 10;
     textRect->top += (textHeight + margin) * 2;
   }
 
+  // If button is pressed then press image also
   if (isButtonPressed && !m_isUsingTheme) {
     OffsetRect(imageRect, 1, 1);
   }
@@ -209,11 +223,11 @@ void ImagedButton::drawIcon(HDC* dc, RECT* imageRect, bool isPressed, bool isDis
             (imageRect->right - imageRect->left),
             (imageRect->bottom - imageRect->top), 
             (isDisabled ? DSS_DISABLED : DSS_NORMAL) | DST_ICON);
-} 
+} // End of drawIcon
 
 LRESULT CALLBACK ImagedButton::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  ImagedButton *_this = (ImagedButton *)GetWindowLong(hWnd, GWL_USERDATA);
+  ImagedButton *_this = (ImagedButton *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
   switch (message) {
   case WM_LBUTTONDBLCLK:
@@ -239,6 +253,7 @@ LRESULT CALLBACK ImagedButton::wndProc(HWND hWnd, UINT message, WPARAM wParam, L
     _this->m_mouseOver = false;
     _this->invalidate();
     break;
-  } 
+  } // switch
+  // Any messages we don't process must be passed onto the original window function
   return CallWindowProc((WNDPROC)_this->m_defWindowProc, hWnd, message, wParam, lParam);
 }

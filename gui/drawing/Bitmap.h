@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,16 +30,25 @@
 #include <string>
 #include <sstream>
 
+// Class manipulating windows HBITMAP object
+// 
+//
 class Bitmap
 {
 public:
-  Bitmap(size_t width, size_t height);
-  Bitmap(HDC dc, size_t width, size_t height);
+  // Creates empty bitmap with specified size.
+  Bitmap(int width, int height);
+  // Creates compatible with dc bitmap with specified size.
+  Bitmap(HDC dc, int width, int height);
+  // Creates bitmap from HBITMAP object.
   Bitmap(HBITMAP bitmap);
+  // Destroys bitmap object.
   virtual ~Bitmap();
 
-  size_t getWidth() const;
-  size_t getHeight() const;
+  // Returns bitmap width.
+  int getWidth() const;
+  // Returns bitmap height.
+  int getHeight() const;
 protected:
   HBITMAP m_bitmap;
 

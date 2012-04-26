@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,12 +34,20 @@ public:
   Inflater();
   ~Inflater();
 
+  //
+  // FIXME: Debug method.
+  //
+
   void setUnpackedSize(size_t size);
 
   void inflate() throw(ZLibException);
 
 protected:
   z_stream m_zlibStream;
+
+  //
+  // FIXME: Debug member
+  //
 
   size_t m_unpackedSize;
 };

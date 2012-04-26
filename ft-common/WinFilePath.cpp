@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,19 +27,18 @@
 WinFilePath::WinFilePath()
 : m_parentPathIsRoot(false)
 {
-  StringStorage::StringStorage();
 }
 
 WinFilePath::WinFilePath(const TCHAR *string)
 : m_parentPathIsRoot(false)
 {
-  StringStorage::StringStorage(string);
+  setString(string);
 }
 
-WinFilePath::WinFilePath(const StringStorage &stringBuffer)
+WinFilePath::WinFilePath(const WinFilePath &stringBuffer)
 : m_parentPathIsRoot(false)
 {
-  StringStorage::StringStorage(stringBuffer);
+  setString(stringBuffer.getString());
 }
 
 WinFilePath::~WinFilePath()
@@ -53,34 +52,18 @@ bool WinFilePath::parentPathIsRoot()
 
 void WinFilePath::setString(const TCHAR *string)
 {
-  StringStorage::setString(string);
-  if (!isEmpty()) {
-    if (findLast('/') == 0) {
+  StringStorage str(string);
+  if (!str.isEmpty()) {
+    if (str.findLast('/') == 0) {
       m_parentPathIsRoot = true;
     }
-    convertToWindowsPath();
-  }
-}
-
-void WinFilePath::convertToWindowsPath()
-{
-  size_t i = 0;
-  size_t j = 0;
-  TCHAR *newBuffer = new TCHAR[m_length + 1];
-  for (i = 0; i < m_length; i++) {
-    TCHAR c = m_buffer[i];
-    if (c == '/' && ((i == 0) || (i == m_length - 1))) {
-      continue;
+    str.replaceChar(_T('/'), _T('\\'));
+    if (str.beginsWith(_T('\\'))) {
+      str.remove(0, 1);
     }
-    if (c == '/') {
-      c = '\\';
+    if (str.endsWith(_T('\\'))) {
+      str.truncate(1);
     }
-    newBuffer[j++] = c;
   }
-  newBuffer[j] = '\0';
-
-  delete[] m_buffer;
-
-  m_buffer = newBuffer;
-  m_length = _tcslen(newBuffer);
+  StringStorage::setString(str.getString());
 }

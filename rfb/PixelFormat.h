@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,6 +28,8 @@
 struct PixelFormat
 {
   PixelFormat();
+  // Initializes the bigEndian field by native machine value.
+  void initBigEndianByNative();
 
   bool isEqualTo(const PixelFormat *pf) const;
 
@@ -45,4 +47,4 @@ struct PixelFormat
   bool bigEndian;
 };
 
-#endif 
+#endif // __PIXELFORMAT_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "WindowsInputBlocker.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "util/Exception.h"
 
 LocalMutex WindowsInputBlocker::m_instanceMutex;
@@ -200,6 +200,7 @@ LRESULT CALLBACK WindowsInputBlocker::lowLevelKeyboardFilterProc(int nCode, WPAR
 {
   if (nCode == HC_ACTION) {
     KBDLLHOOKSTRUCT *hookStruct = (KBDLLHOOKSTRUCT *)lParam;
+    // If this a hardware event then block it.
     if (!(hookStruct->flags & LLKHF_INJECTED)) {
       return TRUE;
     }
@@ -211,6 +212,7 @@ LRESULT CALLBACK WindowsInputBlocker::lowLevelMouseFilterProc(int nCode, WPARAM 
 {
   if (nCode == HC_ACTION) {
     MSLLHOOKSTRUCT *hookStruct = (MSLLHOOKSTRUCT *)lParam;
+    // If this a hardware event then block it.
     if (!(hookStruct->flags & LLMHF_INJECTED)) {
       return TRUE;
     }
@@ -222,6 +224,7 @@ LRESULT CALLBACK WindowsInputBlocker::lowLevelSoftKeyboardFilterProc(int nCode, 
 {
   if (nCode == HC_ACTION) {
     KBDLLHOOKSTRUCT *hookStruct = (KBDLLHOOKSTRUCT *)lParam;
+    // If this a hardware event then update software blocking time.
     if (!(hookStruct->flags & LLKHF_INJECTED)) {
       m_lastInputTime = DateTime::now();
     }
@@ -233,6 +236,7 @@ LRESULT CALLBACK WindowsInputBlocker::lowLevelSoftMouseFilterProc(int nCode, WPA
 {
   if (nCode == HC_ACTION) {
     MSLLHOOKSTRUCT *hookStruct = (MSLLHOOKSTRUCT *)lParam;
+    // If this a hardware event then update software blocking time.
     if (!(hookStruct->flags & LLMHF_INJECTED)) {
       m_lastInputTime = DateTime::now();
     }
@@ -253,30 +257,38 @@ void WindowsInputBlocker::execute()
   try {
     while (!isTerminating()) {
       if (m_isKeyboardBlocking && m_hKeyboardHook == 0) {
+        // FIXME: write error handler
         setKeyboardFilterHook(true);
       }
       if (!m_isKeyboardBlocking && m_hKeyboardHook != 0) {
+        // FIXME: write error handler
         setKeyboardFilterHook(false);
       }
 
       if (m_isMouseBlocking && m_hMouseHook == 0) {
+        // FIXME: write error handler
         setMouseFilterHook(true);
       }
       if (!m_isMouseBlocking && m_hMouseHook != 0) {
+        // FIXME: write error handler
         setMouseFilterHook(false);
       }
 
       if (m_isSoftKeyboardBlocking && m_hSoftKeyboardHook == 0) {
+        // FIXME: write error handler
         setSoftKeyboardFilterHook(true);
       }
       if (!m_isSoftKeyboardBlocking && m_hSoftKeyboardHook != 0) {
+        // FIXME: write error handler
         setSoftKeyboardFilterHook(false);
       }
 
       if (m_isSoftMouseBlocking && m_hSoftMouseHook == 0) {
+        // FIXME: write error handler
         setSoftMouseFilterHook(true);
       }
       if (!m_isSoftMouseBlocking && m_hSoftMouseHook != 0) {
+        // FIXME: write error handler
         setSoftMouseFilterHook(false);
       }
 
@@ -297,6 +309,7 @@ void WindowsInputBlocker::execute()
                e.getMessage());
   }
 
+  // Free system resources
   setKeyboardFilterHook(false);
   setMouseFilterHook(false);
   setSoftKeyboardFilterHook(false);

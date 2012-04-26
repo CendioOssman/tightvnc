@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,6 +28,8 @@
 #include "thread/LocalMutex.h"
 #include "util/DateTime.h"
 
+// This class will be insert an time interval between trying of
+// authentications
 class AuthTracker
 {
 public:
@@ -35,10 +37,14 @@ public:
   virtual ~AuthTracker();
 
 protected:
+  // Return ban time if new connection banned and zero if it's not banned.
   UINT64 checkBan();
+  // If authentication failed this function must be called to increase an
+  // internal failure count.
   void notifyAbAuthFailed();
 
 private:
+  // If ban time is elapsed the refresh() function reset m_failureCount.
   void refresh();
 
   UINT64 m_failureTimeInterval;
@@ -49,4 +55,4 @@ private:
   LocalMutex m_countMutex;
 };
 
-#endif 
+#endif // __AUTHTRACKER_H__

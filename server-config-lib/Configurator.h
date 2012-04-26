@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -38,7 +38,9 @@
 class Configurator : public ListenerContainer<ConfigReloadListener *>
 {
 public:
-  Configurator();
+  Configurator(bool isConfiguringService);
+  virtual ~Configurator();
+
 public:
 
   bool getServiceFlag() { return m_isConfiguringService; }
@@ -49,14 +51,26 @@ public:
 
   bool isConfigLoadedPartly() { return m_isConfigLoadedPartly; }
 
+  //
+  // Get global configurator method
+  //
+
   static Configurator *getInstance();
   static void setInstance(Configurator *conf);
 
   void notifyReload();
 
+  //
+  // Protected members read methods
+  //
+
   ServerConfig *getServerConfig() { return &m_serverConfig; }
 
 private:
+
+  //
+  // Serialize and deserialize methods
+  //
 
   bool savePortMappingContainer(SettingsManager *sm);
   bool loadPortMappingContainer(SettingsManager *sm, PortMappingContainer *portMapping);
@@ -67,6 +81,7 @@ private:
 
   bool saveServerConfig(SettingsManager *sm);
   bool loadServerConfig(SettingsManager *sm, ServerConfig *config);
+  void updateLogDirPath();
 
   bool saveQueryConfig(SettingsManager *sm);
   bool loadQueryConfig(SettingsManager *sm, ServerConfig *config);
@@ -84,16 +99,37 @@ private:
   bool save(bool forService);
 protected:
 
+  //
+  // Server configuration
+  //
+
   ServerConfig m_serverConfig;
+
+  //
+  // Is this flag is set configurator think than application run as service
+  //
 
   bool m_isConfiguringService;
   bool m_isConfigLoadedPartly;
 
+  //
+  // Registry security attributes.
+  //
+
   RegistrySecurityAttributes *m_regSA;
+
+  //
+  // Helper members
+  //
 
   bool m_isFirstLoad;
 
+  //
+  // Global configurator object
+  //
+
   static Configurator *s_instance;
+  static LocalMutex m_instanceMutex;
 };
 
 #endif

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,40 +24,68 @@
 
 #include "StringStorage.h"
 #include "CommonHeader.h"
+#include "Exception.h"
 #include <stdio.h>
 
 #include <crtdbg.h>
 
 StringStorage::StringStorage()
-: m_buffer(0), m_length(0)
 {
+  setString(_T(""));
 }
 
 StringStorage::StringStorage(const TCHAR *string)
-: m_buffer(0), m_length(0)
 {
   setString(string);
 }
 
 StringStorage::StringStorage(const StringStorage &stringBuffer)
-: m_buffer(0), m_length(0)
 {
   *this = stringBuffer;
 }
 
 StringStorage::~StringStorage()
 {
-  release();
+}
+
+void StringStorage::setString(const TCHAR *string)
+{
+  if (string == 0) {
+    string = _T("");
+  }
+
+  size_t length = _tcslen(string);
+  resizeBuffer(length + 1);
+  memcpy(&m_buffer.front(), string, getSize());
+}
+
+void StringStorage::resizeBuffer(size_t newSize)
+{
+  m_buffer.resize(newSize);
+
+#ifdef _DEBUG
+  m_readableString = &m_buffer.front();
+#endif
+}
+
+const TCHAR *StringStorage::getString() const
+{
+  return &m_buffer.front();
+}
+
+size_t StringStorage::getLength() const
+{
+  return m_buffer.size() - 1;
+}
+
+size_t StringStorage::getSize() const
+{
+  return m_buffer.size() * sizeof(TCHAR);
 }
 
 bool StringStorage::isEmpty() const
 {
-  return isNull() || m_length == 0;
-}
-
-bool StringStorage::isNull() const
-{
-  return m_buffer == 0;
+  return getLength() == 0;
 }
 
 bool StringStorage::endsWith(TCHAR postfix) const
@@ -65,7 +93,7 @@ bool StringStorage::endsWith(TCHAR postfix) const
   if (isEmpty()) {
     return false;
   }
-  TCHAR lastCharacter = m_buffer[m_length - 1];
+  TCHAR lastCharacter = m_buffer[getLength() - 1];
   return (lastCharacter == postfix);
 }
 
@@ -78,183 +106,26 @@ bool StringStorage::beginsWith(TCHAR prefix) const
   return (firstCharacter == prefix);
 }
 
-void StringStorage::getSubstring(StringStorage *substr, int startIndex, int endIndex) const
+void StringStorage::getSubstring(StringStorage *substr,
+                                 size_t startIndex,
+                                 size_t endIndex) const
 {
-  if (isNull()) {
-    substr->setString(0);
-    return;
-  }
-  startIndex = max(startIndex, 0);
-  endIndex = min(endIndex, max(((int)m_length - 1), 0));
-
-  int length = max(endIndex - startIndex + 1, 1);
-
-  _ASSERT(length > 0);
-
-  TCHAR *buffer = new TCHAR[length + 1];
-
-  size_t j = 0;
-
-  for (int i = startIndex; i <= endIndex; i++) {
-    buffer[j] = m_buffer[i];
-    j++;
+  endIndex++; // to simplify calculations
+  startIndex = min(startIndex, getLength());
+  endIndex = min(endIndex, getLength());
+  if (endIndex < startIndex) {
+    endIndex = startIndex;
   }
 
-  buffer[j] = '\0';
+  size_t length = endIndex - startIndex;
+  _ASSERT(length <= getLength());
+
+  std::vector<TCHAR> autoBuffer(length + 1);
+  TCHAR *buffer = &autoBuffer.front();
+  memcpy(buffer, &m_buffer[startIndex], length * sizeof(TCHAR));
+  buffer[length] = '\0';
 
   substr->setString(buffer);
-
-  delete[] buffer;
-}
-
-void StringStorage::trim()
-{
-  TCHAR *buffer = new TCHAR[m_length + 1];
-
-  size_t j = 0;
-
-  for (size_t i = 0; i < m_length; i++) {
-    if (!((buffer[i] == ' ') && (buffer[i + 1]))) {
-      buffer[j++] = m_buffer[i];
-    }
-  }
-
-  buffer[j] = _T('\0');
-
-  setString(buffer);
-
-  delete[] buffer;
-}
-
-bool StringStorage::toAnsiString(char *buffer, size_t size) const
-{
-#ifdef _UNICODE
-  size_t requiredSize =
-    WideCharToMultiByte(CP_ACP, 0, m_buffer, m_length + 1,
-                        NULL, 0, NULL, NULL);
-#else
-  size_t requiredSize = m_length + 1;
-#endif
-
-  if (size < requiredSize) {
-    return false;
-  }
-
-#ifdef _UNICODE
-  WideCharToMultiByte(CP_ACP, 0, m_buffer, m_length + 1,
-                      (LPSTR)buffer, size, NULL, NULL);
-#else
-  memcpy(buffer, m_buffer, requiredSize);
-#endif
-
-  return true;
-}
-
-bool StringStorage::toUnicodeString(WCHAR *unicodeBuffer, size_t *length) const
-{
-  const TCHAR *input = getString();
-  if (*length < m_length) {
-    return false;
-  }
-#ifndef _UNICODE
-  MultiByteToWideChar(CP_ACP, 0, input, m_length , unicodeBuffer, m_length );
-#else
-  memcpy(unicodeBuffer, input, m_length * sizeof(TCHAR));
-#endif
-  unicodeBuffer[m_length] = _T('\0');
-  *length = m_length;
-  return true;
-}
-
-void StringStorage::toUTF8String(char *buffer, int *sizeInBytes)
-{
-#ifndef _UNICODE
-  WCHAR *unicodeBuffer = new WCHAR[m_length + 1];
-
-  MultiByteToWideChar(CP_ACP, 0, getString(), m_length + 1 , unicodeBuffer, m_length + 1);
-
-  int bufferSizeInBytes = WideCharToMultiByte(CP_UTF8, 0, unicodeBuffer, m_length, NULL, 0, NULL, FALSE);
-  *sizeInBytes = bufferSizeInBytes;
-
-  if (buffer != NULL) {
-    WideCharToMultiByte(CP_UTF8, 0, unicodeBuffer, m_length + 1, buffer, bufferSizeInBytes, NULL, FALSE);
-  }
-
-  delete[] unicodeBuffer;
-#else
-  int bufferSizeInBytes = WideCharToMultiByte(CP_UTF8, 0, m_buffer, m_length, NULL, 0, NULL, FALSE);
-  *sizeInBytes = bufferSizeInBytes;
-
-  if (buffer != NULL) {
-    WideCharToMultiByte(CP_UTF8, 0, m_buffer, m_length + 1, buffer, bufferSizeInBytes, NULL, FALSE);
-  }
-#endif
-}
-
-void StringStorage::fromUTF8String(char *buffer, int sizeInBytes)
-{
-#ifndef _UNICODE
-  int length = MultiByteToWideChar(CP_UTF8, 0, buffer, sizeInBytes, NULL, 0);
-
-  WCHAR *unicodeBuffer = new WCHAR[length + 1];
-  char *ansiBuffer = new char[length + 1];
-
-  MultiByteToWideChar(CP_UTF8, 0, buffer, sizeInBytes, unicodeBuffer, length + 1);
-  unicodeBuffer[length] = '\0';
-
-  WideCharToMultiByte(CP_ACP, 0, unicodeBuffer, length + 1, ansiBuffer, length + 1, NULL, FALSE);
-
-  setString(ansiBuffer);
-
-  delete[] ansiBuffer;
-  delete[] unicodeBuffer;
-#else
-  int length = MultiByteToWideChar(CP_UTF8, 0, buffer, sizeInBytes, NULL, 0);
-
-  WCHAR *unicodeBuffer = new WCHAR[length + 1];
-
-  MultiByteToWideChar(CP_UTF8, 0, buffer, sizeInBytes, unicodeBuffer, length + 1);
-  unicodeBuffer[length] = _T('\0');
-
-  setString(unicodeBuffer);
-
-  delete[] unicodeBuffer;
-#endif
-}
-
-void StringStorage::fromAnsiString(const char *string)
-{
-#ifndef _UNICODE
-  setString(string);
-#else
-  int length = MultiByteToWideChar(CP_ACP, 0, string, strlen(string) + 1, NULL, 0);
-
-  WCHAR *unicodeBuffer = new WCHAR[length + 1];
-
-  MultiByteToWideChar(CP_ACP, 0, string, strlen(string) + 1, unicodeBuffer, length + 1);
-  unicodeBuffer[length] = _T('\0');
-
-  setString(unicodeBuffer);
-
-  delete[] unicodeBuffer;
-#endif
-}
-
-void StringStorage::fromUnicodeString(const WCHAR *string)
-{
-#ifndef _UNICODE
-  size_t length = wcslen(string);
-  size_t numBytes = WideCharToMultiByte(CP_ACP, 0, string, length + 1,
-                                        NULL, 0, NULL, NULL);
-
-  char *buffer = new char[numBytes];
-  WideCharToMultiByte(CP_ACP, 0, string, length + 1,
-                      (LPSTR)buffer, numBytes, NULL, NULL);
-  setString(buffer);
-  delete[] buffer;
-#else
-  setString(string);
-#endif
 }
 
 void StringStorage::appendString(const TCHAR *string)
@@ -262,18 +133,13 @@ void StringStorage::appendString(const TCHAR *string)
   if (string == 0) {
     return;
   }
-  if (isNull()) {
-    setString(string);
-  } else {
-    size_t stringLength = _tcslen(string);
-    size_t oldLength = m_length;
-    TCHAR *buffer = new TCHAR[oldLength + stringLength + 1];
-    memcpy((char *)buffer, m_buffer, oldLength * sizeof(TCHAR));
-    memcpy((char *)buffer + oldLength * sizeof(TCHAR), string, (stringLength + 1) * sizeof(TCHAR));
-    release();
-    m_length = oldLength + stringLength;
-    m_buffer = buffer;
-  }
+  StringStorage src(string);
+
+  BufferType::iterator to = m_buffer.begin() + getLength();
+  BufferType::iterator fromFirst = src.m_buffer.begin();
+  BufferType::iterator fromLast = src.m_buffer.begin() + src.getLength();
+
+  m_buffer.insert(to, fromFirst, fromLast);
 }
 
 void StringStorage::appendChar(TCHAR c)
@@ -283,30 +149,11 @@ void StringStorage::appendChar(TCHAR c)
   appendString(string);
 }
 
-void StringStorage::setString(const TCHAR *string)
+void StringStorage::quoteSelf()
 {
-  release();
-
-  if (string != 0) {
-    m_length = _tcslen(string);
-    m_buffer = new TCHAR[m_length + 1];
-    memcpy(m_buffer, string, (m_length + 1) * sizeof(TCHAR));
-  }
-}
-
-const TCHAR *StringStorage::getString() const
-{
-  return m_buffer;
-}
-
-size_t StringStorage::getLength() const
-{
-  return m_length;
-}
-
-size_t StringStorage::getSize() const
-{
-  return isNull() ? 0 : (getLength() + 1) * sizeof(TCHAR);
+  StringStorage quotedString;
+  quotedString.format(_T("\"%s\""), getString());
+  setString(quotedString.getString());
 }
 
 bool StringStorage::isEqualTo(const StringStorage *other) const
@@ -330,6 +177,7 @@ bool StringStorage::isEqualTo(const TCHAR *other) const
 
 bool StringStorage::split(const TCHAR *delimiters, StringStorage *stringArray, size_t *arrayLength) const
 {
+  // Special case for empty string.
   if (this->getLength() == 0) {
     *arrayLength = 0;
     return true;
@@ -339,14 +187,18 @@ bool StringStorage::split(const TCHAR *delimiters, StringStorage *stringArray, s
 
   size_t chunksCount = 0;
 
-  int index = 0;
+  size_t index = 0;
 
   do {
     StringStorage chunk(_T(""));
 
     index = copy.findOneOf(delimiters);
 
-    if ((index == -1) && (chunksCount == 0)) {
+    //
+    // Case when no delimitter found.
+    //
+
+    if ((index == (size_t)-1) && (chunksCount == 0)) {
       if (arrayLength != 0) {
         if (stringArray != 0) {
           if (*arrayLength < 1) {
@@ -385,31 +237,34 @@ bool StringStorage::split(const TCHAR *delimiters, StringStorage *stringArray, s
   return true;
 }
 
-int StringStorage::findChar(const TCHAR c)
+size_t StringStorage::findChar(const TCHAR c)
 {
-  for (size_t i = 0; i < m_length; i++) {
+  size_t length = getLength();
+  for (size_t i = 0; i < length; i++) {
     if (m_buffer[i] == c) {
       return i;
     }
   }
-  return -1;
+  return (size_t)-1;
 }
 
-int StringStorage::findLast(const TCHAR c)
+size_t StringStorage::findLast(const TCHAR c)
 {
-  for (int i = m_length - 1; i >= 0; i--) {
+  for (size_t i = getLength() - 1; i + 1 != 0; i--) {
     if (m_buffer[i] == c) {
       return i;
     }
   }
-  return -1;
+  return (size_t)-1;
 }
 
 void StringStorage::removeChars(const TCHAR badCharacters[], size_t count)
 {
-  TCHAR *newBuffer = new TCHAR[getLength() + 1];
+  // FIXME: Adapt code to std::vector.
+  BufferType newBuffer(getLength() + 1);
 
   size_t j = 0;
+  size_t length = getLength();
 
   for (size_t i = 0; i < getLength(); i++) {
     TCHAR each = m_buffer[i];
@@ -426,39 +281,63 @@ void StringStorage::removeChars(const TCHAR badCharacters[], size_t count)
   }
 
   newBuffer[j] = _T('\0');
+  setString(&newBuffer.front());
+}
 
-  release();
+void StringStorage::remove(size_t startIndex, size_t count)
+{
+  bool isFailed = startIndex + count > getLength();
+  _ASSERT(!isFailed);
+  if (isFailed) {
+    throw Exception(_T("An incorrect StringStorage::remove() usage"));
+  }
+  BufferType newBuffer = m_buffer;
 
-  m_buffer = newBuffer;
-  m_length = j;
+  size_t copyCount = getSize() - (startIndex + 1) * sizeof(TCHAR);
+  memcpy(&newBuffer[startIndex], &newBuffer[startIndex + count], copyCount);
+  setString(&newBuffer.front());
 }
 
 void StringStorage::truncate(size_t count)
 {
-  count = min(m_length, count);
+  count = min(getLength(), count);
 
-  getSubstring(this, 0, m_length - count - 1);
+  remove(getLength() - count, count);
 }
 
-int StringStorage::findOneOf(const TCHAR *string)
+TCHAR *StringStorage::find(const TCHAR *substr)
 {
-  for (size_t i = 0; i < m_length; i++) {
-    for (size_t j = 0; j < _tcslen(string); j++) {
+  return _tcsstr(&m_buffer.front(), substr);
+}
+
+// FIXME: Use C functions.
+size_t StringStorage::findOneOf(const TCHAR *string)
+{
+  size_t length = getLength();
+  size_t argLength = _tcslen(string);
+  for (size_t i = 0; i < length; i++) {
+    for (size_t j = 0; j < argLength; j++) {
       if (m_buffer[i] == string[j]) {
         return i;
       }
     }
   }
-  return -1;
+  return (size_t)-1;
 }
 
 void StringStorage::toLowerCase()
 {
-  for (size_t i = 0; i < m_length; i++) {
+  size_t length = getLength();
+  for (size_t i = 0; i < length; i++) {
     if (_istalpha(m_buffer[i]) != 0) {
       m_buffer[i] = _totlower(m_buffer[i]);
     }
   }
+}
+
+void StringStorage::toUpperCase()
+{
+  _tcsupr_s(&m_buffer.front(), getLength() + 1);
 }
 
 void StringStorage::format(const TCHAR *format, ...)
@@ -469,15 +348,10 @@ void StringStorage::format(const TCHAR *format, ...)
   int count = _vsctprintf(format, vl);
   va_end(vl);
 
-  if (m_length < (size_t)count) {
-    release();
-    m_buffer = new TCHAR[count + 1];
-  }
-
-  m_length = (size_t)count;
+  resizeBuffer(count + 1);
 
   va_start(vl, format);
-  _vstprintf_s(m_buffer, count + 1, format, vl);
+  _vstprintf_s(&m_buffer.front(), count + 1, format, vl);
   va_end(vl);
 }
 
@@ -496,20 +370,17 @@ bool StringStorage::operator < (const StringStorage &str) const
   return _tcscmp(getString(), str.getString()) < 0;
 }
 
+void StringStorage::operator += (const TCHAR* str) 
+{
+  appendString(str);
+}
+
 void StringStorage::replaceChar(TCHAR oldChar, TCHAR newChar)
 {
-  for (size_t i = 0; i < m_length; i++) {
+  size_t length = getLength();
+  for (size_t i = 0; i < length; i++) {
     if (m_buffer[i] == oldChar) {
       m_buffer[i] = newChar;
     }
   }
-}
-
-void StringStorage::release()
-{
-  if (m_buffer != 0) {
-    delete[] m_buffer;
-    m_buffer = 0;
-  }
-  m_length = 0;
 }

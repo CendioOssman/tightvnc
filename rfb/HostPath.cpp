@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -61,12 +61,16 @@ HostPath::~HostPath()
 bool
 HostPath::set(const char *path)
 {
+  // Forget previous path if one was set earlier.
   clear();
 
+  // Compute the maximal length of a valid path. Note that there can be no
+  // more than five delimiter characters: "user@sshhost:port/vnchost::port".
   const size_t MAX_PATH_LEN =
     (m_SSH_USER_MAX_CHARS + m_SSH_HOST_MAX_CHARS + m_SSH_PORT_MAX_CHARS +
      m_VNC_HOST_MAX_CHARS + m_VNC_PORT_MAX_CHARS + 5);
 
+  // Check the path length and save a copy for this object.
   if (path == 0) {
     return false;
   }
@@ -78,6 +82,7 @@ HostPath::set(const char *path)
   memcpy(m_path, path, pathLen);
   m_path[pathLen] = '\0';
 
+  // Perform initial parsing and checking of the path.
   size_t tokens[4];
   parsePath(tokens);
   if ( tokens[0] + tokens[2] + tokens[3] == 0 ||
@@ -87,6 +92,7 @@ HostPath::set(const char *path)
   }
   const char *tokenStart = m_path;
 
+  // Handle SSH host name.
   if (tokens[0] != 0) {
     size_t hostLen = tokens[0];
     if (hostLen > m_SSH_HOST_MAX_CHARS) {
@@ -99,6 +105,7 @@ HostPath::set(const char *path)
     m_sshPort = 22;
     tokenStart += tokens[0];
 
+    // Handle SSH port number.
     if (tokens[1] != 0) {
       size_t portLen = tokens[1] - 1;
       if (portLen < 1 ||
@@ -112,14 +119,15 @@ HostPath::set(const char *path)
       tokenStart += tokens[1];
     }
 
-    tokenStart++; 
+    tokenStart++; // skip '/'
   }
 
+  // Handle VNC host name.
   const char* hostStart = tokenStart;
   size_t hostLen = tokens[2];
   if (tokens[2] == 0) {
     hostStart = "localhost";
-    hostLen = 9; 
+    hostLen = 9; // strlen("localhost")
   } else {
     if (hostLen > m_VNC_HOST_MAX_CHARS) {
       clear();
@@ -131,6 +139,7 @@ HostPath::set(const char *path)
   m_vncHost[hostLen] = '\0';
   tokenStart += tokens[2];
 
+  // Handle VNC display or port number.
   if (tokens[3] == 0) {
     m_vncPort = m_defaultPort;
   } else {
@@ -157,6 +166,7 @@ HostPath::set(const char *path)
     }
   }
 
+  // Perform strict validation of m_vncHost (and m_sshHost if present).
   if (!validateHostNames()) {
     clear();
     return false;

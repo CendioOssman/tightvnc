@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,34 +26,12 @@
 #include "HttpRequest.h"
 #include "HttpReply.h"
 #include "AppletParameter.h"
-#include "CharString.h"
 #include "VncViewerJarBody.h"
 #include "win-system/Environment.h"
 #include "server-config-lib/Configurator.h"
-#include "util/Log.h"
-
-const char HTTP_INDEX_PAGE_FORMAT[] =
-"<HTML>\n"
-"  <HEAD><TITLE>TightVNC desktop [%.256s]</TITLE></HEAD>\n"
-"  <BODY>\n"
-"    <APPLET ARCHIVE=\"VncViewer.jar\" CODE=VncViewer WIDTH=1 HEIGHT=1>\n"
-"      <PARAM NAME=\"PORT\" VALUE=\"%d\">\n"
-"      <PARAM NAME=\"Open new window\" VALUE=\"YES\">\n"
-"%.1024s"
-"    </APPLET><BR>\n"
-"    <A HREF=\"http://www.tightvnc.com/\">www.TightVNC.com</A>\n"
-"  </BODY>\n"
-"</HTML>\n";
-
-const char HTTP_MSG_BADPARAMS [] =
-"<HTML>\n"
-"  <HEAD><TITLE>TightVNC desktop</TITLE></HEAD>\n"
-"  <BODY>\n"
-"    <H1>Bad Parameters</H1>\n"
-"    The sequence of applet parameters specified within the URL is invalid.\n"
-"  </BODY>\n"
-"</HTML>\n";
-
+#include "log-server/Log.h"
+#include "util/AnsiStringStorage.h"
+#include "tvnserver-app/NamingDefs.h"
 
 HttpRequestHandler::HttpRequestHandler(DataInputStream *dataInput,
                                        DataOutputStream *dataOutput,
@@ -67,15 +45,16 @@ HttpRequestHandler::~HttpRequestHandler()
 {
 }
 
+// FIXME: Refactor this code.
 void HttpRequestHandler::processRequest()
 {
   HttpRequest httpRequest(m_dataInput);
 
   httpRequest.readHeader();
 
+  AnsiStringStorage ansiRequest(httpRequest.getRequest());
   StringStorage request;
-
-  request.fromAnsiString(httpRequest.getRequest());
+  ansiRequest.toStringStorage(&request);
 
   if (!httpRequest.parseHeader()) {
     Log::warning(_T("invalid http request from %s"), m_peerHost.getString());
@@ -91,11 +70,23 @@ void HttpRequestHandler::processRequest()
 
   bool pageFound = false;
 
+  //
+  // Index page.
+  //
+
   if (strcmp(httpRequest.getFilename(), "/") == 0) {
 
-    CharString paramsString("\n");
+    //
+    // Check arguments.
+    //
+
+    AnsiStringStorage paramsString("\n");
 
     bool isAppletArgsValid = true;
+
+    //
+    // Generate applet parameters string.
+    //
 
     bool paramsInUrlIsEnabled = Configurator::getInstance()->getServerConfig()->isAppletParamInUrlEnabled();
 
@@ -112,45 +103,44 @@ void HttpRequestHandler::processRequest()
           break;
         }
 
+        // FIXME: Strange append code.
         paramsString.format("%s%s", paramsString.getString(),
                             parameter.getFormattedString());
-      } 
-    } 
+      } // for all arguments.
+    } // if has arguments.
 
     reply.send200();
 
     if (!isAppletArgsValid) {
-      m_dataOutput->writeFully(HTTP_MSG_BADPARAMS, strlen(HTTP_MSG_BADPARAMS));
+      m_dataOutput->writeFully(HttpStrings::HTTP_MSG_BADPARAMS,
+                               strlen(HttpStrings::HTTP_MSG_BADPARAMS));
     } else {
-      CharString page;
+      AnsiStringStorage page;
 
-      StringStorage computerName(_T("TightVNC Server"));
+      StringStorage computerName(DefaultNames::DEFAULT_COMPUTER_NAME);
 
       Environment::getComputerName(&computerName);
 
-      size_t computerNameANSILength = computerName.getLength() + 1;
+      AnsiStringStorage computerNameANSI(&computerName);
 
-      char *computerNameANSI = new char[computerNameANSILength];
-
-      computerName.toAnsiString(computerNameANSI, computerNameANSILength);
-
-      page.format(HTTP_INDEX_PAGE_FORMAT,
-                  computerNameANSI,
+      page.format(HttpStrings::HTTP_INDEX_PAGE_FORMAT,
+                  computerNameANSI.getString(),
                   Configurator::getInstance()->getServerConfig()->getRfbPort(),
                   paramsString.getString());
-
-      delete[] computerNameANSI;
-
       m_dataOutput->writeFully(page.getString(), page.getLength());
-    } 
+    } // if applet arguments is valid.
 
     pageFound = true;
-  } else if ((strcmp(httpRequest.getFilename(), "/VncViewer.jar") == 0)) {
+  } else if ((strcmp(httpRequest.getFilename(), "/tightvnc-jviewer.jar") == 0)) {
     reply.send200();
     m_dataOutput->writeFully(VNC_VIEWER_JAR_BODY, sizeof(VNC_VIEWER_JAR_BODY));
 
     pageFound = true;
-  } 
+  }
+
+  //
+  // 404 Not Found.
+  //
 
   if (!pageFound) {
     reply.send404();

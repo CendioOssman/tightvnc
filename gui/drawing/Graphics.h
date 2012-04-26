@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,24 +35,38 @@
 class Graphics
 {
 public:
+  // Creates graphics object with specified device context.
   Graphics(DeviceContext *dc);
+  // Graphics class destructor.
   virtual ~Graphics();
 
+  // Sets background colors mix mode.
   void setBkMode(bool transparent);
+  // Sets background color.
   void setBkColor(COLORREF color);
 
+  // Sets text color.
   void setTextColor(COLORREF color);
+  // Sets current brush.
   void setBrush(const Brush *brush);
+  // Sets current pen.
   void setPen(const Pen *pen);
 
+  // Moves cursor to specified position.
   void moveTo(int x, int y);
+  // Draws line from current position to specified line.
   void lineTo(int x, int y);
 
+  // Draws filled rect.
   void fillRect(int l, int t, int r, int b, const Brush *brush);
+  // Draws ellipse.
   void ellipse(int l, int t, int r, int b);
+  // Draws rectance.
   void rectangle(int l, int t, int r, int b);
 
+  // Draws bitmap.
   void drawBitmap(const Bitmap *bitmap, int x, int y, int w, int h);
+  // Draws text.
   void drawText(const TCHAR *text, int cchText, RECT *rect, UINT format);
 
 protected:

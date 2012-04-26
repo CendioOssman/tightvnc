@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -40,17 +40,17 @@ PipeServer::PipeServer(const TCHAR *name, SecurityAttributes *secAttr,
 
 void PipeServer::createServerPipe()
 {
-  m_serverPipe = CreateNamedPipe(m_pipeName.getString(),   
-                                 PIPE_ACCESS_DUPLEX |      
-                                 FILE_FLAG_OVERLAPPED,     
-                                 PIPE_TYPE_BYTE |          
-                                 PIPE_READMODE_BYTE |      
-                                 PIPE_WAIT,                
-                                 PIPE_UNLIMITED_INSTANCES, 
-                                 BUFSIZE,                  
-                                 BUFSIZE,                  
-                                 0,                        
-                                 m_secAttr != 0 ?          
+  m_serverPipe = CreateNamedPipe(m_pipeName.getString(),   // pipe name
+                                 PIPE_ACCESS_DUPLEX |      // read/write access
+                                 FILE_FLAG_OVERLAPPED,     // overlapped mode
+                                 PIPE_TYPE_BYTE |          // message type pipe
+                                 PIPE_READMODE_BYTE |      // message-read mode
+                                 PIPE_WAIT,                // blocking mode
+                                 PIPE_UNLIMITED_INSTANCES, // max. instances
+                                 BUFSIZE,                  // output buffer size
+                                 BUFSIZE,                  // input buffer size
+                                 0,                        // client time-out
+                                 m_secAttr != 0 ?          // security attributes
                                  m_secAttr->getSecurityAttributes() : 0
                                  );
   if (m_serverPipe == INVALID_HANDLE_VALUE) {
@@ -60,7 +60,7 @@ void PipeServer::createServerPipe()
   }
 }
 
-Pipe *PipeServer::accept()
+NamedPipe *PipeServer::accept()
 {
   if (m_serverPipe == INVALID_HANDLE_VALUE) {
     createServerPipe();
@@ -71,6 +71,8 @@ Pipe *PipeServer::accept()
   overlapped.hEvent = m_winEvent.getHandle();
 
   if (ConnectNamedPipe(m_serverPipe, &overlapped)) {
+    // In success the overlapped ConnectNamedPipe() function must
+    // return zero.
     int errCode = GetLastError();
     StringStorage errMess;
     errMess.format(_T("ConnectNamedPipe failed, error code = %d"), errCode);
@@ -82,7 +84,7 @@ Pipe *PipeServer::accept()
       break;
     case ERROR_IO_PENDING:
       m_winEvent.waitForEvent(m_milliseconds);
-      DWORD cbRet; 
+      DWORD cbRet; // Fake
       if (!GetOverlappedResult(m_serverPipe, &overlapped, &cbRet, FALSE)) {
         int errCode = GetLastError();
         StringStorage errMess;
@@ -98,7 +100,7 @@ Pipe *PipeServer::accept()
     }
   }
 
-  Pipe *result = new Pipe(m_serverPipe, true);
+  NamedPipe *result = new NamedPipe(m_serverPipe, true);
 
   m_serverPipe = INVALID_HANDLE_VALUE;
 
@@ -107,6 +109,16 @@ Pipe *PipeServer::accept()
 
 void PipeServer::close()
 {
+  /*if (m_isConnected) {
+    if (DisconnectNamedPipe(hPipe)) {
+      m_isConnected = false;
+    } else {
+      int errCode = GetLastError();
+      StringStorage errMess;
+      errMess.format(_T("DisconnectNamedPipe failed, error code = %d"), errCode);
+      throw Exception(errMess.getString());
+    }
+  }*/
   m_winEvent.notify();
 }
 

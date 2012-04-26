@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -90,9 +90,6 @@ BOOL ServerConfigDialog::onCommand(UINT controlID, UINT notificationID)
       break;
     case IDC_UNSET_READONLY_PASSWORD_BUTTON:
       onUnsetReadOnlyPasswordClick();
-      break;
-    case IDC_APPLET_PARAMS_IN_URL:
-      onUrlParamsClick();
       break;
     case IDC_ENABLE_FILE_TRANSFERS:
       onFileTransferCheckBoxClick();
@@ -224,7 +221,6 @@ void ServerConfigDialog::updateUI()
     m_vpControl->setCryptedPassword((const char *)vpCrypted);
   }
 
-  m_enableAppletParamInUrl.check(m_config->isAppletParamInUrlEnabled());
   m_useAuthentication.check(m_config->isUsingAuthentication());
 
   m_blockLocalInput.check(m_config->isBlockingLocalInput());
@@ -236,6 +232,7 @@ void ServerConfigDialog::updateUI()
   m_localInputPriorityTimeout.setUnsignedInt(m_config->getLocalInputPriorityTimeout());
 
   m_grabTransparentWindows.check(m_config->getGrabTransparentWindowsFlag());
+  m_useMirrorDriver.check(m_config->getMirrorIsAllowed());
 
   m_showTrayIcon.check(m_config->getShowTrayIconFlag());
 
@@ -247,6 +244,7 @@ void ServerConfigDialog::apply()
 {
   StringStorage rfbPortText;
   StringStorage httpPortText;
+  // Polling interval string storage
   StringStorage pollingIntervalText;
 
   m_rfbPort.getText(&rfbPortText);
@@ -269,8 +267,11 @@ void ServerConfigDialog::apply()
 
   m_config->acceptRfbConnections(m_acceptRfbConnections.isChecked());
   m_config->acceptHttpConnections(m_acceptHttpConnections.isChecked());
-  m_config->enableAppletParamInUrl(m_enableAppletParamInUrl.isChecked());
   m_config->useAuthentication(m_useAuthentication.isChecked());
+
+  //
+  // Primary password.
+  //
 
   if (m_ppControl->hasPassword()) {
     m_config->setPrimaryPassword((const unsigned char *)m_ppControl->getCryptedPassword());
@@ -278,12 +279,17 @@ void ServerConfigDialog::apply()
     m_config->deletePrimaryPassword();
   }
 
+  //
+  // View only password.
+  //
+
   if (m_vpControl->hasPassword()) {
     m_config->setReadOnlyPassword((const unsigned char *)m_vpControl->getCryptedPassword());
   } else {
     m_config->deleteReadOnlyPassword();
   }
 
+  // Local input priority timeout string storage
   StringStorage liptStringStorage;
   m_localInputPriorityTimeout.getText(&liptStringStorage);
   int timeout = 0;
@@ -296,6 +302,7 @@ void ServerConfigDialog::apply()
   m_config->blockLocalInput(m_blockLocalInput.isChecked());
   m_config->blockRemoteInput(m_blockRemoteInput.isChecked());
 
+  m_config->setMirrorAllowing(m_useMirrorDriver.isChecked());
   m_config->setGrabTransparentWindowsFlag(m_grabTransparentWindows.isChecked());
   m_config->setShowTrayIconFlag(m_showTrayIcon.isChecked());
 }
@@ -307,12 +314,12 @@ void ServerConfigDialog::initControls()
   m_httpPort.setWindow(GetDlgItem(hwnd, IDC_HTTP_PORT));
   m_pollingInterval.setWindow(GetDlgItem(hwnd, IDC_POLLING_INTERVAL));
   m_grabTransparentWindows.setWindow(GetDlgItem(hwnd, IDC_GRAB_TRANSPARENT));
+  m_useMirrorDriver.setWindow(GetDlgItem(hwnd, IDC_USE_MIRROR_DRIVER));
   m_enableFileTransfers.setWindow(GetDlgItem(hwnd, IDC_ENABLE_FILE_TRANSFERS));
   m_removeWallpaper.setWindow(GetDlgItem(hwnd, IDC_REMOVE_WALLPAPER));
   m_acceptRfbConnections.setWindow(GetDlgItem(hwnd, IDC_ACCEPT_RFB_CONNECTIONS));
   m_acceptHttpConnections.setWindow(GetDlgItem(hwnd, IDC_ACCEPT_HTTP_CONNECTIONS));
   m_primaryPassword.setWindow(GetDlgItem(hwnd, IDC_PRIMARY_PASSWORD));
-  m_enableAppletParamInUrl.setWindow(GetDlgItem(hwnd, IDC_APPLET_PARAMS_IN_URL));
   m_readOnlyPassword.setWindow(GetDlgItem(hwnd, IDC_VIEW_ONLY_PASSWORD));
   m_useAuthentication.setWindow(GetDlgItem(hwnd, IDC_USE_AUTHENTICATION));
   m_unsetPrimaryPassword.setWindow(GetDlgItem(hwnd, IDC_UNSET_PRIMARY_PASSWORD_BUTTON));
@@ -331,13 +338,18 @@ void ServerConfigDialog::initControls()
   m_httpPortSpin.setAccel(0, 1);
   m_httpPortSpin.setRange32(1, 65535);
 
-  int limitters[] = {50, 200};
-  int deltas[] = {5, 10};
+  int limitersTmp[] = {50, 200};
+  int deltasTmp[] = {5, 10};
+
+  std::vector<int> limitters(limitersTmp, limitersTmp + sizeof(limitersTmp) /
+                                                        sizeof(int));
+  std::vector<int> deltas(deltasTmp, deltasTmp + sizeof(deltasTmp) /
+                                                 sizeof(int));
 
   m_pollingIntervalSpin.setBuddy(&m_pollingInterval);
   m_pollingIntervalSpin.setAccel(0, 1);
   m_pollingIntervalSpin.setRange32(1, INT_MAX);
-  m_pollingIntervalSpin.setAutoAccelerationParams(limitters, deltas, 2, 50);
+  m_pollingIntervalSpin.setAutoAccelerationParams(&limitters, &deltas, 50);
   m_pollingIntervalSpin.enableAutoAcceleration(true);
 
   m_blockLocalInput.setWindow(GetDlgItem(hwnd, IDC_BLOCK_LOCAL_INPUT));
@@ -350,11 +362,16 @@ void ServerConfigDialog::initControls()
   m_inactivityTimeoutSpin.setAccel(0, 1);
   m_inactivityTimeoutSpin.setRange32(0, INT_MAX);
 
+  // FIXME: This control is not used yet.
   m_grabTransparentWindows.check(true);
 
   m_ppControl = new PasswordControl(&m_primaryPassword, &m_unsetPrimaryPassword);
   m_vpControl = new PasswordControl(&m_readOnlyPassword, &m_unsetReadOnlyPassword);
 }
+
+//
+// TODO: Add comment to this method
+//
 
 void ServerConfigDialog::updateControlDependencies()
 {
@@ -370,10 +387,8 @@ void ServerConfigDialog::updateControlDependencies()
 
   if ((m_acceptHttpConnections.isChecked()) && (m_acceptHttpConnections.isEnabled())) {
     m_httpPort.setEnabled(true);
-    m_enableAppletParamInUrl.setEnabled(true);
   } else {
     m_httpPort.setEnabled(false);
-    m_enableAppletParamInUrl.setEnabled(false);
   }
 
   bool passwordsAreEnabled = ((m_useAuthentication.isChecked()) && (m_useAuthentication.isEnabled()));

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,50 +29,132 @@
 #include <commctrl.h>
 #include "Control.h"
 
+//
+// TODO: Maybe use class for this?
+//
+
 typedef struct
 {
   int index;
   LPARAM tag;
 } ListViewItem;
 
+//
+// ListView class can be used only for listviews
+// that view data as report.
+//
+
 class ListView : public Control
 {
 public:
 
+  //
+  // Adds new column to list view
+  //
+
   void addColumn(int index, const TCHAR *caption, int width, int fmt);
   void addColumn(int index, const TCHAR *caption, int width);
 
+  //
+  // Returns list view item structure with specified index
+  //
+
   ListViewItem getItem(int index);
+
+  //
+  // Returns list view items count
+  //
 
   int getCount() { return ListView_GetItemCount(m_hwnd); }
 
+  //
+  // Inserts new item to list view with specified index and caption
+  //
+
   void addItem(int index, const TCHAR *caption);
+
+  //
+  // Inserts new item to list view with specified index, caption
+  // and user data(tag)
+  //
 
   void addItem(int index, const TCHAR *caption, LPARAM tag);
 
+  //
+  // Inserts new item to list view
+  //
+
   void addItem(int index, const TCHAR *caption, LPARAM tag, int imageIndex);
+
+  //
+  // Removes item with specified index from list view
+  //
 
   void removeItem(int i);
 
+  //
+  // Removes all list view items from list view
+  //
+
   void clear();
+
+  //
+  // Changes text of list view item subitem
+  //
 
   void setSubItemText(int index, int subIndex, const TCHAR *caption);
 
+  //
+  // Changes user data (tag) of list view item with specified index
+  //
+
   void setItemData(int index, LPARAM tag);
+
+  //
+  // Returns user data of list view item with specified index
+  //
 
   LPARAM getItemData(int index);
 
+  //
+  // Returns first selected list view item 
+  //
+
   ListViewItem getSelectedItem();
+
+  //
+  // Returns index of first selected list view item
+  //
 
   int getSelectedIndex();
 
+  //
+  // Selectes list view item with specified index
+  //
+
   void selectItem(int index);
+
+  //
+  // Changes full row select style of list view
+  //
 
   void setFullRowSelectStyle(bool fullRowSelect);
 
+  //
+  // Enabled or disables multi selection on list view
+  //
+
   void allowMultiSelection(bool allow);
 
+  //
+  // Returns count of selected items in list view
+  //
+
   unsigned int getSelectedItemsCount();
+
+  //
+  // Sets selected list view index to output indexes array
+  //
 
   void getSelectedItemsIndexes(int *indexes);
 

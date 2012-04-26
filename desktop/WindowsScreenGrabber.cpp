@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -63,8 +63,10 @@ bool WindowsScreenGrabber::openDIBSection()
     return false;
   }
 
-  BMI bmi;
-  if (!getBMI(&bmi, m_screenDC)) {
+  Screen::BMI bmi;
+  try {
+    m_screen.getBMI(&bmi, m_screenDC);
+  } catch (...) {
     return false;
   }
 
@@ -102,6 +104,7 @@ bool WindowsScreenGrabber::openDIBSection()
 
 bool WindowsScreenGrabber::closeDIBSection()
 {
+  // Free resources
   SelectObject(m_destDC, m_hbmOld);
 
   DeleteObject(m_hbmDIB);
@@ -119,6 +122,7 @@ bool WindowsScreenGrabber::closeDIBSection()
 
 bool WindowsScreenGrabber::getPropertiesChanged()
 {
+  // Check for changing
   if (getScreenSizeChanged() || getPixelFormatChanged()) {
     return true;
   }
@@ -128,113 +132,52 @@ bool WindowsScreenGrabber::getPropertiesChanged()
 
 bool WindowsScreenGrabber::getPixelFormatChanged()
 {
-  BMI bmi;
-  if (!getBMI(&bmi)) {
-    return false;
-  }
+  m_screen.update();
 
-  PixelFormat currentPF;
+  PixelFormat currentPF = m_screen.getPixelFormat();
   PixelFormat frameBufferPF = m_workFrameBuffer.getPixelFormat();
-  fillPixelFormat(&currentPF, &bmi);
 
-  if (!frameBufferPF.isEqualTo(&currentPF)) {
-    return true;
-  }
-
-  return false;
+  return !frameBufferPF.isEqualTo(&currentPF);
 }
 
 bool WindowsScreenGrabber::getScreenSizeChanged()
 {
-  BMI bmi;
-  if (!getBMI(&bmi)) {
-    return false;
-  }
+  m_screen.update();
 
-  int width = bmi.bmiHeader.biWidth;
-  int height = bmi.bmiHeader.biHeight;
+  Rect screenRect = m_screen.getDesktopRect();
+  int width = screenRect.getWidth();
+  int height = screenRect.getHeight();
 
   if (width != m_fullScreenRect.getWidth() ||
       height != m_fullScreenRect.getHeight()) {
     return true;
   }
 
-  int left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-  int top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+  int left = screenRect.left;
+  int top = screenRect.top;
 
   if (left != m_fullScreenRect.left||
       top != m_fullScreenRect.top) {
+    // In this case apply new properties automatically
+    // and don't inform anybody.
     applyNewProperties();
   }
 
   return false;
 }
 
-bool WindowsScreenGrabber::getBMI(BMI *bmi, HDC dc)
-{
-  HDC bitmapDC;
-  if (dc == 0) {
-    bitmapDC = GetDC(0);
-    if (bitmapDC == NULL) {
-      return false;
-    }
-  } else {
-    bitmapDC = dc;
-  }
-
-  memset(bmi, 0, sizeof(BMI));
-  bmi->bmiHeader.biBitCount = 0;
-  bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-
-  HBITMAP hbm;
-  hbm = (HBITMAP) GetCurrentObject(bitmapDC, OBJ_BITMAP);
-  if (GetDIBits(bitmapDC, hbm, 0, 0, NULL, (LPBITMAPINFO) bmi, DIB_RGB_COLORS) == 0) {
-    DeleteObject(hbm);
-    DeleteDC(bitmapDC);
-    return false;
-  }
-
-  if (bmi->bmiHeader.biCompression == BI_BITFIELDS) {
-    if (GetDIBits(bitmapDC, hbm, 0, 0, NULL, (LPBITMAPINFO) bmi, DIB_RGB_COLORS) == 0) {
-      DeleteObject(hbm);
-      DeleteDC(bitmapDC);
-      return false;
-    }
-  }
-
-  DeleteObject(hbm);
-  if (dc == 0) {
-    DeleteDC(bitmapDC);
-  }
-  return true;
-}
-
 bool WindowsScreenGrabber::applyNewPixelFormat()
 {
-  BMI bmi;
-  if (!getBMI(&bmi)) {
-    return false;
-  }
+  m_screen.update();
+  m_workFrameBuffer.setEmptyPixelFmt(&m_screen.getPixelFormat());
 
-  PixelFormat pixelFormat;
-  bool result = fillPixelFormat(&pixelFormat, &bmi);
-  m_workFrameBuffer.setEmptyPixelFmt(&pixelFormat);
-
-  return result;
+  return true;
 }
 
 bool WindowsScreenGrabber::applyNewFullScreenRect()
 {
-  BMI bmi;
-  if (!getBMI(&bmi)) {
-    return false;
-  }
-
-  m_fullScreenRect.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-  m_fullScreenRect.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-  m_fullScreenRect.setWidth(bmi.bmiHeader.biWidth);
-  m_fullScreenRect.setHeight(bmi.bmiHeader.biHeight);
-
+  m_screen.update();
+  m_fullScreenRect = m_screen.getDesktopRect();
   setWorkRect(&m_fullScreenRect);
 
   return true;
@@ -248,6 +191,7 @@ bool WindowsScreenGrabber::grab(const Rect *rect)
 
   Rect grabRect;
   Dimension workDim = m_workFrameBuffer.getDimension();
+  // Set relative co-ordinates
   grabRect.left = 0;
   grabRect.top = 0;
   grabRect.setWidth(workDim.width);
@@ -280,53 +224,6 @@ bool WindowsScreenGrabber::grabByDIBSection(const Rect *rect)
   }
 
   return !getPropertiesChanged();
-}
-
-bool WindowsScreenGrabber::fillPixelFormat(PixelFormat *pixelFormat, const BMI *bmi)
-{
-  memset(pixelFormat, 0, sizeof(PixelFormat));
-
-  pixelFormat->bitsPerPixel = bmi->bmiHeader.biBitCount;
-
-  if (bmi->bmiHeader.biCompression == BI_BITFIELDS) {
-    pixelFormat->redShift   = findFirstBit(bmi->red);
-    pixelFormat->greenShift = findFirstBit(bmi->green);
-    pixelFormat->blueShift  = findFirstBit(bmi->blue);
-
-    pixelFormat->redMax   = bmi->red    >> pixelFormat->redShift;
-    pixelFormat->greenMax = bmi->green  >> pixelFormat->greenShift;
-    pixelFormat->blueMax  = bmi->blue   >> pixelFormat->blueShift;
-
-  } else {
-    pixelFormat->bitsPerPixel = 32;
-    pixelFormat->colorDepth = 24;
-    pixelFormat->redMax = pixelFormat->greenMax = pixelFormat->blueMax = 0xff;
-    pixelFormat->redShift   = 16;
-    pixelFormat->greenShift = 8;
-    pixelFormat->blueShift  = 0;
-  }
-
-  if (pixelFormat->bitsPerPixel == 32) {
-    pixelFormat->colorDepth = 24;
-  } else {
-    pixelFormat->colorDepth = 16;
-  }
-
-  return (pixelFormat->redMax > 0)
-    && (pixelFormat->greenMax > 0)
-    && (pixelFormat->blueMax > 0);
-}
-
-int WindowsScreenGrabber::findFirstBit(const UINT32 bits)
-{
-  UINT32 b = bits;
-  int shift;
-
-  for (shift = 0; (shift < 32) && ((b & 1) == 0); shift++) {
-    b >>= 1;
-  }
-
-  return shift;
 }
 
 void WindowsScreenGrabber::execute()

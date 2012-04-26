@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,6 +31,8 @@
 #include "AuthException.h"
 #include "util/VncPassCrypt.h"
 #include "win-system/Environment.h"
+#include "util/AnsiStringStorage.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -88,6 +90,7 @@ void RfbInitializer::initVersion()
 
   try {
     checkForLoopback();
+    // Checking for a ban before auth and then after.
     checkForBan();
   } catch (Exception &e) {
     if (m_minorVerNum == 3) {
@@ -95,17 +98,13 @@ void RfbInitializer::initVersion()
     } else {
       m_output->writeUInt8(0);
     }
-    StringStorage errorMessage(e.getMessage());
-    size_t reasonLen = errorMessage.getLength();
-    char *reason = new char[reasonLen + 1];
-    try {
-      if (errorMessage.toAnsiString(reason, reasonLen + 1)) {
-        m_output->writeUInt32(reasonLen);
-        m_output->writeFully(reason, reasonLen);
-      }
-    } catch (...) {
-    }
-    delete reason;
+    AnsiStringStorage reason(&StringStorage(e.getMessage()));
+    unsigned int reasonLen = (unsigned int)reason.getLength();
+    _ASSERT(reasonLen == reason.getLength());
+
+    m_output->writeUInt32(reasonLen);
+    m_output->writeFully(reason.getString(), reasonLen);
+
     throw;
   }
 }
@@ -129,13 +128,17 @@ void RfbInitializer::checkForLoopback()
 
 void RfbInitializer::doTightAuth()
 {
+  // Negotiate tunneling.
   m_output->writeUInt32(0);
+  // Negotiate authentication.
+  // FIXME: Recognize authentication types.
   if (Configurator::getInstance()->getServerConfig()->isUsingAuthentication()
       && m_authAllowed) {
     CapContainer authInfo;
     authInfo.addCap(AuthDefs::VNC, VendorDefs::STANDARD, AuthDefs::SIG_VNC);
     m_output->writeUInt32(authInfo.getCapCount());
     authInfo.sendCaps(m_output);
+    // Read the security type selected by the client.
     UINT32 clientAuthValue = m_input->readUInt32();
     if (!authInfo.includes(clientAuthValue)) {
       throw Exception(_T(""));
@@ -156,9 +159,11 @@ void RfbInitializer::doAuth(UINT32 authType)
   } else {
     throw Exception(_T(""));
   }
+  // Perform additional work via a listener.
   m_extAuthListener->onCheckAccessControl(m_client);
+  // Send authentication result.
   if (m_minorVerNum >= 8 || authType != AuthDefs::NONE) {
-    m_output->writeUInt32(0); 
+    m_output->writeUInt32(0); // FIXME: Use a named constant instead of 0.
   }
 }
 
@@ -173,8 +178,10 @@ void RfbInitializer::doVncAuth()
   m_output->writeFully(challenge, sizeof(challenge));
   UINT8 response[16];
   m_input->readFully(response, sizeof(response));
+  // Checking for a ban after auth.
   checkForBan();
 
+  // Comparing the challenge with the response.
   ServerConfig *srvConf = Configurator::getInstance()->getServerConfig();
   bool hasPrim = srvConf->hasPrimaryPassword();
   bool hasRdly = srvConf->hasReadOnlyPassword();
@@ -202,6 +209,7 @@ void RfbInitializer::doVncAuth()
       return;
     }
   }
+  // At this time we are sure that the client was typed an incorectly password.
   m_extAuthListener->onAuthFailed(m_client);
   throw AuthException(_T("Authentication failed"));
 }
@@ -213,15 +221,20 @@ void RfbInitializer::doAuthNone()
 void RfbInitializer::initAuthenticate()
 {
   try {
+    // Determine effective security type from the configuration.
     UINT32 primSecType = SecurityDefs::VNC;
     if (!Configurator::getInstance()->getServerConfig()->isUsingAuthentication()
         || !m_authAllowed) {
       primSecType = SecurityDefs::NONE;
     }
+    // Here the protocol varies between versions 3.3 and 3.7+.
     if (m_minorVerNum >= 7) {
+      // Send a list with two security types -- VNC-compatible security type
+      // and a special code allowing to enable TightVNC protocol extensions.
       m_output->writeUInt8(2);
       m_output->writeUInt8(primSecType);
       m_output->writeUInt8(SecurityDefs::TIGHT);
+      // Read what the client has actually selected.
       UINT8 clientSecType = m_input->readUInt8();
       if (clientSecType == SecurityDefs::TIGHT) {
         m_tightEnabled = true;
@@ -233,25 +246,21 @@ void RfbInitializer::initAuthenticate()
         doAuth(AuthDefs::convertFromSecurityType(clientSecType));
       }
     } else {
+      // Just tell the client we will use the configured security type.
       m_output->writeUInt32(primSecType);
       doAuth(AuthDefs::convertFromSecurityType(primSecType));
     }
   } catch (AuthException &e) {
+    // FIXME: The authentication result must be sent in protocols 3.3 and 3.7
+    //        as well, unless the authentication was set to AuthDefs::NONE.
     if (m_minorVerNum >= 8) {
-      StringStorage errorMessage(e.getMessage());
-      size_t reasonLen = errorMessage.getLength();
-      char *reason = new char[reasonLen + 1];
-      try {
-        if (errorMessage.toAnsiString(reason, reasonLen + 1)) {
-          m_output->writeUInt32(1); 
-          m_output->writeUInt32(reasonLen);
-          m_output->writeFully(reason, reasonLen);
-        }
-      } catch (...) {
-        delete reason;
-        throw;
-      }
-      delete reason;
+      AnsiStringStorage reason(&StringStorage(e.getMessage()));
+      unsigned int reasonLen = (unsigned int)reason.getLength();
+      _ASSERT(reasonLen == reason.getLength());
+
+      m_output->writeUInt32(1); // FIXME: Use a named constant instead of 1.
+      m_output->writeUInt32(reasonLen);
+      m_output->writeFully(reason.getString(), reasonLen);
     }
     throw;
   }
@@ -267,6 +276,7 @@ void RfbInitializer::sendServerInit(const Dimension *dim,
 {
   m_output->writeUInt16((UINT16)dim->width);
   m_output->writeUInt16((UINT16)dim->height);
+  // Pixel format
   m_output->writeUInt8((UINT8)pf->bitsPerPixel);
   m_output->writeUInt8((UINT8)pf->colorDepth);
   m_output->writeUInt8((UINT8)pf->bigEndian);
@@ -277,6 +287,7 @@ void RfbInitializer::sendServerInit(const Dimension *dim,
   m_output->writeUInt8((UINT8)pf->redShift);
   m_output->writeUInt8((UINT8)pf->greenShift);
   m_output->writeUInt8((UINT8)pf->blueShift);
+  // Padding
   m_output->writeUInt8(0);
   m_output->writeUInt16(0);
 }
@@ -285,15 +296,15 @@ void RfbInitializer::sendDesktopName()
 {
   StringStorage deskName;
   if (!Environment::getComputerName(&deskName)) {
-    deskName.setString(_T("TightVNC Server"));
+    deskName.setString(DefaultNames::DEFAULT_COMPUTER_NAME);
   }
 
-  size_t dnLen = deskName.getLength();
-  char *ansiName = new char[dnLen + 1];
-  deskName.toAnsiString(ansiName, dnLen + 1);
+  AnsiStringStorage ansiName(&deskName);
+  unsigned int dnLen = (unsigned int)ansiName.getLength();
+  _ASSERT(dnLen == ansiName.getLength());
 
   m_output->writeUInt32(dnLen);
-  m_output->writeFully(ansiName, dnLen);
+  m_output->writeFully(ansiName.getString(), dnLen);
 }
 
 void RfbInitializer::sendInteractionCaps(const CapContainer *srvToClCaps,
@@ -303,7 +314,7 @@ void RfbInitializer::sendInteractionCaps(const CapContainer *srvToClCaps,
   m_output->writeUInt16(srvToClCaps->getCapCount());
   m_output->writeUInt16(clToSrvCaps->getCapCount());
   m_output->writeUInt16(encCaps->getCapCount());
-  m_output->writeUInt16(0); 
+  m_output->writeUInt16(0); // Pad
 
   srvToClCaps->sendCaps(m_output);
   clToSrvCaps->sendCaps(m_output);

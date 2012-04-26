@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,8 @@
 //
 
 #include "DataOutputStream.h"
+#include "util/Utf8StringStorage.h"
+#include <vector>
 
 #define GETBYTE(x, n) (((x) >> ((n) * 8)) & 0xFF)
 
@@ -117,23 +119,20 @@ void DataOutputStream::writeInt64(INT64 x)
 
 void DataOutputStream::writeUTF8(const TCHAR *string)
 {
-  int sizeInBytes = 0;
-  char *buffer = NULL;
+  size_t sizeInBytes = 0;
 
-  StringStorage storage(string);
-  storage.toUTF8String(NULL, &sizeInBytes);
-  buffer = new char[sizeInBytes];
-  storage.toUTF8String(buffer, &sizeInBytes);
+  // to UTF8 string convertion
+  Utf8StringStorage utf8String(&StringStorage(string));
 
+  // FIXME: Why try/catch() is used?
   try {
-    writeUInt32((unsigned int)sizeInBytes);
-    writeFully(buffer, sizeInBytes);
+    unsigned int sizeInBytes = (unsigned int)utf8String.getSize();
+    _ASSERT(sizeInBytes == utf8String.getSize());
+    writeUInt32(sizeInBytes);
+    writeFully(utf8String.getString(), sizeInBytes);
   } catch (...) {
-    delete[] buffer;
     throw;
   }
-
-  delete[] buffer;
 }
 
 void DataOutputStream::flush()

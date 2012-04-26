@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,6 +29,7 @@
 #include "util/inttypes.h"
 #include "io-lib/DataOutputStream.h"
 
+// FIXME: The same structure is used in the viewer named RfbCapabilityInfo.
 struct Cap
 {
   UINT32 code;
@@ -57,4 +58,4 @@ private:
   CapVector m_caps;
 };
 
-#endif 
+#endif // __CAPCONTAINER_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,16 +25,15 @@
 #ifndef _FILE_TRANSFER_MESSAGE_PROCESSOR_H_
 #define _FILE_TRANSFER_MESSAGE_PROCESSOR_H_
 
-#include "util/inttypes.h"
-
 #include "io-lib/IOException.h"
-
+#include "util/inttypes.h"
+#include "util/ListenerContainer.h"
 #include "util/ZLibException.h"
+
 #include "ft-common/OperationNotSupportedException.h"
 
 #include "OperationNotPermittedException.h"
 #include "FileTransferEventHandler.h"
-#include "ListenerContainer.h"
 
 class FileTransferMessageProcessor : public ListenerContainer<FileTransferEventHandler *>
 {

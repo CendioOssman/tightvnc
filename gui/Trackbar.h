@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,10 +33,13 @@ public:
   Trackbar();
   virtual ~Trackbar();
 
+  // Sets the range of minimum and maximum logical positions for the slider.
   void setRange(long min, long max);
 
+  // Sets the current logical position of the slider.
   void setPos(long pos);
 
+  // Returns the current logical position of the slider.
   long getPos();
 };
 

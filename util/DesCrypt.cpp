@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,7 +25,11 @@
 #include "DesCrypt.h"
 #include "util/CommonHeader.h"
 
+/* The following array is reversed for VNC compatibility,
+   by Constantin Kaplinsky */
+
 const static unsigned short bytebit[8]	= {
+/**	0200, 0100, 040, 020, 010, 04, 02, 01 };	**/
 	01, 02, 04, 010, 020, 040, 0100, 0200 };
 
 const static unsigned long bigbyte[24] = {
@@ -35,6 +39,8 @@ const static unsigned long bigbyte[24] = {
 	0x800L, 	0x400L, 	0x200L, 	0x100L,
 	0x80L,		0x40L,		0x20L,		0x10L,
 	0x8L,		0x4L,		0x2L,		0x1L	};
+
+/* Use the key schedule specified in the Standard (ANSI X3.92-1981). */
 
 const static unsigned char pc1[56] = {
 	56, 48, 40, 32, 24, 16,  8,	 0, 57, 49, 41, 33, 25, 17,
@@ -141,6 +147,18 @@ void DesCrypt::cookey(unsigned long *raw1)
   usekey(dough);
   return;
 }
+
+/*
+void cpkey(into)
+unsigned long *into;
+{
+	unsigned long *from, *endp;
+
+	from = m_knL, endp = &m_knL[32];
+	while(from < endp) *into++ = *from++;
+	return;
+	}
+*/
 
 void DesCrypt::usekey(unsigned long *from)
 {

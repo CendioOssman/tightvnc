@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,13 +27,29 @@
 
 #include "IOException.h"
 
+/**
+ * Output stream interface (abstract class).
+ */
 class OutputStream
 {
 public:
   virtual ~OutputStream();
 
+  /**
+   * Writes data to stream.
+   * @param buffer buffer with data to write.
+   * @param len count of bytes to write.
+   * @return count of written bytes.
+   * @throws any kind of exception (depends on implementation).
+   */
   virtual size_t write(const void *buffer, size_t len) = 0;
 
+  /**
+   * Flushes inner buffer to real output stream.
+   *
+   * flush method of OutputStream does nothing, it can be override
+   * by subclasses which uses bufferization.
+   */
   virtual void flush();
 };
 

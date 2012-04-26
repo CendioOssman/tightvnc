@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,7 +30,9 @@ class CapsContainer;
 class OperationSupport
 {
 public:
-  OperationSupport(CapsContainer *clientCaps, CapsContainer *serverCaps);
+  OperationSupport();
+  OperationSupport(const CapsContainer *clientCaps,
+                   const CapsContainer *serverCaps);
   virtual ~OperationSupport();
 
   bool isFileListSupported() const;

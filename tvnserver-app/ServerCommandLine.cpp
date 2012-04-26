@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,7 +33,7 @@ ServerCommandLine::~ServerCommandLine()
 {
 }
 
-bool ServerCommandLine::parse(const TCHAR *commandLine)
+bool ServerCommandLine::parse(const CommandLineArgs *cmdArgs)
 {
   CommandLineFormat format[] = {
     { _T("-help"), NO_ARG },
@@ -45,7 +45,7 @@ bool ServerCommandLine::parse(const TCHAR *commandLine)
     { _T("-run"), NO_ARG }
   };
 
-  if (!CommandLine::parse(format, sizeof(format) / sizeof(CommandLineFormat), commandLine)) {
+  if (!CommandLine::parse(format, sizeof(format) / sizeof(CommandLineFormat), cmdArgs)) {
     return false;
   }
   if (showHelp() && optionSpecified(_T("-run"))) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,16 +33,33 @@
 class ChangePasswordDialog : public BaseDialog
 {
 public:
+  /**
+  Creates new modal dialog for changing password.
+  @param parent - parent dialog, optional (can be null).
+  @param isNewPassword - flag determinates caption of dialog.
+  */
   ChangePasswordDialog(Control *parent, bool isNewPassword);
   virtual ~ChangePasswordDialog();
 
+  /**
+  Returns password (in plain text) specified by user.
+  @return password string.
+  */
   const TCHAR *getPasswordInPlainText() const;
 protected:
+
+  //
+  // BaseDialog overrided methods
+  //
 
   virtual BOOL onInitDialog();
   virtual BOOL onCommand(UINT cID, UINT nID);
   virtual BOOL onNotify(UINT controlID, LPARAM data) { return TRUE; }
   virtual BOOL onDestroy() { return TRUE; }
+
+  //
+  // Controls event handlers
+  //
 
   void onOkButtonClick();
   void onCancelButtonClick();
@@ -51,11 +68,15 @@ private:
   void initControls();
 
 protected:
+  // Controls
   TextBox m_password1;
   TextBox m_password2;
+  // Password
   StringStorage m_passwordText;
+  // Tooltip
   BalloonTip m_passwordEmptyTooltip;
   BalloonTip m_passwordsNotMatchTooltip;
+  // Helper members
   bool m_newPassword;
   bool m_allowEmptyPassword;
 };

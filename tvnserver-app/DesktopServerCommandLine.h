@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,18 +28,41 @@
 #include "util/CommandLine.h"
 #include "util/Exception.h"
 
+/**
+ * Desktop server command line parser.
+ * @valid command line is '-desktopserver -logdir pathToLogDir' where
+ * pathToLogDir arg is full path to directory where desktop server log
+ * will be created.
+ */
 class DesktopServerCommandLine : private CommandLine
 {
 public:
   DesktopServerCommandLine();
   virtual ~DesktopServerCommandLine();
 
-  virtual void parse(const TCHAR *cmdLine) throw(Exception);
+  /**
+   * Parses command line.
+   * @param cmdLine command line to parse.
+   * @throws Exception on fail.
+   */
+  virtual void parse(const CommandLineArgs *cmdArgs) throw(Exception);
 
+  /**
+   * Puts specified in command line path to log directory into output parameter.
+   * @param [out] logDir output parameter for log directory.
+   * @remark if parse method wasn't before this will return 0 as log dir.
+   */
   void getLogDir(StringStorage *logDir);
 
+  /**
+   * Returns specified log level.
+   * @return specified log level.
+   */
   int getLogLevel();
 
+  /**
+   * Puts specified shared memory name into output parameter.
+   */
   void getSharedMemName(StringStorage *shMemName);
 
 public:

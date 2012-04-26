@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "SessionChangesWatcher.h"
-
+#include "log-server/Log.h"
 #include "win-system/WTS.h"
 
 SessionChangesWatcher::SessionChangesWatcher(AnEventListener *extSessionChangesListener)
@@ -51,11 +51,18 @@ void SessionChangesWatcher::execute()
     DesktopSelector::getCurrentDesktopName(&currDeskName);
     bool desktopChanged = !currDeskName.isEqualTo(&prevDeskName);
     if (sessionChanged || desktopChanged) {
+      Log::debug(_T("Session or desktop has been changed.")
+                 _T(" The process session = %u, current session = %u")
+                 _T(" The process desktop = %s, current desktop = %s"),
+                 (unsigned int)prevSession, (unsigned int)currSessionId,
+                 prevDeskName.getString(), currDeskName.getString());
       prevSession = currSessionId;
       prevDeskName = currDeskName;
       m_extSessionChangesListener->onAnObjectEvent();
+      terminate();
+    } else {
+      // FIXME: Use WindowsEvent instead of Sleep().
+      Sleep(100);
     }
-
-    Sleep(100);
   }
 }

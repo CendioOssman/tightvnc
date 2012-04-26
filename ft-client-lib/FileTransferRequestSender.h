@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,17 +26,15 @@
 #define _FILE_TRANSFER_REQUEST_SENDER_H_
 
 #include "util/inttypes.h"
-#include "io-lib/OutputStream.h"
-#include "io-lib/DataOutputStream.h"
+#include "network/RfbOutputGate.h"
 #include "io-lib/IOException.h"
 
-#include "omnithread/omnithread.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 class FileTransferRequestSender
 {
 public:
-  FileTransferRequestSender(OutputStream *outputStream, omni_mutex *writeMutex);
+  FileTransferRequestSender(RfbOutputGate *outputStream);
   ~FileTransferRequestSender();
 
   void sendCompressionSupportRequest() throw(IOException);
@@ -52,11 +50,7 @@ public:
   void sendFolderSizeRequest(const TCHAR *fullPath) throw(IOException);
 
 protected:
-
-  omni_mutex *m_writeMutex;
-
-  OutputStream *m_outputStream;
-  DataOutputStream *m_dataOutputStream;
+  RfbOutputGate *m_output;
 };
 
 #endif

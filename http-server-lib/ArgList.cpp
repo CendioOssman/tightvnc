@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,6 +25,7 @@
 #include "ArgList.h"
 
 #include "util/CommonHeader.h"
+#include <vector>
 
 ArgList::ArgList(const char *argString)
 {
@@ -32,8 +33,10 @@ ArgList::ArgList(const char *argString)
 
   const char *src = argString;
 
-  char *pair = new char[len + 1];
-  char *left = new char[len + 1];
+  std::vector<char> pairBuff(len + 1);
+  char *pair = &pairBuff.front();
+  std::vector<char> leftBuff(len + 1);
+  char *left = &leftBuff.front();
 
   while (true) {
     splitPair(src, '&', pair, left);
@@ -44,7 +47,8 @@ ArgList::ArgList(const char *argString)
 
     size_t pairLen = strlen(pair);
 
-    char *key = new char[pairLen + 1];
+    std::vector<char> keyBuff(pairLen + 1);
+    char *key = &keyBuff.front();
     char *val = new char[pairLen + 1];
 
     splitPair(pair, '=', key, val);
@@ -54,13 +58,8 @@ ArgList::ArgList(const char *argString)
 
     m_args[key] = val;
 
-    delete key;
-
     src = left;
   }
-
-  delete left;
-  delete pair;
 }
 
 ArgList::~ArgList()
@@ -130,6 +129,7 @@ void ArgList::splitPair(const char *par, char delimitter, char *key, char *value
 
 void ArgList::htmlDecode(char *value) const
 {
+  // Replace '+' characaters with spaces.
   for (size_t i = 0; i < strlen(value); i++) {
     if (value[i] == '+') {
       value[i] = ' ';

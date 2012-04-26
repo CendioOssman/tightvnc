@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -41,12 +41,16 @@ public:
   QueryConnectionCommandLine();
   virtual ~QueryConnectionCommandLine();
 
-  void parse(const TCHAR *commandLine) throw(Exception);
+  void parse(const CommandLineArgs *commandLine) throw(Exception);
 
+  // Returns true if timeout is specified.
   bool isTimeoutSpecified();
 
+  // Stores ip address value into storage output parameter.
   void getPeerAddress(StringStorage *storage);
+  // Returns true if default action is accept.
   bool isDefaultActionAccept();
+  // Returns timeout in seconds.
   DWORD getTimeout();
 
 protected:

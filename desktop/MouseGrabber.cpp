@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,4 +30,9 @@ MouseGrabber::MouseGrabber(void)
 
 MouseGrabber::~MouseGrabber(void)
 {
+}
+
+const CursorShape *MouseGrabber::getCursorShape() const
+{
+  return &m_cursorShape;
 }

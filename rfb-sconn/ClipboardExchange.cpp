@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,16 +24,19 @@
 
 #include "ClipboardExchange.h"
 #include "rfb/MsgDefs.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
+#include "util/AnsiStringStorage.h"
 
 ClipboardExchange::ClipboardExchange(RfbCodeRegistrator *codeRegtor,
-                                     WinDesktop *desktop,
+                                     DesktopInterface *desktop,
                                      RfbOutputGate *output,
                                      bool viewOnly)
 : m_desktop(desktop),
   m_output(output),
-  m_viewOnly(viewOnly)
+  m_viewOnly(viewOnly),
+  m_hasNewClip(false)
 {
+  // Request code
   codeRegtor->regCode(ClientMsgDefs::CLIENT_CUT_TEXT, this);
   resume();
 }
@@ -48,25 +51,20 @@ void ClipboardExchange::onRequest(UINT32 reqCode, RfbInputGate *input)
 {
   switch (reqCode) {
   case ClientMsgDefs::CLIENT_CUT_TEXT:
-    input->readUInt8(); 
-    input->readUInt16(); 
+    input->readUInt8(); // pad
+    input->readUInt16(); // pad
     {
       UINT32 length = input->readUInt32();
-      char *receivedText = new char[length + 1];
-      try {
-        input->readFully(receivedText, length);
-      } catch (...) {
-        delete[] receivedText;
-        throw;
-      }
+      std::vector<char> charBuff(length + 1);
+
+      input->readFully(&charBuff.front(), length);
+      charBuff[length] = '\0';
+      AnsiStringStorage ansiText(&charBuff.front());
+
       if (!m_viewOnly) {
-        receivedText[length] = '\0';
         StringStorage clipText;
-        clipText.fromAnsiString(receivedText);
-        delete[] receivedText;
+        ansiText.toStringStorage(&clipText);
         m_desktop->setNewClipText(&clipText);
-      } else {
-        delete[] receivedText;
       }
     }
     break;
@@ -83,6 +81,7 @@ void ClipboardExchange::sendClipboard(const StringStorage *newClipboard)
   AutoLock al(&m_storedClipMut);
   if (!m_storedClip.isEqualTo(newClipboard)) {
     m_storedClip = *newClipboard;
+    m_hasNewClip = true;
     m_newClipWaiter.notify();
   }
 }
@@ -97,35 +96,29 @@ void ClipboardExchange::execute()
   while (!isTerminating()) {
     m_newClipWaiter.waitForEvent();
 
-    if (m_storedClip.getString() != 0 && !isTerminating() && !m_viewOnly) {
-      size_t length = 0;
-      char *ansiClip = 0;
+    if (m_hasNewClip && !isTerminating() && !m_viewOnly) {
 
       try {
         AutoLock al(m_output);
-        m_output->writeUInt8(ServerMsgDefs::SERVER_CUT_TEXT); 
-        m_output->writeUInt8(0); 
-        m_output->writeUInt16(0); 
+        m_output->writeUInt8(ServerMsgDefs::SERVER_CUT_TEXT); // type
+        m_output->writeUInt8(0); // pad
+        m_output->writeUInt16(0); // pad
 
+        AnsiStringStorage charBuff;
         {
           AutoLock al(&m_storedClipMut);
-          length = m_storedClip.getLength();
-          ansiClip = new char[length + 1];
-          m_storedClip.toAnsiString(ansiClip, length + 1);
-          m_storedClip.setString(0);
+          charBuff.fromStringStorage(&m_storedClip);
+          m_hasNewClip = false;
         }
-        m_output->writeUInt32(length);
-        m_output->writeFully(ansiClip, length);
+        size_t strLength = charBuff.getLength();
+        m_output->writeUInt32((UINT32)strLength);
+        m_output->writeFully(charBuff.getString(), strLength);
 
         m_output->flush();
       } catch (Exception &e) {
         Log::error(_T("The clipboard thread force to terminate because")
                    _T(" it caught the error: %s"), e.getMessage());
         terminate();
-      }
-
-      if (ansiClip != 0) {
-        delete[] ansiClip;
       }
     }
   }

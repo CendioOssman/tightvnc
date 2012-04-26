@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,32 +32,81 @@
 
 using namespace std;
 
+/**
+ * Base Windows Application class.
+ * Have hidden main window and main message loop.
+ */
 class WindowsApplication
 {
 public:
-  WindowsApplication(HINSTANCE appInstance);
+  /**
+   * Creates WindowsApplication instance.
+   * @param appInstance parameter that passed to WinMain.
+   */
+  WindowsApplication(HINSTANCE appInstance, const TCHAR *windowClassName);
 
+  /**
+   * Destroys WindowsApplication instance.
+   * @remark it does not shutdown application if it's executing it
+   * separate thread.
+   */
   virtual ~WindowsApplication();
 
+  /**
+   * Runs windows application.
+   * @remark really it creates main window and starts windows message loop.
+   * @return application exit code.
+   */
   virtual int run();
 
+  /**
+   * Posts close and destroy message to main window.
+   */
   virtual void shutdown();
 
+  /**
+   * Adds modeless dialog to application modeless dialog list to
+   * enable switching between controls by pressing tab button.
+   * @param dialogWindow HWND of modeless dialog.
+   */
   static void addModelessDialog(HWND dialogWindow);
 
+  /**
+   * Removes dialog from application modeless dialog list.
+   * @param dialogWindow HWND of modeless dialog.
+   */
   static void removeModelessDialog(HWND dialogWindow);
 
 protected:
+  // Creates a window to receive messages.
+  virtual void createWindow(const TCHAR *className);
+
+  // Fills the wndClass argument and registers new class name in the Windows.
+  virtual void registerWindowClass(WNDCLASS *wndClass);
+
+  // Runs main messages process cycle. The run() function returns
+  // value returned by this function.
+  virtual int processMessages();
+
   HINSTANCE m_appInstance;
   HWND m_mainWindow;
+  StringStorage m_windowClassName;
 private:
+  /**
+   * Helper method to process modeless dialog message for modal dialog.
+   * @param msg message to process.
+   * @return true if don't need to translate and dispatch message in main message loop.
+   */
   static bool processDialogMessage(MSG *msg);
 
+  /**
+   * Windows prodecure for main application window.
+   */
   static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 private:
-  static LocalMutex m_MDLMutex; 
+  static LocalMutex m_MDLMutex; // Modeless dialog list mutex.
   static list<HWND> m_modelessDialogList;
 };
 
-#endif 
+#endif // __WINDOWSAPPLICATION_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,24 +36,55 @@ using namespace std;
 
 typedef list<Thread *> ThreadList;
 
+/**
+ * Collector of "zombie" threads.
+ * Zombie killer has it's own thread which deletes in infinity loop not
+ * active zombie threads.
+ * @remark ZombieKiller is singleton without "lazy" initialization.
+ */
 class ZombieKiller : private Thread, public Singleton<ZombieKiller>
 {
 public:
+  /**
+   * Creates zombie killed instance.
+   */
   ZombieKiller();
+  /**
+   * Deletes zombie killer.
+   */
   virtual ~ZombieKiller();
 
+  /**
+   * Adds thread to zombie list.
+   */
   void addZombie(Thread *zombie);
 
+  /**
+   * Forces terminates all threads, waits until they dies and than
+   * delete them from memory and thread list.
+   */
   void killAllZombies();
 
 protected:
+  /**
+   * Inherited from Thread class.
+   */
   virtual void execute();
 
+  /**
+   * Deletes all dead zombie threads from memory and removes them from zombies list.
+   */
   void deleteDeadZombies();
 
 protected:
+  /**
+   * Thread vector.
+   */
   ThreadList m_zombies;
 
+  /**
+   * Thread-safety.
+   */
   LocalMutex m_lockObj;
 };
 

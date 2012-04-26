@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,19 +36,26 @@ public:
 
   void updatePlain(const UINT8 cryptedPass[8]);
 
+  // Encrypt the plain password and fills by encrypted values the
+  // encryptedPass[8] array.
   static void getEncryptedPass(UINT8 encryptedPass[8],
                                const UINT8 plainPassword[8]);
 
+  // Decrypt the encrypted password and fills by decrypted values the
+  // plainPassword[8] array.
   static void VncPassCrypt::getPlainPass(UINT8 plainPassword[8],
                                          const UINT8 encryptedPass[8]);
 
+  // Returns true if it's matched.
   bool challengeAndResponseIsValid(const UINT8 challenge[16],
                                    const UINT8 response[16]);
   void clearPlainPass();
 
 private:
   static const UINT8 m_key[];
+  // The vector uses to protect a password from containing in the stack
+  // because the stack available for a public on a bug.
   std::vector<UINT8> m_plainPassword;
 };
 
-#endif 
+#endif // __VNCPASSCRYPT_H__

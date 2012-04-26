@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,12 +24,17 @@
 
 #include "ConnectionConfigSM.h"
 
-ConnectionConfigSM::ConnectionConfigSM(const TCHAR *entryName)
+#include "win-system/Registry.h"
+
+ConnectionConfigSM::ConnectionConfigSM(const TCHAR registryPath[],
+                                       const TCHAR entryName[])
 : RegistrySettingsManager()
 {
   StringStorage keyName;
-  keyName.format(_T("%s\\%s"), _T("Software\\ORL\\VNCviewer\\History"), entryName);
-  setRegistryKey(HKEY_CURRENT_USER, keyName.getString());
+  keyName.format(_T("%s\\History\\%s"),
+                 registryPath,
+                 entryName);
+  setRegistryKey(Registry::getCurrentUserKey(), keyName.getString());
 }
 
 ConnectionConfigSM::~ConnectionConfigSM()

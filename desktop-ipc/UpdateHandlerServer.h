@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -38,11 +38,13 @@ public:
                       AnEventListener *extTerminationListener);
   virtual ~UpdateHandlerServer();
 
+  // Internal dispatcher
   virtual void onRequest(UINT8 reqCode, BlockingGate *backGate);
 
 protected:
   virtual void onUpdate();
 
+  // At first time server must get init information.
   void serverInit(BlockingGate *backGate);
 
   void extractReply(BlockingGate *backGate);
@@ -56,4 +58,4 @@ protected:
   AnEventListener *m_extTerminationListener;
 };
 
-#endif 
+#endif // __UPDATEHANDLERSERVER_H__

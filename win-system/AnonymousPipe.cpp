@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "AnonymousPipe.h"
 #include "win-system/Environment.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 AnonymousPipe::AnonymousPipe(HANDLE hWrite, HANDLE hRead)
 : m_hWrite(hWrite),
@@ -45,25 +45,31 @@ AnonymousPipe::~AnonymousPipe()
 
 void AnonymousPipe::close()
 {
+  AutoLock al(&m_hPipeMutex);
+
   bool wrSuc = true;
   bool rdSuc = true;
   StringStorage wrErrText, rdErrText;
-  if (m_hWrite != 0 && m_neededToClose) {
+  if (m_hWrite != INVALID_HANDLE_VALUE && m_neededToClose) {
     if (CloseHandle(m_hWrite) == 0) {
       Environment::getErrStr(_T("Cannot close anonymous pipe write handle."),
                              &wrErrText);
       wrSuc = false;
     }
+    Log::debug(_T("Closed m_hWrite(%p) AnonymousPipe handle"),
+               m_hWrite);
   }
-  m_hWrite = 0;
-  if (m_hRead != 0 && m_neededToClose) {
+  m_hWrite = INVALID_HANDLE_VALUE;
+  if (m_hRead != INVALID_HANDLE_VALUE && m_neededToClose) {
     if (CloseHandle(m_hRead) == 0) {
       Environment::getErrStr(_T("Cannot close anonymous pipe read handle."),
                              &wrErrText);
       rdSuc = false;
     }
+    Log::debug(_T("Closed m_hRead(%p) AnonymousPipe handle"),
+               m_hRead);
   }
-  m_hRead = 0;
+  m_hRead = INVALID_HANDLE_VALUE;
   if (!wrSuc || !rdSuc) {
     StringStorage errMess;
     errMess.format(_T("AnonymousPipe::close() funciton has failed (%s %s)"),
@@ -74,26 +80,31 @@ void AnonymousPipe::close()
 
 size_t AnonymousPipe::read(void *buffer, size_t len) throw(IOException)
 {
-  DWORD bytesRead;
-  if (ReadFile(m_hRead, buffer, len, &bytesRead, 0) == 0) {
-    StringStorage errText;
-    Environment::getErrStr(_T("Anonymous pipe read() function failed"),
-                           &errText);
-    throw IOException(errText.getString());
+  try {
+    return readByHandle(buffer, len, m_hRead);
+  } catch (...) {
+    Log::error(_T("AnonymousPipe::read() failed (m_hRead = %p)"),
+               m_hRead);
+    throw;
   }
-  return bytesRead;
 }
 
 size_t AnonymousPipe::write(const void *buffer, size_t len) throw(IOException)
 {
-  DWORD bytesWritten;
-  if (WriteFile(m_hWrite, buffer, len, &bytesWritten, 0) == 0) {
-    StringStorage errText;
-    Environment::getErrStr(_T("Anonymous pipe write() function failed"),
-                           &errText);
-    throw IOException(errText.getString());
+  try {
+    return writeByHandle(buffer, len, m_hWrite);
+  } catch (...) {
+    Log::error(_T("AnonymousPipe::write() failed (m_hWrite = %p)"),
+               m_hWrite);
+    throw;
   }
-  return bytesWritten;
+}
+
+void AnonymousPipe::checkPipeHandle(HANDLE handle)
+{
+  if (handle == INVALID_HANDLE_VALUE) {
+    throw IOException(_T("Invalid pipe handle"));
+  }
 }
 
 HANDLE AnonymousPipe::getWriteHandle() const
@@ -106,7 +117,8 @@ HANDLE AnonymousPipe::getReadHandle() const
   return m_hRead;
 }
 
-void AnonymousPipe::assignHandlesFor(HANDLE hTargetProc, bool neededToClose)
+void AnonymousPipe::assignHandlesFor(HANDLE hTargetProc, bool neededToClose,
+                                     bool keepCloseRight)
 {
   HANDLE hSrcProc = GetCurrentProcess();
   HANDLE hWrite = 0, hRead = 0;
@@ -128,5 +140,30 @@ void AnonymousPipe::assignHandlesFor(HANDLE hTargetProc, bool neededToClose)
     throw Exception(errText.getString());
   }
   m_hRead = hRead;
+  // Try keep of the close rights.
+  if (keepCloseRight) {
+    if (DuplicateHandle(hTargetProc, m_hWrite, 0, 0, 0, FALSE,
+                        DUPLICATE_CLOSE_SOURCE) == 0) {
+      StringStorage errText;
+      Environment::getErrStr(_T("Cannot keep the right to close of the write")
+                             _T(" handle of the anonymous pipe"),
+                             &errText);
+      throw Exception(errText.getString());
+    }
+    if (DuplicateHandle(hTargetProc, m_hRead, 0, 0, 0, FALSE,
+                        DUPLICATE_CLOSE_SOURCE) == 0) {
+      StringStorage errText;
+      Environment::getErrStr(_T("Cannot keep the right to close of the read")
+                             _T(" handle of the anonymous pipe"),
+                             &errText);
+      throw Exception(errText.getString());
+    }
+    // Now the current process can close the handles.
+  }
   m_neededToClose = neededToClose;
+}
+
+void AnonymousPipe::setTimeOut(unsigned int timeOut)
+{
+  m_timeOut = timeOut;
 }

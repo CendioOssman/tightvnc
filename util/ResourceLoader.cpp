@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -49,17 +49,45 @@ bool ResourceLoader::loadString(UINT id, StringStorage *string)
 {
   _ASSERT(string != 0);
 
-  TCHAR buffer[1024 * 10];
-
-  if (LoadString(m_appInstance, id, buffer, 1024 * 10) == 0) {
-    _ASSERT(FALSE);
-
-    string->setString(_T("(Undef)"));
-
-    return false;
+  int resId = (id / 16) + 1;
+  HRSRC resHnd = FindResource(m_appInstance, 
+                              MAKEINTRESOURCE(resId), 
+                              RT_STRING);
+  string->setString(_T("(Undef)"));
+  if (resHnd) {
+    HGLOBAL hGlobal = LoadResource(m_appInstance, 
+                                   resHnd);
+    LPVOID lockRes = LockResource(hGlobal);
+    TCHAR* lpStr = reinterpret_cast<TCHAR *>(lockRes);
+    for (UINT i = 0; i < (id % 16); i++) {
+      lpStr += 1 + static_cast<int>(lpStr[0]);
+    }
+    int strLen = static_cast<int>(lpStr[0]);
+    std::vector<TCHAR> strBuff;
+    strBuff.resize(strLen + 1);
+    memcpy(&strBuff[0], 
+           &lpStr[1], 
+           strLen * sizeof(TCHAR));
+    strBuff[strLen] = _T('\0');
+    UnlockResource(lockRes);
+    FreeResource(hGlobal);
+    string->setString(static_cast<TCHAR *>(&strBuff[0]));
   }
-
-  string->setString(buffer);
-
   return true;
+}
+
+HACCEL ResourceLoader::loadAccelerator(UINT id)
+{
+  return LoadAccelerators(m_appInstance,
+                          MAKEINTRESOURCE(id)); 
+}
+
+HCURSOR ResourceLoader::loadStandartCursor(const TCHAR *id)
+{
+  return LoadCursor(0, id);
+}
+
+HCURSOR ResourceLoader::loadCursor(UINT id)
+{
+  return LoadCursor(m_appInstance, MAKEINTRESOURCE(id));
 }

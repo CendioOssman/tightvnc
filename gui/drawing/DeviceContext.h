@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,14 +26,26 @@
 #define _DEVICE_CONTEXT_H_
 
 #include "util/CommonHeader.h"
+#include "PaintWindow.h"
 
 class DeviceContext
 {
 public:
+  // Create device context linked to window DC.
   DeviceContext(HWND window);
+  // Create device context complatible with other DC.
   DeviceContext(DeviceContext* compatibleDevice);
+  // Destroys device context.
   virtual ~DeviceContext();
+
+private:
+  // Initialize class from PaintWindow
+  DeviceContext(class PaintWindow * pntWnd);
+
+  friend class PaintWindow;
+
 protected:
+  // Selects an object into this device context.
   HGDIOBJ selectObject(HGDIOBJ object);
 
 protected:

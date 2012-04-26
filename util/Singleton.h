@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,6 +31,15 @@
 
 #include "thread/LocalMutex.h"
 #include "thread/AutoLock.h"
+
+//
+// Template that realize singleton pattern which does not supports "lazy"
+// initialization.
+//
+// Remark:
+// To use this pattern you must create singleton instance by your own hands,
+// it means that this realization of singleton does not support "lazy" initialization.
+//
 
 template<class T> class Singleton {
 public:

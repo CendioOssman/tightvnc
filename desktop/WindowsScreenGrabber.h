@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,17 +27,51 @@
 
 #include "util/CommonHeader.h"
 #ifndef CAPTUREBLT
-#define CAPTUREBLT          (DWORD)0x40000000  
+#define CAPTUREBLT          (DWORD)0x40000000 /* Include layered windows */
 #endif
 
 #include "ScreenGrabber.h"
 #include "region/Rect.h"
 #include "server-config-lib/Configurator.h"
 #include "win-system/WindowsEvent.h"
-#include "thread/Thread.h"
+#include "thread/GuiThread.h"
+#include "win-system/Screen.h"
+
+//
+// An abstract interface for screen grabbing.
+//
+
+/*
+  //
+  // Usage example:
+  //
+
+  ScreenGrabber *frameBuffer;
+
+  // Initialisation
+  frameBuffer = new WindowsScreenGrabber;
+
+  Rect grabRect, workRect;
+  workRect.setRect(100, 100, 500, 500);
+  grabRect.setRect(20, 20, 120, 120); // Relative to the workRect
+  frameBuffer->setWorkRect(&workRect);
+
+  // One-time grabbing
+  while (!frameBuffer->grab(&grabRect)) {
+    if (frameBuffer->getPropertiesChanged()) { // Check desktop properties
+      if (!frameBuffer->applyNewProperties()) {
+        MessageBox(NULL, _T("Cannot apply new screen properties"), _T("Error"), MB_ICONHAND);
+        return 1;
+      }
+    } else {
+      MessageBox(NULL, _T("Cannot grab screen"), _T("Error"), MB_ICONHAND);
+      return 1;
+    }
+  }
+*/
 
 class WindowsScreenGrabber :
-  public ScreenGrabber, public Thread
+  public ScreenGrabber, public GuiThread
 {
 public:
   WindowsScreenGrabber(void);
@@ -53,16 +87,6 @@ public:
   virtual bool applyNewPixelFormat();
   virtual bool applyNewProperties();
 
-  struct BMI
-  {
-    BITMAPINFOHEADER bmiHeader;
-    UINT32 red;
-    UINT32 green;
-    UINT32 blue;
-  };
-
-  static bool getBMI(BMI *bmi, HDC dc = 0);
-
 protected:
   virtual void execute();
   virtual void onTerminate();
@@ -70,10 +94,8 @@ protected:
   virtual bool openDIBSection();
   virtual bool closeDIBSection();
   virtual bool grabByDIBSection(const Rect *rect);
-  static bool fillPixelFormat(PixelFormat *pixelFormat, const BMI *bmi);
 
-  static inline int findFirstBit(const UINT32 bits);
-
+  // Windows specific variebles
   HDC m_destDC, m_screenDC;
   HBITMAP m_hbmOld, m_hbmDIB;
 
@@ -83,6 +105,8 @@ protected:
 private:
   Dimension m_dibSectionDim;
   ServerConfig *m_serverConfig;
+
+  Screen m_screen;
 };
 
-#endif 
+#endif // __WINDOWSSCREENGRABBER_H__

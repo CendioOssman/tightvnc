@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -54,9 +54,11 @@ ConfigDialog::~ConfigDialog()
 {
 }
 
+// FIXME: Unimplemented
 void ConfigDialog::updateApplyButtonState()
 {
-  m_ctrlApplyButton.setEnabled(true);
+  // Note: This function disabled because the dialog does not contain the option.
+  // m_ctrlApplyButton.setEnabled(true);
 }
 
 void ConfigDialog::setConfigReloadCommand(Command *command)
@@ -84,6 +86,10 @@ void ConfigDialog::initControls()
 
   m_ctrlApplyButton.setWindow(GetDlgItem(dialogHwnd, IDC_APPLY));
   m_tabControl.setWindow(GetDlgItem(dialogHwnd, IDC_CONFIG_TAB));
+
+  //
+  // Change caption of dialog
+  //
 
   updateCaption();
 }
@@ -162,11 +168,9 @@ BOOL ConfigDialog::onInitDialog()
   moveDialogToTabControl(&m_videoRegionsConfigDialog);
 
   m_tabControl.addTab(&m_serverConfigDialog, StringTable::getString(IDS_SERVER_TAB_CAPTION));
-  m_tabControl.addTab(&m_ipAccessControlDialog, StringTable::getString(IDS_ACCESS_CONTROL_TAB_CAPTION));
-#ifdef USE_EXTRA_TABS
   m_tabControl.addTab(&m_portMappingDialog, StringTable::getString(IDS_EXTRA_PORTS_TAB_CAPTION));
+  m_tabControl.addTab(&m_ipAccessControlDialog, StringTable::getString(IDS_ACCESS_CONTROL_TAB_CAPTION));
   m_tabControl.addTab(&m_videoRegionsConfigDialog, StringTable::getString(IDS_VIDEO_WINDOWS_TAB_CAPTION));
-#endif
   m_tabControl.addTab(&m_administrationConfigDialog, StringTable::getString(IDS_ADMINISTRATION_TAB_CAPTION));
 
   m_tabControl.removeTab(0);
@@ -202,8 +206,10 @@ void ConfigDialog::onOKButtonClick()
 
 void ConfigDialog::onApplyButtonClick()
 {
+  // Check values that specified in gui.
   bool canApply = validateInput();
 
+  // Fill global server configuration with values from gui.
   if (canApply) {
     m_administrationConfigDialog.apply();
     m_serverConfigDialog.apply();
@@ -213,6 +219,8 @@ void ConfigDialog::onApplyButtonClick()
     return ;
   }
 
+  // If reload command is specified then we're working in online mode
+  // and we don't to save configuration locally.
   if (m_reloadConfigCommand != NULL) {
     m_reloadConfigCommand->execute();
 
@@ -221,6 +229,7 @@ void ConfigDialog::onApplyButtonClick()
 
     m_ctrlApplyButton.setEnabled(false);
   } else {
+     // Else we're working in offline mode and we need to save config
     if (!m_config->save()) {
       MessageBox(m_ctrlThis.getWindow(),
                  StringTable::getString(IDS_CANNOT_SAVE_CONFIG),
@@ -232,8 +241,8 @@ void ConfigDialog::onApplyButtonClick()
         StringTable::getString(IDS_OFFLINE_CONFIG_SAVE_NOTIFICATION),
         StringTable::getString(IDS_MBC_TVNCONTROL),
         MB_OK | MB_ICONINFORMATION);
-    } 
-  } 
+    } // if cannot save.
+  } // if offline mode (reload command not specified).
 }
 
 void ConfigDialog::onTabChange()

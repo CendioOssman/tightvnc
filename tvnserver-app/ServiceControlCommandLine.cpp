@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -41,7 +41,7 @@ ServiceControlCommandLine::~ServiceControlCommandLine()
 {
 }
 
-void ServiceControlCommandLine::parse(const TCHAR *commandLine)
+void ServiceControlCommandLine::parse(const CommandLineArgs *cmdArgs)
 {
   CommandLineFormat format[] = {
     { INSTALL_SERVICE, NO_ARG },
@@ -55,9 +55,11 @@ void ServiceControlCommandLine::parse(const TCHAR *commandLine)
 
   if (!CommandLine::parse(format,
                           sizeof(format) / sizeof(CommandLineFormat),
-                          commandLine)) {
+                          cmdArgs)) {
     throw Exception(_T("invalid command line"));
-  } 
+  } // if cannot parse it.
+
+  // Check additional rules.
 
   if (keySpecified(SILENT)) {
     if (m_foundKeys.size() != (dontElevate() ? 3 : 2)) {

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 
 #include "util/ResourceLoader.h"
 #include "util/StringTable.h"
+#include "tvnserver-app/NamingDefs.h"
 
 #include "tvnserver/resource.h"
 
@@ -40,9 +41,13 @@
 #include "win-system/Environment.h"
 #include "win-system/Shell.h"
 #include "win-system/SCMClient.h"
+#include "win-system/WinCommandLineArgs.h"
 
-ServiceControlApplication::ServiceControlApplication(HINSTANCE hInstance, const TCHAR *commandLine)
-: WindowsApplication(hInstance), m_commandLine(commandLine)
+ServiceControlApplication::ServiceControlApplication(HINSTANCE hInstance,
+                                                     const TCHAR *windowClassName,
+                                                     const TCHAR *commandLine)
+: WindowsApplication(hInstance, windowClassName),
+  m_commandLine(commandLine)
 {
 }
 
@@ -52,12 +57,17 @@ ServiceControlApplication::~ServiceControlApplication()
 
 int ServiceControlApplication::run()
 {
+  // FIXME: Make these constants of the base class, or better make the
+  //        function return bool and make the caller care about the proper
+  //        return values for WinMain().
   const int RET_OK = 0;
   const int RET_ERR = 1;
 
+  // FIXME: Make this a member variable, parse in a separate function.
   ServiceControlCommandLine cmdLine;
   try {
-    cmdLine.parse(m_commandLine.getString());
+    WinCommandLineArgs cmdArgs(m_commandLine.getString());
+    cmdLine.parse(&cmdArgs);
   } catch (Exception &) {
     TvnServerHelp::showUsage();
     return RET_ERR;
@@ -65,7 +75,13 @@ int ServiceControlApplication::run()
 
   bool success = false;
 
+  // FIXME: Is the call to IsUserAnAdmin() a correct check for being able to
+  //        install/remove/start/stop system services?
   if (!IsUserAnAdmin() && !cmdLine.beSilent() && !cmdLine.dontElevate()) {
+    // The privileges are insufficient and there were no -silent/-dontelevate
+    // options so we can request privilege elevation and run another
+    // "elevated" instance of the same program, with additional -dontelevate
+    // option in the command line.
     try {
       runElevatedInstance();
       success = true;
@@ -75,6 +91,7 @@ int ServiceControlApplication::run()
       }
     }
   } else {
+    // Do the work in current instance, do not request privilege elevation.
     try {
       executeCommand(&cmdLine);
       success = true;
@@ -88,8 +105,14 @@ int ServiceControlApplication::run()
     }
   }
 
+  // After trying to start the service, regardless of the result, run the
+  // control interface with non-elevated privileges. Make sure to skip this
+  // step if there was a -dontelevate option (so we are a child process).
   if (cmdLine.startRequested() && !cmdLine.dontElevate()) {
     try {
+      // FIXME: WsConfigRunner is a Thread, so the work will be made in a
+      //        newly created thread and thus we are not aware of the result.
+      //        Are there any reasons why we cannot do that synchronously?
       WsConfigRunner tvncontrol(true);
     } catch (...) { }
   }
@@ -132,18 +155,21 @@ void ServiceControlApplication::executeCommand(const ServiceControlCommandLine *
 
 void ServiceControlApplication::setTvnControlStartEntry() const
 {
-  StringStorage currentModuleFolderPath;
-  Environment::getCurrentModuleFolderPath(&currentModuleFolderPath);
+  // Prepare tvncontrol start command.
+  StringStorage executablePath;
+  Environment::getCurrentModulePath(&executablePath);
   StringStorage pathToTvnControl;
-  pathToTvnControl.format(_T("\"%s\\tvnserver.exe\" %s %s"),
-                          currentModuleFolderPath.getString(),
+  pathToTvnControl.format(_T("\"%s\" %s %s"),
+                          executablePath.getString(),
                           ControlCommandLine::CONTROL_SERVICE,
                           ControlCommandLine::SLAVE_MODE);
 
+  // Write registry entry.
   RegistryKey runKey(Registry::getCurrentLocalMachineKey(),
                      _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"),
                      false);
-  runKey.setValueAsString(_T("tvncontrol"), pathToTvnControl.getString());
+  runKey.setValueAsString(ServiceNames::TVNCONTROL_START_REGISTRY_ENTRY_NAME,
+                          pathToTvnControl.getString());
 }
 
 void ServiceControlApplication::removeTvnControlStartEntry() const
@@ -151,7 +177,7 @@ void ServiceControlApplication::removeTvnControlStartEntry() const
   RegistryKey runKey(Registry::getCurrentLocalMachineKey(),
                      _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"),
                      false);
-  runKey.deleteValue(_T("tvncontrol"));
+  runKey.deleteValue(ServiceNames::TVNCONTROL_START_REGISTRY_ENTRY_NAME);
 }
 
 void ServiceControlApplication::reportError(const ServiceControlCommandLine *cmdLine,

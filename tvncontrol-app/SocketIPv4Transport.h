@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,20 +29,46 @@
 
 #include "network/socket/SocketIPv4.h"
 
+/**
+ * Transport that uses IPv4 socket.
+ */
 class SocketIPv4Transport : public Transport
 {
 public:
+  /**
+   * Creates transport and takes ownership over existing socket.
+   */
   SocketIPv4Transport(SocketIPv4 *socket);
+  /**
+   * Deletes transport and frees resources.
+   */
   virtual ~SocketIPv4Transport();
 
+  /**
+   * Returns transport's IO Stream.
+   */
   virtual Channel *getIOStream();
 
+  /**
+   * Accepts new connection.
+   * @return transport for accepted connection.
+   * @throws SocketException on fail.
+   */
   virtual Transport *accept() throw(SocketException);
 
+  /**
+   * Destroys transport(closes socket).
+   */
   virtual void close() throw(SocketException);
 
 private:
+  /**
+   * Real transport.
+   */
   SocketIPv4 *m_socket;
+  /**
+   * Stream.
+   */
   Channel *m_stream;
 };
 

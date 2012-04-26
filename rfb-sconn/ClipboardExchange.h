@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,19 +27,20 @@
 
 #include "RfbDispatcherListener.h"
 #include "RfbCodeRegistrator.h"
-#include "desktop/WinDesktop.h"
+#include "desktop/DesktopInterface.h"
 #include "network/RfbOutputGate.h"
 
 class ClipboardExchange : public RfbDispatcherListener, public Thread
 {
 public:
-  ClipboardExchange(RfbCodeRegistrator *codeRegtor, WinDesktop *desktop,
+  ClipboardExchange(RfbCodeRegistrator *codeRegtor, DesktopInterface *desktop,
                     RfbOutputGate *output, bool viewOnly);
   virtual ~ClipboardExchange();
 
   void sendClipboard(const StringStorage *newClipboard);
 
 protected:
+  // Listen function
   virtual void onRequest(UINT32 reqCode, RfbInputGate *input);
 
   virtual void execute();
@@ -47,13 +48,14 @@ protected:
 
 private:
   bool m_viewOnly;
-  WinDesktop *m_desktop;
+  DesktopInterface *m_desktop;
   RfbOutputGate *m_output;
 
   WindowsEvent m_newClipWaiter;
 
   StringStorage m_storedClip;
+  bool m_hasNewClip;
   LocalMutex m_storedClipMut;
 };
 
-#endif 
+#endif // __CLIPBOARDEXCHANGE_H__

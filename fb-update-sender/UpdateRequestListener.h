@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,8 +31,9 @@ class UpdateRequestListener
 {
 public:
   virtual ~UpdateRequestListener() {}
+  // Interface function
   virtual void onUpdateRequest(const Rect *rectRequested,
                                bool incremental) = 0;
 };
 
-#endif 
+#endif // __UPDATEREQUESTLISTENER_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -42,59 +42,112 @@
 #include "ControlApplication.h"
 #include "AboutDialog.h"
 
-class ControlTrayIcon : public NotifyIcon,  
-                        public WindowProcHolder  
+/**
+ * TvnControl application icon class.
+ */
+class ControlTrayIcon : public NotifyIcon, /** Inherit tray icon code. */
+                        public WindowProcHolder /** To override tray icon window procedure. */
 {
 public:
+  /**
+   * Creates control tray icon and places it to system tray.
+   * @param serverControl proxy to execute methods in TightVNC server process.
+   * @param notificator interface to report about errors during execution of remote methods.
+   * @param appControl parent control application.
+   * @param showAfterCreation determinates if needs to show icon in tray.
+   */
   ControlTrayIcon(ControlProxy *serverControl,
                   Notificator *notificator,
                   ControlApplication *appControl,
                   bool showAfterCreation);
+  /**
+   * Destroys tray icon.
+   */
   virtual ~ControlTrayIcon();
 
+  /**
+   * Synchronizes tray icon and status text with TightVNC server.
+   * @remark method shutdowns control application if connection to
+   * TightVNC server is lost.
+   */
   void syncStatusWithServer();
 
+  // Terminates all function callings and then notifying to the
+  // function waitForTermination() to continue.
   void terminate();
 
+  // Wait termination of using a function by windows (e.g. windowProc) and then
+  // continue. Don't use this function from thread which call the windowProc()
+  // function.
   void waitForTermination();
 
 protected:
+  /**
+   * Sets icon state to "not connected to server".
+   */
   void setNotConnectedState();
 
+  /**
+   * Inherited from WindowProcHolder class.
+   *
+   * Overrides default tray icon window behavour.
+   */
   virtual LRESULT windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, bool *useDefWindowProc);
 
+  /**
+   * Handlers of tray icon window events.
+   */
   void onRightButtonUp();
   void onLeftButtonDown();
 
+  /**
+   * Tray icon popup menu items message handlers.
+   */
   void onConfigurationMenuItemClick();
   void onDisconnectAllClientsMenuItemClick();
   void onShutdownServerMenuItemClick();
   void onOutgoingConnectionMenuItemClick();
+  void onAttachToDispatcher();
   void onAboutMenuItemClick();
   void onCloseControlInterfaceMenuItemClick();
 
 protected:
+  static UINT WM_USER_TASKBAR;
+
+protected:
+
+  // Interface to show error notifications.
   Notificator *m_notificator;
 
+  // Pointer to control application.
   ControlApplication *m_appControl;
 
+  // States of tray icon.
   Icon *m_iconWorking;
   Icon *m_iconIdle;
   Icon *m_iconDisabled;
 
+  // Interface to execute some commands on remote TightVNC server.
   ControlProxy *m_serverControl;
 
+  // Configuration dialog.
   ConfigDialog *m_configDialog;
+  // About dialog.
   AboutDialog m_aboutDialog;
 
+  // Last known TightVNC server information.
   TvnServerInfo m_lastKnownServerInfo;
+  // Thread-safety of m_lastKnownServerInfo member.
   LocalMutex m_serverInfoMutex;
 
+  // Commands for configuration dialog.
   Command *m_updateRemoteConfigCommand;
   Command *m_updateLocalConfigCommand;
   MacroCommand *m_applyChangesMacroCommand;
   Command *m_applyChangesControlCommand;
 
+  // This variable is set to true when entering ControlTrayIcon::windowProc(),
+  // and is used to prevent from executing that function recursively.
   bool m_inWindowProc;
 
   WindowsEvent m_endEvent;

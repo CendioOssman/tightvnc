@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -67,27 +67,29 @@ void SCMClient::installService(const TCHAR *name, const TCHAR *nameToDisplay,
                                const TCHAR *binPath, const TCHAR *dependencies)
 {
   SC_HANDLE serviceHandle = CreateService(
-    m_managerHandle,              
-    name,                         
-    nameToDisplay,               
-    SERVICE_ALL_ACCESS,           
+    m_managerHandle,              // SCManager database
+    name,                         // name of service
+    nameToDisplay,               // name to display
+    SERVICE_ALL_ACCESS,           // desired access
     SERVICE_WIN32_OWN_PROCESS,
-    SERVICE_AUTO_START,           
-    SERVICE_ERROR_NORMAL,         
-    binPath,                      
-    NULL,                         
-    NULL,                         
-    dependencies,                 
-    NULL,                         
-    NULL);                        
+    // service type
+    SERVICE_AUTO_START,           // start type
+    SERVICE_ERROR_NORMAL,         // error control type
+    binPath,                      // service's binary
+    NULL,                         // no load ordering group
+    NULL,                         // no tag identifier
+    dependencies,                 // dependencies
+    NULL,                         // LocalSystem account
+    NULL);                        // no password
 
   if (serviceHandle == NULL) {
     throw SystemException();
   }
 
+  // Make the service action to restart on a failure.
   SC_ACTION scAction;
-  scAction.Type = SC_ACTION_RESTART; 
-  scAction.Delay = 5000; 
+  scAction.Type = SC_ACTION_RESTART; // action on failure
+  scAction.Delay = 5000; // Delay before the action
 
   SERVICE_FAILURE_ACTIONS failureAction;
   failureAction.dwResetPeriod = 0;
@@ -119,6 +121,8 @@ void SCMClient::removeService(const TCHAR *name)
 
   CloseServiceHandle(serviceHandle);
 
+  // Wait until service entry will be removed.
+
   int triesCount = 0;
   while (true) {
     SC_HANDLE service = OpenService(m_managerHandle, name, SERVICE_ALL_ACCESS);
@@ -127,6 +131,7 @@ void SCMClient::removeService(const TCHAR *name)
     } else {
       CloseServiceHandle(service);
       Thread::sleep(1000);
+      // FIXME: Magic number.
       if (triesCount++ > 10) {
         throw SystemException(1070);
       }
@@ -136,6 +141,8 @@ void SCMClient::removeService(const TCHAR *name)
 
 void SCMClient::startService(const TCHAR *name, bool waitCompletion)
 {
+  // FIXME: Wrap SC_HANDLE into a class with a call to CloseServiceHandle()
+  //        in the destructor.
   SC_HANDLE serviceHandle = OpenService(m_managerHandle, name, SERVICE_START | SERVICE_QUERY_STATUS);
   if (serviceHandle == NULL) {
     throw SystemException();

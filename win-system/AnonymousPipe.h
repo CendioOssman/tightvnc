@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,30 +26,77 @@
 #define __ANONYMOUSPIPE_H__
 
 #include "io-lib/Channel.h"
+#include "Pipe.h"
 #include "util/CommonHeader.h"
 
-class AnonymousPipe : public Channel
+#include "WindowsEvent.h"
+#include "thread/LocalMutex.h"
+
+class AnonymousPipe : public Channel, private Pipe
 {
 public:
+  // @param hWrite is a write handle getting by the CreatePipe()
+  // function calling.
+  // @param hRead is a read handle getting by the CreatePipe()
+  // function calling but is not the same as for hWrite.
   AnonymousPipe(HANDLE hWrite, HANDLE hRead);
   virtual ~AnonymousPipe();
 
+  /**
+   * Closes transport.
+   *
+   * @throws Exception on fail.
+   */
   void close();
 
+  /**
+   * Reads data from pipe.
+   * Implemented from Channel interface.
+   * @param buffer buffer to receive data.
+   * @param len count of bytes to read.
+   * @throws IOException on io error.
+   */
   virtual size_t read(void *buffer, size_t len) throw(IOException);
 
+  /**
+   * Writes data to pipe.
+   * Implemented from Channel interface.
+   * @param buffer buffer with data to write.
+   * @param len count of bytes to write.
+   * @throws IOException on io error.
+   */
   virtual size_t write(const void *buffer, size_t len) throw(IOException);
 
+  // Returns pipe handle to write
   HANDLE getWriteHandle() const;
 
+  // Returns pipe handle to read
   HANDLE getReadHandle() const;
 
-  void assignHandlesFor(HANDLE hTargetProc, bool neededToClose);
+  // This function assigns the handles for another process.
+  // @param hTargetProc is a handle to the other process.
+  // If neededToClose parameter set to true then after calling this function
+  // the destructor will try to close the assigned handles. If the handles
+  // assigned for another process then set neededToClose flag to false.
+  // If keepCloseRight is true then source process keeps the right to close
+  // the new handles.
+  // @throw Exception on a fail.
+  void assignHandlesFor(HANDLE hTargetProc, bool neededToClose,
+                        bool keepCloseRight = false);
+
+  void setTimeOut(unsigned int timeOut);
 
 private:
+  void checkPipeHandle(HANDLE handle);
+
   HANDLE m_hWrite;
   HANDLE m_hRead;
   bool m_neededToClose;
+  unsigned int m_timeOut;
+
+  LocalMutex m_hPipeMutex;
+  WindowsEvent m_readEvent;
+  WindowsEvent m_writeEvent;
 };
 
-#endif 
+#endif // __ANONYMOUSPIPE_H__

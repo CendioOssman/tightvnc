@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,7 +28,7 @@
 
 #include "network/socket/SocketStream.h"
 
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 HttpClient::HttpClient(SocketIPv4 *socket)
 : TcpClientThread(socket)
@@ -54,6 +54,10 @@ void HttpClient::execute()
 {
   try {
 
+    //
+    // Convert peer ip address to string value.
+    //
+
     SocketAddressIPv4 peerAddress;
 
     m_socket->getPeerAddr(&peerAddress);
@@ -62,16 +66,20 @@ void HttpClient::execute()
 
     peerAddress.toString(&peerHost);
 
+    //
+    // Call request handler.
+    //
+
     HttpRequestHandler httpRequestHandler(m_dIS, m_dOS, peerHost.getString());
 
     httpRequestHandler.processRequest();
-  } catch (IOException &ioEx) { } 
+  } catch (IOException &) { } // try / catch.
 
   try {
     m_socket->shutdown(SD_BOTH);
-  } catch (...) { } 
+  } catch (...) { } // try / catch.
 
   try {
     m_socket->close();
-  } catch (...) { } 
+  } catch (...) { } // try / catch.
 }

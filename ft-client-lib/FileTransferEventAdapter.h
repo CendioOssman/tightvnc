@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,6 +32,14 @@
 #include <vector>
 
 using namespace std;
+
+//
+// Class is used as helper for checking valid (file transfer client point of view)
+// file transfer protocol extension messages.
+//
+// This class throws OperationNotPermittedException on every file transfer
+// message event handler. Child class must override methods to allow messages.
+//
 
 class FileTransferEventAdapter : public FileTransferEventHandler
 {

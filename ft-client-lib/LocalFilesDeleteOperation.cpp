@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,9 +29,8 @@ LocalFilesDeleteOperation::LocalFilesDeleteOperation(const FileInfo *filesToDele
                                                      UINT32 filesCount,
                                                      const TCHAR *pathToTargetRoot)
 {
-  m_filesCount = filesCount;
-  m_filesToDelete = new FileInfo[m_filesCount];
-  for (UINT32 i = 0; i < m_filesCount; i++) {
+  m_filesToDelete.resize(filesCount);
+  for (UINT32 i = 0; i < filesCount; i++) {
     m_filesToDelete[i] = filesToDelete[i];
   }
   m_pathToTargetRoot.setString(pathToTargetRoot);
@@ -39,15 +38,14 @@ LocalFilesDeleteOperation::LocalFilesDeleteOperation(const FileInfo *filesToDele
 
 LocalFilesDeleteOperation::~LocalFilesDeleteOperation()
 {
-  if (m_filesToDelete != 0) {
-    delete[] m_filesToDelete;
-  }
 }
 
 void LocalFilesDeleteOperation::start()
 {
+  // Notify listeners that operation have started
   notifyStart();
 
+  // Start new thread
   Thread::resume();
 }
 
@@ -57,9 +55,14 @@ void LocalFilesDeleteOperation::terminate()
   Thread::terminate();
 }
 
+//
+// REMARK: This method is executed in separate thread
+//
+
 void LocalFilesDeleteOperation::execute()
 {
-  for (UINT32 i = 0; i < m_filesCount; i++) {
+  for (UINT32 i = 0; i < m_filesToDelete.size(); i++) {
+    // Create path to file from root folder and filename
     StringStorage pathToTargetFile(m_pathToTargetRoot);
     if (!pathToTargetFile.endsWith(_T('\\'))) {
       pathToTargetFile.appendString(_T("\\"));
@@ -68,6 +71,10 @@ void LocalFilesDeleteOperation::execute()
 
     File file(pathToTargetFile.getString());
 
+    //
+    // Logging
+    //
+
     StringStorage message;
 
     message.format(_T("Deleting local '%s' %s"), pathToTargetFile.getString(),
@@ -75,9 +82,11 @@ void LocalFilesDeleteOperation::execute()
 
     notifyInformation(message.getString());
 
+    // Delete file
     deleteFile(&file);
-  } 
+  } // for all files in file list
 
+  // Notify listeners that operation have ended
   notifyFinish();
 }
 
@@ -87,9 +96,11 @@ bool LocalFilesDeleteOperation::deleteFile(File *file)
     return false;
   }
 
+  // Full path to local file
   StringStorage pathToTargetFile;
   file->getPath(&pathToTargetFile);
 
+  // Remove files in directory first
   if (file->isDirectory()) {
     UINT32 filesCount;
     StringStorage *files = NULL;
@@ -104,14 +115,16 @@ bool LocalFilesDeleteOperation::deleteFile(File *file)
           return false;
         }
 
+        // Create path to subfile
         StringStorage pathToTargetSubFile(pathToTargetFile.getString());
 
         pathToTargetSubFile.appendString(_T("\\"));
         pathToTargetSubFile.appendString(files[i].getString());
 
         File subFile(pathToTargetSubFile.getString());
+        // Delete file
         deleteFile(&subFile);
-      } 
+      } // for all subfiles
 
       delete[] files;
     } else {
@@ -122,7 +135,7 @@ bool LocalFilesDeleteOperation::deleteFile(File *file)
 
       notifyError(message.getString());
     }
-  } 
+  } // if file to delete is directory
 
   bool returnVal = file->remove();
 
@@ -134,7 +147,7 @@ bool LocalFilesDeleteOperation::deleteFile(File *file)
                    file->isDirectory() ? _T("folder") : _T("file"));
 
     notifyError(message.getString());
-  } 
+  } // if failed to remove
 
   return returnVal;
 }

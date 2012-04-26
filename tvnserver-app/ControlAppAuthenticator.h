@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,20 +28,38 @@
 #include "AuthTracker.h"
 #include "win-system/WindowsEvent.h"
 
+// This class will be authenticate insert an time interval between
+// failure trying of authentications.
 class ControlAppAuthenticator : private AuthTracker
 {
 public:
+  // failureMaxCount is a max count of failure try during a failureTimeInterval
+  // without ban. If failure count greater than failureMaxCount then
+  // the authenticate() function will be blocked for the failureTimeInterval
+  // time elapsed from first failure authentication.
   ControlAppAuthenticator(UINT64 failureTimeInterval,
                           unsigned int failureMaxCount);
   virtual ~ControlAppAuthenticator();
 
+  // Returns true if authentication has succeed and still has not been called
+  // the breakAndDisableAuthentications() function.
+  // The function may be blocked as described above then if it will
+  // be called again the caller will wait other callers in order.
   bool authenticate(const UINT8 cryptPassword[8],
                     const UINT8 challenge[8],
                     const UINT8 response[8]);
 
+  // Breaks all wait operations for this authenticator. Also if some
+  // caller calls the authenticate() function it immediately return the
+  // false value and will be returns the false value for next calls.
+  // Call this function
+  // before wait of termination of an object user.
   void breakAndDisableAuthentications();
 
 private:
+  // Call this function before process an authentication. If authentication
+  // is banned at this time then the funciton will wait until authentication
+  // is freed.
   void checkBeforeAuth();
 
   LocalMutex m_authMutex;
@@ -49,4 +67,4 @@ private:
   bool m_isBreaked;
 };
 
-#endif 
+#endif // __CONTROLAPPAUTHENTICATOR_H__

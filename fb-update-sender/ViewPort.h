@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,32 +25,59 @@
 #ifndef __VIEWPORT_H__
 #define __VIEWPORT_H__
 
-#include "region/Rect.h"
+#include "ViewPortState.h"
 #include "rfb/FrameBuffer.h"
-#include "thread/AutoLock.h"
+#include "desktop/DesktopInterface.h"
 #include "thread/LocalMutex.h"
+#include "util/DateTime.h"
 
-// 
+// This class calculates actual view port rectangle.
+// Typical usage:
+// // Initialisation
+// ViewPort m_viewPort;
+// ...
+// ...
+// m_viewPort.update(&frameBuffer->getDimension());
+// Rect viewPort = m_viewPort.getViewPortRect();
 class ViewPort
 {
 public:
   ViewPort();
+  ViewPort(const ViewPortState *viewPortState);
   ~ViewPort();
 
+  // Sets desktop interface that can be used in some mode to get
+  // desktop info. The desktop interface uses only in the update() function.
+  void initDesktopInterface(DesktopInterface *desktop);
+
+  // This function updates view port rectangle. The new view port rectangle
+  // will be constrained by fbDimension.
   void update(const Dimension *fbDimension);
 
+  // This function returns the view port rectangle.
   Rect getViewPortRect();
 
-  void setFullDesktop();
-  void setArbitraryRect(const Rect *rect);
+  // Assignes self values by an external state.
+  void changeState(const ViewPortState *newState);
 
 private:
-  static const int FULL_DESKTOP = 0;
-  static const int ARBITRARY_RECT = 2;
-  int m_mode;
+  // Disable the copy operation and constructor.
+  ViewPort(const ViewPort &);
+  ViewPort & operator =(const ViewPort &);
+
+  // Resolves a window name of the view port state to window handle.
+  // On an error the function do nothing.
+  void resolveWindowName();
+
+  static const int RESOLVING_PERIOD = 3000;
+
+  DesktopInterface *m_desktop;
+
+  ViewPortState m_state;
   Rect m_rect;
-  Rect m_arbitraryRect;
-  LocalMutex m_rectLocMut;
+  LocalMutex m_stateMutex;
+
+  DateTime m_latestHwndResolvingTime;
 };
 
-#endif 
+#endif // __VIEWPORT_H__

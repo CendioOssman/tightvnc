@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,6 +33,7 @@
 class UpdateKeeper : public Lockable
 {
 public:
+  UpdateKeeper();
   UpdateKeeper(const Rect *borderRect);
   ~UpdateKeeper(void);
 
@@ -48,6 +49,7 @@ public:
 
   void addChangedRegion(const Region *changedRegion);
   void addChangedRect(const Rect *changedRect);
+  // Adds border rectangle to changed region.
   void dazzleChangedReg()
   {
     AutoLock al(&m_updContLocMut);
@@ -80,4 +82,4 @@ private:
   LocalMutex m_updContLocMut;
 };
 
-#endif 
+#endif // __UPDATEKEEPER_H__

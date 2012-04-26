@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -38,10 +38,17 @@ public:
 
   virtual ~IniFileSettingsManager();
 
+  // Sets application name (section name)
   void setApplicationName(const TCHAR *appName);
 
+  // Sets path to ini file
   void setPathToFile(const TCHAR *pathToFile);
 
+  //
+  // Inherited from SettingsManager class
+  //
+
+  // Return false if path to ini file name not specified
   virtual bool isOk();
 
   virtual bool keyExist(const TCHAR *name);
@@ -49,6 +56,7 @@ public:
   virtual bool deleteKey(const TCHAR *name);
 
   virtual bool getString(const TCHAR *name, StringStorage *storage);
+  // Remark: returns value if value is NULL.
   virtual bool setString(const TCHAR *name, const TCHAR *value);
 
   virtual bool getLong(const TCHAR *name, long *value);
@@ -75,8 +83,21 @@ protected:
 
 private:
 
+  // Helper method.
+  // Sets string returned by GetPrivateProfileString to value out argument.
+  //
+  // Parameters:
+  // [in]  name - key name
+  // [out] value - variable where output string will be located
+  // [in]  defaultValue -  if key does not exists defaultValue
+  //       will be storaged to value argument as output value.
   void getPrivateProfileString(const TCHAR *name, StringStorage *value,
                                const TCHAR *defaultValue);
+
+  //
+  // Helper template method to avoid code duplicate
+  // in such methods as getByte, getUINT.
+  //
 
   template<typename T> bool getIntAndCastTo(const TCHAR *name, T *value) {
     int intValue = 0;

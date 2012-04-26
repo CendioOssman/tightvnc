@@ -17,10 +17,10 @@
     <ClCompile Include="ConnectionConfigSM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VncViewerConfig.cpp">
+    <ClCompile Include="ViewerConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VncViewerSettingsManager.cpp">
+    <ClCompile Include="ViewerSettingsManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -31,10 +31,10 @@
     <ClInclude Include="ConnectionConfigSM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VncViewerConfig.h">
+    <ClInclude Include="ViewerConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VncViewerSettingsManager.h">
+    <ClInclude Include="ViewerSettingsManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

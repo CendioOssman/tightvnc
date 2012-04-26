@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "ReconnectingChannel.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "util/DateTime.h"
 #include "desktop-ipc/ReconnectException.h"
 
@@ -63,13 +63,13 @@ void ReconnectingChannel::replaceChannel(Channel *newChannel)
 {
   AutoLock al(&m_chanMut);
   if (m_channel != 0) {
-    m_chanWasChanged = true; 
+    m_chanWasChanged = true; // Toggle to true except first initialization
   }
   if (m_oldChannel != 0) {
-    delete m_channel; 
+    delete m_channel; // This channel in this case is guaranted doesn't use.
   }
   m_oldChannel = m_channel;
-  m_channel = newChannel; 
+  m_channel = newChannel; // Now we are the owner.
   m_timer.notify();
 }
 
@@ -85,6 +85,7 @@ Channel *ReconnectingChannel::getChannel(const TCHAR *funName)
   Channel *channel;
   {
     AutoLock al(&m_chanMut);
+    // Clean m_oldChannel
     if (m_oldChannel != 0) {
       delete m_oldChannel;
       m_oldChannel = 0;
@@ -119,7 +120,7 @@ size_t ReconnectingChannel::write(const void *buffer, size_t len)
     waitForReconnect(_T("write"), channel);
   }
 
-  return 0; 
+  return 0; // Call by an out caller again!
 }
 
 size_t ReconnectingChannel::read(void *buffer, size_t len)
@@ -137,12 +138,13 @@ size_t ReconnectingChannel::read(void *buffer, size_t len)
     waitForReconnect(_T("read"), channel);
   }
 
-  return 0; 
+  return 0; // Call by an out caller again!
 }
 
 void ReconnectingChannel::waitForReconnect(const TCHAR *funName,
                                          Channel *channel)
 {
+  // Wait until transport has been initialized or time out elapsed.
   DateTime startTime = DateTime::now();
   bool success = false;
   while (!success) {
@@ -150,7 +152,8 @@ void ReconnectingChannel::waitForReconnect(const TCHAR *funName,
                                    (int)(DateTime::now() -
                                          startTime).getTime(),
                                    0);
-    if (timeForWait == 0 || m_isClosed) { 
+    if (timeForWait == 0 || m_isClosed) { // Break this function with
+                                          // critical error
       StringStorage errMess;
       errMess.format(_T("The ReconnectingChannel::%s() function")
                      _T(" failed."), funName);
@@ -159,12 +162,13 @@ void ReconnectingChannel::waitForReconnect(const TCHAR *funName,
     m_timer.waitForEvent(timeForWait);
     AutoLock al(&m_chanMut);
     if (m_channel != channel) {
-      m_chanWasChanged = false; 
+      m_chanWasChanged = false; // Reconnection catched in this place!
+                                // (other must don't know about this)
       success = true;
     }
   }
   Log::info(_T("ReconnectingChannel was successfully reconnected."));
-  if (channel != 0) { 
+  if (channel != 0) { // If this is not the first initialization
     StringStorage errMess;
     errMess.format(_T("Transport was reconnected in the")
                    _T(" %s() function. The %s()")

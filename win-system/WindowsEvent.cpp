@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -58,6 +58,7 @@ void WindowsEvent::notify()
 
 void WindowsEvent::waitForEvent(DWORD milliseconds)
 {
+  // FIXME: Check WaitForSingleObject result to an error
   if (m_hEvent) {
     WaitForSingleObject(m_hEvent, milliseconds);
   }
@@ -66,10 +67,10 @@ void WindowsEvent::waitForEvent(DWORD milliseconds)
 void WindowsEvent::setAccessToAll(HANDLE objHandle)
 {
   DWORD errorCode = SetSecurityInfo(objHandle, SE_KERNEL_OBJECT,
-                                    DACL_SECURITY_INFORMATION, 
+                                    DACL_SECURITY_INFORMATION, // Modify DACL
                                     0,
                                     0,
-                                    0, 
+                                    0, // Pointer to DACL (0 = access to all)
                                     0);
   if (errorCode != ERROR_SUCCESS &&
       errorCode != ERROR_NO_SECURITY_ON_OBJECT) {

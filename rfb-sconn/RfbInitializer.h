@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,6 +31,7 @@
 #include "CapContainer.h"
 #include "region/Dimension.h"
 #include "rfb/PixelFormat.h"
+// External listeners
 #include "ClientAuthListener.h"
 
 class RfbInitializer
@@ -48,6 +49,8 @@ public:
                       const Dimension *dim,
                       const PixelFormat *pf);
 
+  // Returns shared flag value. Shared flag value is valid only after
+  // the authPhase() function calling.
   bool getSharedFlag() const { return m_shared; }
   bool getViewOnlyAuth() const { return m_viewOnlyAuth; }
 
@@ -55,6 +58,7 @@ public:
 
 protected:
   void initVersion();
+  // @throw Exception if loopback isn't allowed.
   void checkForLoopback();
   void initAuthenticate();
   void readClientInit();
@@ -70,8 +74,14 @@ protected:
   void doVncAuth();
   void doAuthNone();
 
+  // Calls the onCheckForBan() function by the external listener
+  // @throw AuthException if current is banned.
   void checkForBan();
 
+  // Parse RFB version string which should look like "RFB 003.008\n", check
+  // that the format is valid and that the major version number is 3. Returns
+  // minor version number without checking its value. If the format is invalid
+  // or major version number is not 3, an Exception will be thrown.
   unsigned int getProtocolMinorVersion(const char str[12]) throw(Exception);
 
   DataOutputStream *m_output;
@@ -87,4 +97,4 @@ protected:
   RfbClient *m_client;
 };
 
-#endif 
+#endif // __RFBINITIALIZER_H__

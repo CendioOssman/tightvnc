@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,32 +25,29 @@
 #include "FileTransferRequestSender.h"
 #include "ft-common/FTMessage.h"
 
-FileTransferRequestSender::FileTransferRequestSender(OutputStream *outputStream, omni_mutex *writeMutex)
-: m_outputStream(outputStream), m_writeMutex(writeMutex)
+FileTransferRequestSender::FileTransferRequestSender(RfbOutputGate *output)
+: m_output(output)
 {
-  m_dataOutputStream = new DataOutputStream(m_outputStream);
 }
 
 FileTransferRequestSender::~FileTransferRequestSender()
 {
-  delete m_dataOutputStream;
 }
 
 void FileTransferRequestSender::sendCompressionSupportRequest()
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("%s\n"), _T("Sending compresion support request"));
 
-  m_dataOutputStream->writeUInt32(FTMessage::COMPRESSION_SUPPORT_REQUEST);
+  m_output->writeUInt32(FTMessage::COMPRESSION_SUPPORT_REQUEST);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendFileListRequest(const TCHAR *fullPath,
                                                     bool useCompression)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   UINT32 messageId = FTMessage::FILE_LIST_REQUEST;
   UINT8 compressionLevel = useCompression ? (UINT8)1 : (UINT8)0;
@@ -61,32 +58,32 @@ void FileTransferRequestSender::sendFileListRequest(const TCHAR *fullPath,
             fullPath,
             useCompression ? 1 : 0);
 
-  m_dataOutputStream->writeUInt32(messageId);
-  m_dataOutputStream->writeUInt8(compressionLevel);
-  m_dataOutputStream->writeUTF8(fullPath);
+  m_output->writeUInt32(messageId);
+  m_output->writeUInt8(compressionLevel);
+  m_output->writeUTF8(fullPath);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendDownloadRequest(const TCHAR *fullPathName,
                                                     UINT64 offset)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("Sending download request with parameters:\n")
             _T("\tpath = %s\n")
             _T("\toffset = %ld\n"),
             fullPathName, offset);
 
-  m_dataOutputStream->writeUInt32(FTMessage::DOWNLOAD_START_REQUEST);
-  m_dataOutputStream->writeUTF8(fullPathName);
-  m_dataOutputStream->writeUInt64(offset);
+  m_output->writeUInt32(FTMessage::DOWNLOAD_START_REQUEST);
+  m_output->writeUTF8(fullPathName);
+  m_output->writeUInt64(offset);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendDownloadDataRequest(UINT32 size,
                                                         bool useCompression)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   UINT8 compressionLevel = useCompression ? (UINT8)1 : (UINT8)0;
 
@@ -96,40 +93,40 @@ void FileTransferRequestSender::sendDownloadDataRequest(UINT32 size,
             size,
             compressionLevel);
 
-  m_dataOutputStream->writeUInt32(FTMessage::DOWNLOAD_DATA_REQUEST);
-  m_dataOutputStream->writeUInt8(compressionLevel);
-  m_dataOutputStream->writeUInt32(size);
+  m_output->writeUInt32(FTMessage::DOWNLOAD_DATA_REQUEST);
+  m_output->writeUInt8(compressionLevel);
+  m_output->writeUInt32(size);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendRmFileRequest(const TCHAR *fullPathName)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("Sending rm file request with parameters:\n\tpath = %s\n"),
             fullPathName);
 
-  m_dataOutputStream->writeUInt32(FTMessage::REMOVE_REQUEST);
-  m_dataOutputStream->writeUTF8(fullPathName);
+  m_output->writeUInt32(FTMessage::REMOVE_REQUEST);
+  m_output->writeUTF8(fullPathName);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendMkDirRequest(const TCHAR *fullPathName)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("Sending mkdir request with parameters:\n\tpath = %s\n"),
             fullPathName);
 
-  m_dataOutputStream->writeUInt32(FTMessage::MKDIR_REQUEST);
-  m_dataOutputStream->writeUTF8(fullPathName);
+  m_output->writeUInt32(FTMessage::MKDIR_REQUEST);
+  m_output->writeUTF8(fullPathName);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendMvFileRequest(const TCHAR *oldFileName,
                                                   const TCHAR *newFileName)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("Sending rename file request with parameters:\n")
             _T("\t old path = %s\n")
@@ -137,17 +134,17 @@ void FileTransferRequestSender::sendMvFileRequest(const TCHAR *oldFileName,
             oldFileName,
             newFileName);
 
-  m_dataOutputStream->writeUInt32(FTMessage::RENAME_REQUEST);
-  m_dataOutputStream->writeUTF8(oldFileName);
-  m_dataOutputStream->writeUTF8(newFileName);
+  m_output->writeUInt32(FTMessage::RENAME_REQUEST);
+  m_output->writeUTF8(oldFileName);
+  m_output->writeUTF8(newFileName);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendUploadRequest(const TCHAR *fullPathName,
                                                   bool overwrite,
                                                   UINT64 offset)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   UINT8 flags = 0;
   if (overwrite) {
@@ -162,20 +159,25 @@ void FileTransferRequestSender::sendUploadRequest(const TCHAR *fullPathName,
             overwrite ? 1 : 0,
             offset);
 
-  m_dataOutputStream->writeUInt32(FTMessage::UPLOAD_START_REQUEST);
-  m_dataOutputStream->writeUTF8(fullPathName);
-  m_dataOutputStream->writeUInt8(flags);
-  m_dataOutputStream->writeUInt64(offset);
+  m_output->writeUInt32(FTMessage::UPLOAD_START_REQUEST);
+  m_output->writeUTF8(fullPathName);
+  m_output->writeUInt8(flags);
+  m_output->writeUInt64(offset);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendUploadDataRequest(const char *buffer,
                                                       UINT32 size,
                                                       bool useCompression)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
-  m_dataOutputStream->writeUInt32(FTMessage::UPLOAD_DATA_REQUEST);
+  m_output->writeUInt32(FTMessage::UPLOAD_DATA_REQUEST);
+
+  //
+  // FIXME: Compression is not supported for now
+  // TODO: Compression support on upload
+  //
 
   if (useCompression) {
     throw IOException(_T("Compression is not supported yet."));
@@ -189,17 +191,17 @@ void FileTransferRequestSender::sendUploadDataRequest(const char *buffer,
             size,
             compressionLevel);
 
-  m_dataOutputStream->writeUInt8(compressionLevel);
-  m_dataOutputStream->writeUInt32(size);
-  m_dataOutputStream->writeUInt32(size);
-  m_dataOutputStream->writeFully(buffer, size);
+  m_output->writeUInt8(compressionLevel);
+  m_output->writeUInt32(size);
+  m_output->writeUInt32(size);
+  m_output->writeFully(buffer, size);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendUploadEndRequest(UINT8 fileFlags,
                                                      UINT64 modificationTime)
-    
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("Sending upload end request with parameters:\n")
             _T("\tflags = %d\n")
@@ -207,18 +209,20 @@ void FileTransferRequestSender::sendUploadEndRequest(UINT8 fileFlags,
             fileFlags,
             modificationTime);
 
-  m_dataOutputStream->writeUInt32(FTMessage::UPLOAD_END_REQUEST);
-  m_dataOutputStream->writeUInt16(fileFlags);
-  m_dataOutputStream->writeUInt64(modificationTime);
+  m_output->writeUInt32(FTMessage::UPLOAD_END_REQUEST);
+  m_output->writeUInt16(fileFlags);
+  m_output->writeUInt64(modificationTime);
+  m_output->flush();
 }
 
 void FileTransferRequestSender::sendFolderSizeRequest(const TCHAR *fullPath)
 {
-  omni_mutex_lock l(*m_writeMutex);
+  AutoLock al(m_output);
 
   Log::info(_T("Sending get folder size request with parameters:\n\tpath = %d\n"),
             fullPath);
 
-  m_dataOutputStream->writeUInt32(FTMessage::DIRSIZE_REQUEST);
-  m_dataOutputStream->writeUTF8(fullPath);
+  m_output->writeUInt32(FTMessage::DIRSIZE_REQUEST);
+  m_output->writeUTF8(fullPath);
+  m_output->flush();
 }

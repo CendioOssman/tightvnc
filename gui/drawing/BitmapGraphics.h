@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,12 +28,19 @@
 #include "Graphics.h"
 #include "Bitmap.h"
 
+//
+// Object that creates bitmap with specified size and allow to
+// draw into in through Graphics class methods.
 class BitmapGraphics : public Graphics
 {
 public:
-  BitmapGraphics(DeviceContext *complatibleDC, size_t width, size_t height);
+  // Creates BitmapGraphics object with bitmap complatible with specified dc and
+  // with specified size.
+  BitmapGraphics(DeviceContext *complatibleDC, int width, int height);
+  // Destroys bitmap and graphics object.
   virtual ~BitmapGraphics();
 
+  // Returns target bitmap that we paint.
   Bitmap *getBitmap();
 
   void beginPaint();

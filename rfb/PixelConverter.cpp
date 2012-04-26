@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,10 +28,6 @@
 
 PixelConverter::PixelConverter(void)
 : m_convertMode(NO_CONVERT),
-  m_hexBitsTable(0),
-  m_redTable(0),
-  m_grnTable(0),
-  m_bluTable(0),
   m_dstFrameBuffer(0)
 {
 }
@@ -56,6 +52,7 @@ void PixelConverter::convert(const Rect *rect, FrameBuffer *dstFb,
     UINT32 dstPixelSize = dstPf.bitsPerPixel / 8;
     UINT32 srcPixelSize = srcPf.bitsPerPixel / 8;
 
+    // FIXME: Make FrameBuffer do the math.
     UINT8 *dstPixP = (UINT8 *)dstFb->getBuffer() +
                      (fbWidth * rect->top + rect->left) * dstPixelSize;
     UINT8 *srcPixP = (UINT8 *)srcFb->getBuffer() +
@@ -126,35 +123,25 @@ PixelConverter::convert(const Rect *rect, const FrameBuffer *srcFb)
 
   const Dimension fbSize = srcFb->getDimension();
   if (m_dstFrameBuffer == 0) {
+    // No frame buffer allocated - construct new one from the scratch.
     m_dstFrameBuffer = new FrameBuffer;
     m_dstFrameBuffer->setProperties(&fbSize, &m_dstFormat);
   } else if (!m_dstFrameBuffer->getDimension().isEqualTo(&fbSize)) {
+    // Frame buffer is allocated but its size it wrong - just resize it.
+    // Note that if the frame buffer is allocated, its pixel format is
+    // guaranteed to be relevant, because setPixelFormats() always calls
+    // reset() if at least one pixel format has been changed.
     m_dstFrameBuffer->setDimension(&fbSize);
   }
 
+  // Finally, convert pixels.
   convert(rect, m_dstFrameBuffer, srcFb);
   return m_dstFrameBuffer;
 }
 
 void PixelConverter::reset()
 {
-  if (m_hexBitsTable != 0) {
-    delete[] m_hexBitsTable;
-    m_hexBitsTable = 0;
-  }
-  if (m_redTable != 0) {
-    delete[] m_redTable;
-    m_redTable = 0;
-  }
-  if (m_grnTable != 0) {
-    delete[] m_grnTable;
-    m_grnTable = 0;
-  }
-  if (m_bluTable != 0) {
-    delete[] m_bluTable;
-    m_bluTable = 0;
-  }
-
+  // Deallocate the framebuffer.
   if (m_dstFrameBuffer != 0) {
     delete m_dstFrameBuffer;
     m_dstFrameBuffer = 0;
@@ -165,14 +152,15 @@ void PixelConverter::setPixelFormats(const PixelFormat *dstPf,
                                      const PixelFormat *srcPf)
 {
   if (!srcPf->isEqualTo(&m_srcFormat) || !dstPf->isEqualTo(&m_dstFormat)) {
+    // Reset both translation tables and the internal frame buffer.
     reset();
 
     if (srcPf->isEqualTo(dstPf)) {
       m_convertMode = NO_CONVERT;
-    } else if (srcPf->bitsPerPixel == 16) { 
+    } else if (srcPf->bitsPerPixel == 16) { // 16 bit -> N
       m_convertMode = CONVERT_FROM_16;
       fillHexBitsTable(dstPf, srcPf);
-    } else if (srcPf->bitsPerPixel == 32) { 
+    } else if (srcPf->bitsPerPixel == 32) { // 32 bit -> N
       m_convertMode = CONVERT_FROM_32;
       fill32BitsTable(dstPf, srcPf);
     }
@@ -195,7 +183,7 @@ size_t PixelConverter::getDstBitsPerPixel() const
 void PixelConverter::fillHexBitsTable(const PixelFormat *dstPf,
                                       const PixelFormat *srcPf)
 {
-  m_hexBitsTable = new UINT32[65536];
+  m_hexBitsTable.resize(65536);
 
   UINT32 dstRedMax = dstPf->redMax;
   UINT32 dstGrnMax = dstPf->greenMax;
@@ -214,6 +202,7 @@ void PixelConverter::fillHexBitsTable(const PixelFormat *dstPf,
   UINT32 srcBluMask = srcBluMax << srcPf->blueShift;
 
   for (UINT32 i = 0; i < 65536; i++) {
+    // Get source color component
     UINT32 srcRed = (i & srcRedMask) >> srcPf->redShift;
     UINT32 srcGrn = (i & srcGrnMask) >> srcPf->greenShift;
     UINT32 srcBlu = (i & srcBluMask) >> srcPf->blueShift;
@@ -243,9 +232,9 @@ void PixelConverter::fill32BitsTable(const PixelFormat *dstPf,
   UINT32 srcGrnMax = srcPf->greenMax;
   UINT32 srcBluMax = srcPf->blueMax;
 
-  m_redTable = new UINT32[srcRedMax + 1];
-  m_grnTable = new UINT32[srcGrnMax + 1];
-  m_bluTable = new UINT32[srcBluMax + 1];
+  m_redTable.resize(srcRedMax + 1);
+  m_grnTable.resize(srcGrnMax + 1);
+  m_bluTable.resize(srcBluMax + 1);
 
   for (UINT32 i = 0; i <= srcRedMax; i++) {
     m_redTable[i] = ((i * dstRedMax + srcRedMax / 2) / srcRedMax) << dstRedShift;

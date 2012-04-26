@@ -48,5 +48,8 @@
     <ResourceCompile Include="tvnserver.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="..\win-event-log\MessageProvider.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

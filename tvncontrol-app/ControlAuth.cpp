@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "ControlAuth.h"
-
+#include "util/AnsiStringStorage.h"
 #include "tvncontrol-app/ControlProto.h"
 
 #include "thread/AutoLock.h"
@@ -33,15 +33,18 @@
 ControlAuth::ControlAuth(ControlGate *gate, const TCHAR *password)
 : m_gate(gate)
 {
+  // Prepare data for authentication.
   StringStorage truncatedPass(password);
   truncatedPass.getSubstring(&truncatedPass, 0, VNC_PASSWORD_SIZE - 1);
 
-  char passwordAnsi[VNC_PASSWORD_SIZE + 1];
-  bool success = truncatedPass.toAnsiString(passwordAnsi, sizeof(passwordAnsi));
-  _ASSERT(success);
+  AnsiStringStorage passwordAnsi(&truncatedPass);
 
   memset(m_password, 0, sizeof(m_password));
-  memcpy(m_password, passwordAnsi, strlen(passwordAnsi));
+  memcpy(m_password, passwordAnsi.getString(),
+         min(passwordAnsi.getLength(), sizeof(m_password)));
+
+  // FIXME: Why it's commented out?
+  // AutoLock l(m_gate);
 
   m_gate->writeUInt32(ControlProto::AUTH_MSG_ID);
   m_gate->writeUInt32(0);

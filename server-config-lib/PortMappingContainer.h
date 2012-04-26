@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,6 +34,10 @@
 
 #include <vector>
 
+//
+// Container for port mappings.
+//
+
 class PortMappingContainer
 {
 public:
@@ -43,27 +47,48 @@ public:
 
   PortMappingContainer &operator=(const PortMappingContainer &other);
 
+  // Inserts element to the end of container.
   void pushBack(PortMapping element);
 
-  int find(PortMapping searchElement) const;
+  // Returns index of element or -1 if not found.
+  size_t find(PortMapping searchElement) const;
 
-  int findByPort(int port) const;
+  // Returns index of element with specified port.
+  size_t findByPort(int port) const;
 
-  void remove(int index);
+  // Removes element with specified index from container.
+  void remove(size_t index);
+  // Removes element from container.
   void remove(PortMapping removeMapping);
 
+  // Removes all elements from container.
   void removeAll();
 
+  // Returns count of elements in container.
   size_t count() const;
 
+  // Returns true if two containers hold the same data.
   bool equals(const PortMappingContainer *other) const;
 
+  /**
+   * Serializes port all mappings in container as byte stream.
+   * @param output output stream for serializing.
+   * @throws Exception on error.
+   */
   void serialize(DataOutputStream *output) const throw(Exception);
 
+  /**
+   * Deserializes port mapping container from input stream.
+   * @param input source input stream.
+   * @throws Exception on error.
+   */
   void deserialize(DataInputStream *input) throw(Exception);
 
+  // Returns a read-only pointer to the element with specifed index
+  // or 0 if not found.
   const PortMapping *at(size_t index) const;
 
+  // Returns a pointer to the element with specifed index or 0 if not found.
   PortMapping *at(size_t index);
 
 private:

@@ -11,10 +11,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AnsiStringStorage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Command.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CommandLine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandLineArgs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DateTime.cpp">
@@ -29,16 +35,13 @@
     <ClCompile Include="Exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileLog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Inflater.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Keymap.cpp">
+    <ClCompile Include="KeyContainer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Log.cpp">
+    <ClCompile Include="Keymap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MacroCommand.cpp">
@@ -62,6 +65,12 @@
     <ClCompile Include="Unicode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UnicodeStringStorage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utf8StringStorage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="VncPassCrypt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,12 +80,30 @@
     <ClCompile Include="ZlibException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DemandTimer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandLineFormatException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandLineFormatHelp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BrokenHandleException.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnsiStringStorage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Command.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandLine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandLineArgs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommonHeader.h">
@@ -94,22 +121,19 @@
     <ClInclude Include="Exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileLog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Inflater.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inttypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KeyContainer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Keymap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ListenerContainer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MacroCommand.h">
@@ -133,10 +157,19 @@
     <ClInclude Include="StringTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StringTemplate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="StringVector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Unicode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UnicodeStringStorage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utf8StringStorage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="VncPassCrypt.h">
@@ -149,6 +182,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ZlibException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DemandTimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandLineFormatException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandLineFormatHelp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BrokenHandleException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

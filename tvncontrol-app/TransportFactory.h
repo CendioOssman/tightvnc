@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,19 +33,67 @@
 #include "win-system/PipeClient.h"
 #include "win-system/PipeServer.h"
 
+/**
+ * Transport factory.
+ *
+ * Can create various types of transport.
+ */
 class TransportFactory
 {
 public:
+  /**
+   * Creates client transport that uses client socket.
+   *
+   * Creates socket, connects to host, creates transport using connected socket
+   * and returns transport.
+   *
+   * @param connectHost host to connect for socket.
+   * @param connectPort port to connect.
+   * @return created transport.
+   *
+   * @throws SocketException on socket error.
+   */
   static Transport *createSocketClientTransport(const TCHAR *connectHost,
                                                 unsigned int connectPort) throw(SocketException);
+  /**
+   * Creates server transport that uses bound socket.
+   *
+   * Creates socket, bound it, creates transport using socket
+   * and returns transport.
+   *
+   * @param bindHost host to bind.
+   * @param bindPort port to bind.
+   * @return created transport.
+   *
+   * @throws SocketException on socket error.
+   */
   static Transport *createSocketServerTransport(const TCHAR *bindHost,
                                                 unsigned int bindPort) throw(SocketException);
 
+  /**
+   * Creates client transport that uses named pipe.
+   *
+   * @param name name of pipe.
+   * @return created transport.
+   *
+   * @throws Exception on socket error.
+   */
   static Transport *createPipeClientTransport(const TCHAR *name) throw(Exception);
 
+  /**
+   * Creates server transport that uses named pipe.
+   *
+   * @param name name of pipe.
+   * @return created transport.
+   *
+   * @throws Exception on socket error.
+   */
   static Transport *createPipeServerTransport(const TCHAR *name) throw(Exception);
 
 private:
+  /**
+   * Don't allow instanizing of factory.
+   */
   TransportFactory() { };
 };
 

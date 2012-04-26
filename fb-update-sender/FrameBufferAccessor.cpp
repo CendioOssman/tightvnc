@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,7 +34,7 @@ FrameBufferAccessor::FrameBufferAccessor()
 
 FrameBufferAccessor::~FrameBufferAccessor()
 {
-  _ASSERT(m_fbForWrite == m_fbForRead); 
+  _ASSERT(m_fbForWrite == m_fbForRead); // At the end pointers must be equal
   if (m_fbForWrite) {
     delete m_fbForWrite;
   }
@@ -43,6 +43,8 @@ FrameBufferAccessor::~FrameBufferAccessor()
 FrameBuffer *FrameBufferAccessor::getFbForWriting(const FrameBuffer *srcFb,
                                                   const Rect *viewPort)
 {
+  // Check m_fbForWriting for discrepancy of srcFb pixelFormat and
+  // ViewPort dimension
   Dimension vpDim = Dimension(viewPort);
   PixelFormat srcPf = srcFb->getPixelFormat();
   if (m_fbForWrite == 0 ||
@@ -64,13 +66,14 @@ void FrameBufferAccessor::prepareToReconstruction(const Dimension *newDim,
 {
   AutoLock al(&m_fbLocMut);
 
-  if (m_fbForWrite == 0) { 
+  if (m_fbForWrite == 0) { // initialization
     m_fbForWrite = new FrameBuffer;
     m_fbForWrite->setProperties(newDim, newPf);
     _ASSERT(m_fbForRead == 0);
-    m_fbForRead = m_fbForWrite; 
+    m_fbForRead = m_fbForWrite; // At start time
   } else if (m_readLocked) {
-    if (m_fbForWrite != m_fbForRead) { 
+    if (m_fbForWrite != m_fbForRead) { // If already separated then first
+                                       // m_fbForWrite is not needed more
       delete m_fbForWrite;
     }
     m_fbForWrite = new FrameBuffer;

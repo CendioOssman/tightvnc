@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,4 +32,4 @@ public:
   static const char *const TIGHTVNC;
 };
 
-#endif 
+#endif // __RFB_VENDOR_DEFS_H_INCLUDED__

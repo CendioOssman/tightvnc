@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,27 +28,31 @@
 #include "util/CommonHeader.h"
 #include "WindowsEvent.h"
 #include "io-lib/Channel.h"
+#include "thread/LocalMutex.h"
 
-class Pipe : public Channel
+// This class is not an interface but is a class that contain common
+// methods/source codes for derived classes to work with pipe handles.
+class Pipe
 {
-public:
-  Pipe(HANDLE hPipe, bool asServer);
-  virtual ~Pipe();
-
-  void close();
-
-  virtual size_t read(void *buffer, size_t len) throw(IOException);
-  virtual size_t write(const void *buffer, size_t len) throw(IOException);
-
-  virtual HANDLE getPipeHandle();
-
 protected:
+  // This read and write functions is common way to read and write
+  // by pipe handles asynchronously.
 
-  HANDLE m_hPipe;
-  StringStorage m_pipeName;
+  // The pointer uses because the functions must have access to
+  // the same variable as in a derived class to rich a thread safe
+  // handle usage.
+  size_t readByHandle(void *buffer, size_t len, HANDLE pipeHandle);
+  size_t writeByHandle(const void *buffer, size_t len, HANDLE pipeHandle);
 
-  WindowsEvent m_winEvent;
-  bool m_asServer;
+  // This mutex is to use for pipe handles that uses in the above functions.
+  // The mutex protect collision accesses to handle fields of derived classes.
+  LocalMutex m_hPipeMutex;
+
+  WindowsEvent m_readEvent;
+  WindowsEvent m_writeEvent;
+
+private:
+  void checkPipeHandle(HANDLE pipeHandle);
 };
 
-#endif 
+#endif // __PIPE_H__

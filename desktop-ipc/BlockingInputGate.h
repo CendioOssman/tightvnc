@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,4 +35,4 @@ public:
   virtual ~BlockingInputGate();
 };
 
-#endif 
+#endif // __BLOCKINGINPUTGATE_H__

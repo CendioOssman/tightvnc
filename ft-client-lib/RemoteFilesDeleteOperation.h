@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,6 +32,18 @@ class RemoteFilesDeleteOperation : public FileTransferOperation
 {
 public:
 
+  //
+  // Constructs new RemoteFilesDeleteOperation class instance.
+  //
+  // Parameters:
+  //
+  // fileInfoToDelete - file information about file need to delete.
+  // filename in this variable must be relative to pathToTargetRoot.
+  //
+  // pathToTargetRoot - path to folder on remote file system in ft format where
+  // files to be deleted is located.
+  //
+
   RemoteFilesDeleteOperation(const FileInfo *filesInfoToDelete,
                              size_t filesCount,
                              const TCHAR *pathToTargetRoot);
@@ -41,7 +53,15 @@ public:
 
   virtual ~RemoteFilesDeleteOperation();
 
+  //
+  // Starts executing this delete operation
+  //
+
   virtual void start() throw(IOException);
+
+  //
+  // File transfer message(accepted by this operation) handlers
+  //
 
   void onFileListReply() throw(IOException);
   void onRmReply() throw(IOException);
@@ -54,6 +74,10 @@ private:
   void killOp();
 
 protected:
+
+  //
+  // Current file list to delete
+  //
 
   FileInfoList *m_toDelete;
   StringStorage m_pathToTargetRoot;

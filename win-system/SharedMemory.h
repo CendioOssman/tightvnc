@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,12 +30,14 @@
 class SharedMemory
 {
 public:
+  // @throw Exception
   SharedMemory(const TCHAR *name, size_t size);
   virtual ~SharedMemory();
 
   void *getMemPointer() { return m_memory; }
 
 protected:
+  // Return true if need to init
   bool createFile(const TCHAR *name, size_t size);
   void mapViewOfFile();
   void setAllAccess(HANDLE objHandle);
@@ -46,4 +48,4 @@ protected:
   void *m_memory;
 };
 
-#endif 
+#endif // __SHAREDMEMORY_H__

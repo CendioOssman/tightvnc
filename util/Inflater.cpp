@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "Inflater.h"
+#include <crtdbg.h>
 
 Inflater::Inflater()
 : m_unpackedSize(0)
@@ -54,17 +55,19 @@ void Inflater::inflate()
   size_t avaliableOutput = m_unpackedSize + m_unpackedSize / 100 + 1024;
   size_t prevTotalOut = m_zlibStream.total_out;
 
-  if (m_output != NULL) {
-    delete[] m_output;
-  }
+  // Check to overflow.
+  unsigned int constrainedValue = (unsigned int)avaliableOutput;
+  _ASSERT(avaliableOutput == constrainedValue);
+  constrainedValue = (unsigned int)m_inputSize;
+  _ASSERT(m_inputSize == constrainedValue);
 
-  m_output = new char[avaliableOutput];
+  m_output.resize(avaliableOutput);
 
   m_zlibStream.next_in = (Bytef *)m_input;
-  m_zlibStream.avail_in = m_inputSize;
+  m_zlibStream.avail_in = (unsigned int)m_inputSize;
 
-  m_zlibStream.next_out = (Bytef *)m_output;
-  m_zlibStream.avail_out = avaliableOutput;
+  m_zlibStream.next_out = (Bytef *)&m_output.front();
+  m_zlibStream.avail_out = (unsigned int)avaliableOutput;
 
   int r = ::inflate(&m_zlibStream, Z_SYNC_FLUSH);
 

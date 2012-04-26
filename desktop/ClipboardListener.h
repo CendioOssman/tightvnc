@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,7 +33,8 @@ public:
   ClipboardListener();
   ~ClipboardListener();
 
+  // Interface function
   virtual void onClipboardUpdate(const StringStorage *newClipboard) = 0;
 };
 
-#endif 
+#endif // __CLIPBOARDLISTENER_H__

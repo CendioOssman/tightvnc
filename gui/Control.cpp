@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -40,7 +40,9 @@ Control::~Control()
 
 void Control::setWindow(HWND hwnd)
 {
+  // Save handle
   m_hwnd = hwnd;
+  // Save pointer to default window proc
   m_defWindowProc = (WNDPROC)GetWindowLongPtr(m_hwnd, GWLP_WNDPROC);
 }
 
@@ -52,7 +54,7 @@ void Control::setEnabled(bool enabled)
   } else {
     if (isStyleEnabled(WS_DISABLED)) {
       return ;
-    } 
+    } // if already disabled
     SendMessage(m_hwnd, WM_ENABLE, FALSE, NULL);
     addStyle(WS_DISABLED);
   }
@@ -77,6 +79,10 @@ void Control::setUnsignedInt(unsigned int value)
   text.format(_T("%u"), value);
   setText(text.getString());
 }
+
+//
+// FIXME: Stub
+//
 
 void Control::setTextVerticalAlignment(VerticalAlignment align)
 {
@@ -114,12 +120,15 @@ void Control::invalidate()
 
 void Control::getText(StringStorage *storage)
 {
-  int length = SendMessage(m_hwnd, WM_GETTEXTLENGTH, 0, 0);
-  TCHAR *buf = new TCHAR[length + 1];
-  GetWindowText(m_hwnd, buf, length + 1);
-  storage->setString(buf);
-  delete []buf;
+  int length = (int)SendMessage(m_hwnd, WM_GETTEXTLENGTH, 0, 0);
+  std::vector<TCHAR> buf(length + 1);
+  GetWindowText(m_hwnd, &buf.front(), length + 1);
+  storage->setString(&buf.front());
 }
+
+//
+// FIXME: Stub
+//
 
 VerticalAlignment Control::getTextVerticalAlignment()
 {
@@ -193,6 +202,6 @@ bool Control::isExStyleEnabled(DWORD styleFlag)
 
 void Control::replaceWindowProc(WNDPROC wndProc)
 {
-  SetWindowLong(m_hwnd, GWL_USERDATA, (LONG)this);
-  SetWindowLongPtr(m_hwnd, GWLP_WNDPROC, (LONG)wndProc);
+  SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
+  SetWindowLongPtr(m_hwnd, GWLP_WNDPROC, (LONG_PTR)wndProc);
 }

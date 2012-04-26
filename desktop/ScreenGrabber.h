@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,12 +31,49 @@
 #include "rfb/PixelFormat.h"
 #include "rfb/FrameBuffer.h"
 
+//
+// An abstract interface for screen grabbing.
+//
+
+/*
+  //
+  // Usage example:
+  //
+
+  ScreenGrabber *frameBuffer;
+
+  // Initialisation
+  frameBuffer = new WindowsScreenGrabber;
+
+  Rect grabRect, workRect;
+  workRect.setRect(100, 100, 500, 500);
+  grabRect.setRect(20, 20, 120, 120); // Relative to the workRect
+  frameBuffer->setWorkRect(&workRect);
+
+  // One-time grabbing
+  while (!frameBuffer->grab(&grabRect)) {
+    if (frameBuffer->getPropertiesChanged()) { // Check desktop properties
+      if (!frameBuffer->applyNewProperties()) {
+        MessageBox(NULL, _T("Cannot apply new screen properties"), _T("Error"), MB_ICONHAND);
+        return 1;
+      }
+    } else {
+      MessageBox(NULL, _T("Cannot grab screen"), _T("Error"), MB_ICONHAND);
+      return 1;
+    }
+  }
+*/
+
 class ScreenGrabber
 {
 public:
   ScreenGrabber(void);
   virtual ~ScreenGrabber(void);
 
+  /* Provides grabbing.
+  Parameters:     *rect - Pointer to a Rect object with relative workRect coordinates.
+  Return value:   true if success.
+  */
   virtual bool grab(const Rect *rect = 0) = 0;
 
   virtual FrameBuffer *getScreenBuffer() { return &m_workFrameBuffer; }
@@ -47,12 +84,17 @@ public:
                                                  m_offsetFrameBuffer.x,
                                                  m_workFrameBuffer.getDimension().height +
                                                  m_offsetFrameBuffer.y); }
+  /* Provides read access to rectangular coordinates of the screen (desktop).*/
   virtual Rect getScreenRect() { return m_fullScreenRect; }
 
+  // Checks screen(desktop) properties on changes
   inline virtual bool getPropertiesChanged() = 0;
   inline virtual bool getPixelFormatChanged() = 0;
   inline virtual bool getScreenSizeChanged() = 0;
 
+  // Set new values of the WorkRect to default (to full screen rectangle coordinates)
+  // and m_fullScreenRect if desktop properties has been changed.
+  // Also m_pixelFormat set to actual value.
   virtual bool applyNewProperties();
 
 protected:
@@ -67,4 +109,4 @@ protected:
   FrameBuffer m_workFrameBuffer;
 };
 
-#endif 
+#endif // __SCREENGRABBER_H__

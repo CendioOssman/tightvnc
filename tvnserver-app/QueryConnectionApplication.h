@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,14 +29,42 @@
 
 #include "win-system/SystemException.h"
 
+/**
+ * Application that shows "Accept / Reject rfb connection dialog" to user
+ * and returns user choise as application return value.
+ */
 class QueryConnectionApplication : public LocalWindowsApplication
 {
 public:
-  QueryConnectionApplication(HINSTANCE hInstance, const TCHAR *cmdLine) throw(SystemException);
+  /**
+   * Creates instance of application.
+   * @remark behavour inherited from superclass.
+   * @throws SystemException on fail.
+   */
+  QueryConnectionApplication(HINSTANCE hInstance,
+                             const TCHAR *windowClassName,
+                             const TCHAR *cmdLine);
+  /**
+   * Deletes instance.
+   */
   virtual ~QueryConnectionApplication();
 
+  /**
+   * Inherited from superclass.
+   *
+   * @return 0 when user chooses "accept", 1 when user chooses "reject".
+   */
   virtual int run();
 
+  /**
+   * Executes query application in separate process
+   * and waits until it stops.
+   * @param peerAddr string with incoming connection peer address.
+   * @param acceptByDefault if set, then default action in query dialog will be "Accept".
+   * @param timeOutSec query dialog timeout(in seconds).
+   * @return application exit code (0 means accept connection, 1 means reject connection).
+   * @throws Exception on fail.
+   */
   static int execute(const TCHAR *peerAddr, bool acceptByDefault, DWORD timeOutSec)
          throw(Exception);
 

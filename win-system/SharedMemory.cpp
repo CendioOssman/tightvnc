@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -61,18 +61,22 @@ void SharedMemory::freeRes()
 
 bool SharedMemory::createFile(const TCHAR *name, size_t size)
 {
-  m_hToMap = CreateFileMapping(INVALID_HANDLE_VALUE,  
-                               0,                     
-                               PAGE_READWRITE,        
-                               0,                     
-                               size,                  
-                               name);                 
+  DWORD lowSize = size & 0xffffffff;
+  DWORD highSize = (DWORD64)size >> 32 & 0xffffffff;
+
+  m_hToMap = CreateFileMapping(INVALID_HANDLE_VALUE,  // use paging file
+                               0,                     // security attributes
+                               PAGE_READWRITE,        // read/write access
+                               highSize,              // size: high 32-bits
+                               lowSize,               // size: low 32-bits
+                               name);                 // name of map object
   if (m_hToMap == NULL) {
     int errCode = GetLastError();
     StringStorage errMess;
     errMess.format(_T("Cannot create file mapping with error = %d"), errCode);
     throw Exception(errMess.getString());
   }
+  // The first process to attach initializes memory
   bool needToInit = GetLastError() != ERROR_ALREADY_EXISTS;
 
   if (needToInit) {
@@ -84,11 +88,12 @@ bool SharedMemory::createFile(const TCHAR *name, size_t size)
 
 void SharedMemory::mapViewOfFile()
 {
-  m_memory = MapViewOfFile(m_hToMap,       
-                           FILE_MAP_WRITE, 
-                           0,              
-                           0,              
-                           0);             
+  // Get a pointer to the file-mapped shared memory
+  m_memory = MapViewOfFile(m_hToMap,       // object to map view of
+                           FILE_MAP_WRITE, // read/write access
+                           0,              // high offset:  map from
+                           0,              // low offset:   beginning
+                           0);             // default: map entire file
   if (m_memory == NULL) {
     int errCode = GetLastError();
     StringStorage errMess;
@@ -100,10 +105,10 @@ void SharedMemory::mapViewOfFile()
 void SharedMemory::setAllAccess(HANDLE objHandle)
 {
   DWORD errorCode = SetSecurityInfo(objHandle, SE_FILE_OBJECT,
-                                    DACL_SECURITY_INFORMATION, 
+                                    DACL_SECURITY_INFORMATION, // Modify DACL
                                     0,
                                     0,
-                                    0, 
+                                    0, // Pointer to DACL (0 = access to all)
                                     0);
   if (errorCode != ERROR_SUCCESS) {
     StringStorage errMess;

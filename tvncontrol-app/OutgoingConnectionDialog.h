@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,14 +35,26 @@
 
 #include "config-lib/ConnectionHistory.h"
 
+/**
+ * Outgoing connection dialog. Just allows user to put connection string
+ * and select mode for connection.
+ */
 class OutgoingConnectionDialog : public BaseDialog
 {
 public:
   OutgoingConnectionDialog();
   virtual ~OutgoingConnectionDialog();
 
+  /**
+   * Gets connection string, specified by user.
+   * @return connection string.
+   */
   const TCHAR *getConnectString() const;
 
+  /**
+   * Gets view only flag, specified by user.
+   * @return view only flag.
+   */
   bool isViewOnly() const;
 
 protected:
@@ -57,13 +69,31 @@ protected:
   void onCancelButtonClick();
 
 protected:
+  /**
+   * Member to hold connection string after dialog is destroyed.
+   */
   StringStorage m_connectString;
+  /**
+   * Like m_connectString, but for view only flag.
+   */
   bool m_isViewOnly;
 
-  RegistryKey *m_connHistoryKey;
+  /**
+   * Connection history registry key.
+   */
+  RegistryKey m_connHistoryKey;
+  /**
+   * Connection history container.
+   */
   ConnectionHistory m_connHistory;
 
+  /**
+   * Combo box with connection history.
+   */
   ComboBox m_connectStringCB;
+  /**
+   * "View-only" checkbox.
+   */
   CheckBox m_viewOnlyCB;
 };
 

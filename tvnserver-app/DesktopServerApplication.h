@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,17 +36,33 @@
 #include "desktop-ipc/GateKickHandler.h"
 #include "SessionChangesWatcher.h"
 #include "win-system/LocalWindowsApplication.h"
-#include "util/FileLog.h"
+#include "log-server/LogClientInstance.h"
 #include "server-config-lib/ConfigReloadListener.h"
+#include "util/CommandLineArgs.h"
+
+/**
+ * Desktop server application.
+ */
 class DesktopServerApplication : public LocalWindowsApplication,
                                  public AnEventListener,
                                  public ConfigReloadListener
 {
 public:
-  DesktopServerApplication(HINSTANCE appInstance, const TCHAR *commandLine);
+  /**
+   * Initializes desktop server.
+   * @param appInstance HINSTANCE of application.
+   * @throws Exception (or SystemException) on fail.
+   * @fixme make command line parsing in this class.
+   */
+  DesktopServerApplication(HINSTANCE appInstance,
+                           const TCHAR *windowClassName,
+                           const CommandLineArgs *cmdArgs);
 
   virtual ~DesktopServerApplication();
 
+  /**
+   * Inherited from superclass.
+   */
   virtual int run();
 
 protected:
@@ -56,6 +72,10 @@ protected:
 private:
   void freeResources();
 
+  Configurator m_configurator;
+  LogClientInstance m_log;
+
+  // Transport
   AnonymousPipe *m_clToSrvChan;
   AnonymousPipe *m_srvToClChan;
   BlockingGate *m_clToSrvGate;
@@ -63,14 +83,13 @@ private:
 
   DesktopSrvDispatcher *m_dispatcher;
 
+  // Servers
   UpdateHandlerServer *m_updHandlerSrv;
   UserInputServer *m_uiSrv;
   ConfigServer *m_cfgServer;
   GateKickHandler *m_gateKickHandler;
 
   SessionChangesWatcher *m_sessionChangesWatcher;
-
-  FileLog *m_log;
 };
 
-#endif 
+#endif // __DESKTOPSERVER_H__

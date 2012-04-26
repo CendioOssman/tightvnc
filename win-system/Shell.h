@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,15 +29,36 @@
 
 #include "SystemException.h"
 
+/**
+ * Wrapper over WinAPI shell functions.
+ *
+ * @author enikey.
+ */
 class Shell
 {
 public:
+  /**
+   * Runs application as administrator and waits until execution finished.
+   * @param pathToFile path to executable.
+   * @param parameters execute parameters.
+   * @throws SystemException on fail.
+   */
   static void runAsAdmin(const TCHAR *pathToFile, const TCHAR *parameters) throw(SystemException);
 
+  /**
+   * Opens file with default action specified in Windows.
+   * @param file target file.
+   * @param parameters parameters.
+   * @param workDirectory working directory.
+   * @throws SystemException on fail.
+   */
   static void open(const TCHAR *file,
                    const TCHAR *parameters,
                    const TCHAR *workDirectory) throw(SystemException);
 private:
+  /**
+   * Don't allow instanizing of class.
+   */
   Shell();
 };
 

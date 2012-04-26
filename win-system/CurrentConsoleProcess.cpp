@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,10 +30,10 @@
 #include "win-system/Workstation.h"
 #include "win-system/WTS.h"
 
-#include "util/Log.h"
+#include "log-server/Log.h"
 
-CurrentConsoleProcess::CurrentConsoleProcess(const TCHAR *path, const TCHAR *args, bool useXpTrick)
- : Process(path, args), m_useXpTrick(useXpTrick)
+CurrentConsoleProcess::CurrentConsoleProcess(const TCHAR *path, const TCHAR *args)
+ : Process(path, args)
 {
 }
 
@@ -42,39 +42,6 @@ CurrentConsoleProcess::~CurrentConsoleProcess()
 }
 
 void CurrentConsoleProcess::start()
-{
-  int pipeNotConnectedErrorCount = 0;
-
-  for (int i = 0; i < 5; i++) {
-    try {
-      startImpersonated();
-      return ;
-    } catch (SystemException &sysEx) {
-      if (!m_useXpTrick) {
-        throw;
-      }
-      if (sysEx.getErrorCode() == 233) {
-        pipeNotConnectedErrorCount++;
-
-        DWORD sessionId = WTS::getActiveConsoleSessionId();
-
-        bool isXPFamily = Environment::isWinXP() || Environment::isWin2003Server();
-        bool doXPTrick = (isXPFamily) && (sessionId > 0) && (pipeNotConnectedErrorCount >= 3);
-
-        if (doXPTrick) {
-          CurrentConsoleProcess::doXPTrick();
-          startImpersonated();
-          return ;
-        } 
-      } else {
-        throw;
-      } 
-    }
-    Sleep(3000);
-  } 
-}
-
-void CurrentConsoleProcess::startImpersonated()
 {
   cleanup();
 
@@ -145,44 +112,13 @@ void CurrentConsoleProcess::startImpersonated()
     throw;
   }
 
+  //
+  // FIXME: Leak.
+  //
+
   CloseHandle(userToken);
   CloseHandle(token);
 
   m_hThread = pi.hThread;
   m_hProcess = pi.hProcess;
-}
-
-void CurrentConsoleProcess::doXPTrick()
-{
-  Log::info(_T("Trying to do WindowsXP trick to start process on separate session"));
-
-  try {
-    WinStaLibrary winSta;
-
-    WCHAR password[1];
-    memset(password, 0, sizeof(password));
-
-    if (winSta.WinStationConnectW(NULL, 0, WTS::getActiveConsoleSessionId(),
-      password, 0) == FALSE) {
-      throw SystemException(_T("Failed to call WinStationConnectW"));
-    }
-
-    StringStorage pathToBinary;
-    Environment::getCurrentModulePath(&pathToBinary);
-
-    CurrentConsoleProcess lockWorkstation(pathToBinary.getString(),
-      _T("-lockworkstation"),
-      false);
-    lockWorkstation.start();
-    lockWorkstation.waitForExit();
-
-    DWORD exitCode = lockWorkstation.getExitCode();
-
-    if (exitCode != 0) {
-      throw SystemException(exitCode);
-    }
-  } catch (SystemException &ex) {
-    Log::error(ex.getMessage());
-    throw;
-  }
 }

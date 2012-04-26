@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,10 +27,26 @@
 
 #include "util/CommonHeader.h"
 
+/**
+ * Public TightVNC server information.
+ *
+ * Used by tvncontrol only.
+ */
 struct TvnServerInfo
 {
+  /**
+   * Determinates if main rfb server can normally accept connections.
+   * Set to false when rfb server has any kind of problem (socket not bound,
+   * auth is enabled but no passwords are set etc).
+   */
   bool m_acceptFlag;
+  /**
+   * Determinates if TightVNC server runs in context of service or application.
+   */
   bool m_serviceFlag;
+  /**
+   * TightVNC server status text.
+   */
   StringStorage m_statusText;
 };
 

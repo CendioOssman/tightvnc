@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,21 +23,21 @@
 //
 
 #include "UpdateFilter.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "util/CommonHeader.h"
 
 static const int BLOCK_SIZE = 32;
 
-UpdateFilter::UpdateFilter(ScreenGrabber *screenGrabber,
+UpdateFilter::UpdateFilter(ScreenDriver *screenDriver,
                            FrameBuffer *frameBuffer,
                            LocalMutex *frameBufferCriticalSection)
-: m_screenGrabber(screenGrabber),
+: m_screenDriver(screenDriver),
   m_frameBuffer(frameBuffer),
   m_fbMutex(frameBufferCriticalSection)
 {
 }
 
-UpdateFilter::~UpdateFilter(void)
+UpdateFilter::~UpdateFilter()
 {
 }
 
@@ -45,8 +45,9 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
 {
   AutoLock al(m_fbMutex);
 
-  FrameBuffer *screenFrameBuffer = m_screenGrabber->getScreenBuffer();
+  FrameBuffer *screenFrameBuffer = m_screenDriver->getScreenBuffer();
 
+  // Checking for buffers equal
   if (!screenFrameBuffer->isEqualTo(m_frameBuffer)) {
     return;
   }
@@ -58,22 +59,25 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
   std::vector<Rect> rects;
   std::vector<Rect>::iterator iRect;
 
+  // Reproduce CopyRect operations in m_frameBuffer.
   updateContainer->copiedRegion.getRectVector(&rects);
   Point *src = &updateContainer->copySrc;
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
     m_frameBuffer->move(&(*iRect), src->x, src->y);
   }
 
-  toCheck.getRectVector(&rects);
 
+  toCheck.getRectVector(&rects);
+  // Grabbing
   Log::debug(_T("grabbing region, %d rectangles"), (int)rects.size());
-  for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
-    if (!m_screenGrabber->grab(&(*iRect))) {
-      return;
-    }
+  try {
+    m_grabOptimizator.grab(&toCheck, m_screenDriver);
+  } catch (...) {
+    return;
   }
   Log::debug(_T("end of grabbing region"));
 
+  // Filtering
   updateContainer->changedRegion.clear();
   Rect *rect;
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
@@ -81,6 +85,7 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
     getChangedRegion(&updateContainer->changedRegion, rect);
   }
 
+  // Copy actually changed pixels into m_frameBuffer.
   updateContainer->changedRegion.getRectVector(&rects);
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
     rect = &(*iRect);
@@ -97,10 +102,11 @@ void UpdateFilter::getChangedRegion(Region *rgn, const Rect *rect)
   const int bytesPerRow = m_frameBuffer->getBytesPerRow();
   const int offset = rect->top * bytesPerRow + rect->left * bytesPerPixel;
   unsigned char *o_ptr = (unsigned char *)m_frameBuffer->getBuffer() + offset;
-  unsigned char *n_ptr = (unsigned char *)m_screenGrabber->getScreenBuffer()->getBuffer() + offset;
+  unsigned char *n_ptr = (unsigned char *)m_screenDriver->getScreenBuffer()->getBuffer() + offset;
 
   Rect new_rect = rect;
 
+  // Fast processing for small rectangles
   if ( rect->right - rect->left <= BLOCK_SIZE &&
        rect->bottom - rect->top <= BLOCK_SIZE ) {
       for (int y = rect->top; y < rect->bottom; y++) {
@@ -115,12 +121,14 @@ void UpdateFilter::getChangedRegion(Region *rgn, const Rect *rect)
       return;
   }
 
+  // Process bigger rectangles
   new_rect.top = -1;
   for (int y = rect->top; y < rect->bottom; y++) {
     if (memcmp(o_ptr, n_ptr, bytes_per_scanline) != 0) {
       if (new_rect.top == -1) {
         new_rect.top = y;
       }
+      // Skip a number of lines after a non-matched one
       int n = BLOCK_SIZE / 2 - 1;
       y += n;
       o_ptr += n * bytesPerRow;
@@ -143,6 +151,7 @@ void UpdateFilter::getChangedRegion(Region *rgn, const Rect *rect)
 
 void UpdateFilter::updateChangedRect(Region *rgn, const Rect *rect)
 {
+  // Pass small rectangles directly to updateChangedSubRect
   if ( rect->right - rect->left <= BLOCK_SIZE &&
        rect->bottom - rect->top <= BLOCK_SIZE ) {
       updateChangedSubRect(rgn, rect);
@@ -154,13 +163,15 @@ void UpdateFilter::updateChangedRect(Region *rgn, const Rect *rect)
   Rect new_rect;
   int x, y, ay;
 
+  // Scan down the rectangle
   const int bytesPerRow = m_frameBuffer->getBytesPerRow();
   const int offset = rect->top * bytesPerRow + rect->left * bytesPerPixel;
   unsigned char *o_topleft_ptr = (unsigned char *)m_frameBuffer->getBuffer() + offset;
-  unsigned char *n_topleft_ptr = (unsigned char *)m_screenGrabber->getScreenBuffer()->getBuffer() + offset;
+  unsigned char *n_topleft_ptr = (unsigned char *)m_screenDriver->getScreenBuffer()->getBuffer() + offset;
 
   for (y = rect->top; y < rect->bottom; y += BLOCK_SIZE)
   {
+    // Work out way down the bitmap
     unsigned char *o_row_ptr = o_topleft_ptr;
     unsigned char *n_row_ptr = n_topleft_ptr;
 
@@ -170,12 +181,14 @@ void UpdateFilter::updateChangedRect(Region *rgn, const Rect *rect)
 
     for (x = rect->left; x < rect->right; x += BLOCK_SIZE)
     {
+      // Work our way across the row
       unsigned char *n_block_ptr = n_row_ptr;
       unsigned char *o_block_ptr = o_row_ptr;
 
       const UINT blockright = min(x + BLOCK_SIZE, rect->right);
       const UINT bytesPerBlockRow = (blockright-x) * bytesPerPixel;
 
+      // Scan this block
       for (ay = y; ay < blockbottom; ay++) {
         if (memcmp(n_block_ptr, o_block_ptr, bytesPerBlockRow) != 0)
           break;
@@ -183,6 +196,7 @@ void UpdateFilter::updateChangedRect(Region *rgn, const Rect *rect)
         o_block_ptr += bytesPerRow;
       }
       if (ay < blockbottom) {
+        // There were changes, so this block will need to be updated
         if (new_rect.left == -1) {
           new_rect.left = x;
           new_rect.top = ay;
@@ -190,6 +204,7 @@ void UpdateFilter::updateChangedRect(Region *rgn, const Rect *rect)
           new_rect.top = ay;
         }
       } else {
+        // No changes in this block, process previous changed blocks if any
         if (new_rect.left != -1) {
           new_rect.right = x;
           updateChangedSubRect(rgn, &new_rect);
@@ -217,10 +232,11 @@ void UpdateFilter::updateChangedSubRect(Region *rgn, const Rect *rect)
   int bytes_in_row = (rect->right - rect->left) * bytesPerPixel;
   int y, i;
 
+  // Exclude unchanged scan lines at the bottom
   const int bytesPerRow = m_frameBuffer->getBytesPerRow();
   int offset = (rect->bottom - 1) * bytesPerRow + rect->left * bytesPerPixel;
   unsigned char *o_ptr = (unsigned char *)m_frameBuffer->getBuffer() + offset;
-  unsigned char *n_ptr = (unsigned char *)m_screenGrabber->getScreenBuffer()->getBuffer() + offset;
+  unsigned char *n_ptr = (unsigned char *)m_screenDriver->getScreenBuffer()->getBuffer() + offset;
   Rect final_rect = rect;
   final_rect.bottom = rect->top + 1;
   for (y = rect->bottom - 1; y > rect->top; y--) {
@@ -232,9 +248,10 @@ void UpdateFilter::updateChangedSubRect(Region *rgn, const Rect *rect)
     o_ptr -= bytesPerRow;
   }
 
+  // Exclude unchanged pixels at left and right sides
   offset = final_rect.top * bytesPerRow + final_rect.left * bytesPerPixel;
   o_ptr = (unsigned char *)m_frameBuffer->getBuffer() + offset;
-  n_ptr = (unsigned char *)m_screenGrabber->getScreenBuffer()->getBuffer() + offset;
+  n_ptr = (unsigned char *)m_screenDriver->getScreenBuffer()->getBuffer() + offset;
   int left_delta = bytes_in_row - 1;
   int right_delta = 0;
   for (y = final_rect.top; y < final_rect.bottom; y++) {
@@ -258,5 +275,6 @@ void UpdateFilter::updateChangedSubRect(Region *rgn, const Rect *rect)
   final_rect.right = final_rect.left + right_delta / bytesPerPixel + 1;
   final_rect.left += left_delta / bytesPerPixel;
 
+  // Update the rectangle
   rgn->addRect(&final_rect);
 }

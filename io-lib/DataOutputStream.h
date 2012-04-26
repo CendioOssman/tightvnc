@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,14 +29,34 @@
 #include "OutputStream.h"
 #include "IOException.h"
 
+/**
+ * Data output stream (decorator pattern).
+ * Adds feature to write typezied data to output stream.
+ */
 class DataOutputStream : public OutputStream
 {
 public:
+  /**
+   * Creates new data output stream.
+   * @param outputStream real output stream.
+   */
   DataOutputStream(OutputStream *outputStream);
   virtual ~DataOutputStream();
 
+  /**
+   * Inherited from superclass.
+   * @remark just delegates call to real output stream.
+   */
   virtual size_t write(const void *buffer, size_t len) throw(IOException);
 
+  /**
+   * Writes exacly specified count of bytes to stream.
+   * @param buffer source buffer.
+   * @param len count of bytes to write.
+   * @throws IOException on error.
+   * @fixme really it can throw any kind of exception (depends on implementation
+   * of output stream passed to costructor of DataOutputStream).
+   */
   void writeFully(const void *buffer, size_t len) throw(IOException);
 
   void writeUInt8(UINT8 x) throw(IOException);
@@ -51,6 +71,9 @@ public:
 
   void writeUTF8(const TCHAR *string) throw(IOException);
 
+  /**
+   * Flushes inner output stream.
+   */
   virtual void flush() throw(IOException);
 protected:
   OutputStream *m_outStream;

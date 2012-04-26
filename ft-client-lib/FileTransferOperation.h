@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,11 +30,19 @@
 #include "FileTransferRequestSender.h"
 #include "FileTransferReplyBuffer.h"
 #include "FileInfoList.h"
-#include "ListenerContainer.h"
 
-#include "util/Log.h"
+#include "log-server/Log.h"
+#include "util/ListenerContainer.h"
 
 class OperationEventListener;
+
+//
+// Empty file transfer operation class that do nothing and
+// reject all messages (FileTransferEventAdapter policy by default).
+//
+// Class will throw OperationNotPermitted exception when caller
+// tryies to use it as event handler for file transfer messages.
+//
 
 class FileTransferOperation : public FileTransferEventAdapter,
                               public ListenerContainer<OperationEventListener *>
@@ -43,27 +51,81 @@ public:
   FileTransferOperation();
   virtual ~FileTransferOperation();
 
+  //
+  // Sets request sender member
+  //
+
   void setRequestSender(FileTransferRequestSender *sender);
+
+  //
+  // Sets reply buffer member
+  //
 
   void setReplyBuffer(FileTransferReplyBuffer *replyBuffer);
 
+  //
+  // Start executing of operation.
+  // Method must be overrided by child classes.
+  //
+
   virtual void start() throw(IOException) = 0;
+
+  //
+  // Sets terminating flag to true in this operation.
+  //
+  // Remark: subclasses of FileTransferOperation must finish
+  // execution when protected isTerminating method returns true.
+  //
 
   virtual void terminate();
 
 protected:
 
+  //
+  // Returns value of m_isTerminating flag
+  //
+
   virtual bool isTerminating();
+
+  //
+  // Some helper methods that will be used by child classes.
+  //
+
+  //
+  // Notify all listeners that operation has started.
+  //
 
   void notifyStart();
 
+  //
+  // Notify all listeners that operation has finished.
+  //
+
   void notifyFinish();
+
+  //
+  // Notify all listeners that was error during operation execution
+  //
 
   void notifyError(const TCHAR *message);
 
+  //
+  // Notify all listeners with text message
+  //
+
   void notifyInformation(const TCHAR *message);
 
+  //
+  // Sets absolute path to @currentFile, using @localFolder string as root folder
+  // to @out parameter, '\' character used as separator for splitting directories.
+  //
+
   void getLocalPath(FileInfoList *currentFile, const TCHAR *localFolder, StringStorage *out);
+
+  //
+  // Sets absolute path to @currentFile, using @remoteFolder string as root folder
+  // to @out parameter, '/' character used as separator for splitting directories.
+  //
 
   void getRemotePath(FileInfoList *currentFile, const TCHAR *remoteFolder, StringStorage *out);
 

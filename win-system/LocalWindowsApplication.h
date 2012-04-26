@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,10 +28,20 @@
 #include "WindowsApplication.h"
 #include "SystemException.h"
 
+/**
+ * Windows application that runs on WinSta0 and current active desktop.
+ * @fixme move functionality to WindowsApplication class.
+ */
 class LocalWindowsApplication : public WindowsApplication
 {
 public:
-  LocalWindowsApplication(HINSTANCE hInstance) throw(SystemException);
+  /**
+   * Creates class instance and prepare environment for application
+   * (selects needed window station and desktop).
+   * @throws SystemException if error occured.
+   */
+  LocalWindowsApplication(HINSTANCE hInstance,
+                          const TCHAR *windowClassName);
   virtual ~LocalWindowsApplication();
 };
 

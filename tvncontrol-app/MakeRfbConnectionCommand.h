@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,19 +29,48 @@
 
 #include "ControlProxy.h"
 
+/**
+ * Command that initializes outgoing rfb connection from TightVNC server to
+ * specified address.
+ */
 class MakeRfbConnectionCommand : public Command
 {
 public:
+  /**
+   * Creates command.
+   * @param serverControl proxy.
+   * @param connectString connection string.
+   * @param viewOnly view only flag for outgoing connection.
+   */
   MakeRfbConnectionCommand(ControlProxy *serverControl,
                            const TCHAR *connectString,
                            bool viewOnly);
+  /**
+   * Destroys command.
+   */
   virtual ~MakeRfbConnectionCommand();
 
+  /**
+   * Executes command.
+   *
+   * Inhrited from Command abstract class.
+   *
+   * @throws IOException on io error, Exception on server side error.
+   */
   virtual void execute() throw(IOException, RemoteException);
 
 private:
+  /**
+   * Proxy to some of TightVNC server control methods.
+   */
   ControlProxy *m_proxy;
+  /**
+   * Connection string.
+   */
   StringStorage m_connectString;
+  /**
+   * View only flag for outgoing connection.
+   */
   bool m_viewOnly;
 };
 

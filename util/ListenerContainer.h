@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -21,6 +21,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //-------------------------------------------------------------------------
 //
+
 #ifndef _LISTENER_CONTAINER_H_
 #define _LISTENER_CONTAINER_H_
 
@@ -37,8 +38,17 @@ public:
   virtual ~SafeVector() { };
 };
 
+//
+// Template class that contains listeners array and methods
+// for adding, removing listeners.
+//
+
 template<class T> class ListenerContainer {
 public:
+
+  //
+  // Adds listener to class listeners list
+  //
 
   void addListener(T listener) {
     AutoLock l(&m_listeners);
@@ -48,16 +58,20 @@ public:
       T current = *it;
       if (current == listener) {
         return ;
-      } 
-    } 
+      } // if found
+    } // for all listeners
     m_listeners.push_back(listener);
-  } 
+  } // void
 
   void removeAllListeners() {
     AutoLock l(&m_listeners);
 
     m_listeners.clear();
   }
+
+  //
+  // Removes listener from class listeners list
+  //
 
   void removeListener(T listener) {
     AutoLock l(&m_listeners);
@@ -68,9 +82,9 @@ public:
       if (current == listener) {
         m_listeners.erase(it);
         return ;
-      } 
-    } 
-  } 
+      } // if found
+    } // for all listeners
+  } // void
 
 protected:
   SafeVector<T> m_listeners;

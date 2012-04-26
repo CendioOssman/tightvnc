@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,7 +33,7 @@ void TextBox::setCaretPos(int h, int v)
   SendMessage(m_hwnd, EM_LINESCROLL, h, v);
 }
 
-DWORD TextBox::getTextLengthLimit()
+size_t TextBox::getTextLengthLimit()
 {
   return SendMessage(m_hwnd, EM_GETLIMITTEXT, 0, 0);
 }
@@ -45,13 +45,17 @@ void TextBox::setTextLengthLimit(size_t n)
 
 int TextBox::getCurrentLineIndex()
 {
-  return SendMessage(m_hwnd, EM_LINEINDEX, -1, 0);
+  return (int)SendMessage(m_hwnd, EM_LINEINDEX, -1, 0);
 }
 
 int TextBox::getLineCount()
 {
-  return SendMessage(m_hwnd, EM_GETLINECOUNT, 0, 0);
+  return (int)SendMessage(m_hwnd, EM_GETLINECOUNT, 0, 0);
 }
+
+//
+// FIXME: Unimplemented
+//
 
 int TextBox::getCaretPos()
 {

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,15 +24,17 @@
 
 #include "DesktopServerApplication.h"
 #include "DesktopServerCommandLine.h"
-#include "util/FileLog.h"
 #include "util/ResourceLoader.h"
 #include "desktop/WallpaperUtil.h"
 #include "win-system/WTS.h"
 #include "win-system/Environment.h"
 #include "win-system/SharedMemory.h"
+#include "tvnserver-app/NamingDefs.h"
 
-DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance, const TCHAR *commandLine)
-: LocalWindowsApplication(appInstance),
+DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
+                                                   const TCHAR *windowClassName,
+                                                   const CommandLineArgs *cmdArgs)
+: LocalWindowsApplication(appInstance, windowClassName),
   m_clToSrvChan(0),
   m_srvToClChan(0),
   m_clToSrvGate(0),
@@ -42,30 +44,24 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance, const 
   m_uiSrv(0),
   m_cfgServer(0),
   m_gateKickHandler(0),
-  m_sessionChangesWatcher(0)
+  m_sessionChangesWatcher(0),
+  m_configurator(true),
+  m_log(LogNames::LOG_PIPE_PUBLIC_NAME,
+        LogNames::SERVER_LOG_FILE_STUB_NAME)
 {
+  m_log.init();
+
   DesktopServerCommandLine cmdLineParser;
 
-  cmdLineParser.parse(commandLine);
+  cmdLineParser.parse(cmdArgs);
 
+  // Keep session id
   DWORD baseSessionId = WTS::getActiveConsoleSessionId();
-
-  StringStorage pathToLog;
-
-  cmdLineParser.getLogDir(&pathToLog);
-
-  if (!pathToLog.endsWith(_T('\\'))) {
-    pathToLog.appendChar(_T('\\'));
-  }
-  pathToLog.appendString(_T("dtserver.log"));
-  m_log = new FileLog(pathToLog.getString(), true);
   Configurator::getInstance()->addListener(this);
 
-  m_log->changeLevel(cmdLineParser.getLogLevel());
-  Log::message(_T("Log level has been changed to %d"),
-               cmdLineParser.getLogLevel());
-
   try {
+    // Transport initialization
+    // Get pipe channel handles by the shared memory
     StringStorage shMemName;
     cmdLineParser.getSharedMemName(&shMemName);
     SharedMemory shMem(shMemName.getString(), 72);
@@ -87,16 +83,17 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance, const 
     hWrite = (HANDLE)mem[1];
     hRead  = (HANDLE)mem[2];
     m_clToSrvChan = new AnonymousPipe(hWrite, hRead);
-    Log::info(_T("Client->server hWrite = %u; hRead = %u"), hWrite, hRead);
+    Log::info(_T("Client->server hWrite = %p; hRead = %p"), hWrite, hRead);
 
     hWrite = (HANDLE)mem[3];
     hRead  = (HANDLE)mem[4];
     m_srvToClChan = new AnonymousPipe(hWrite, hRead);
-    Log::info(_T("Server->client hWrite = %u; hRead = %u"), hWrite, hRead);
+    Log::info(_T("Server->client hWrite = %p; hRead = %p"), hWrite, hRead);
 
     m_clToSrvGate = new BlockingGate(m_clToSrvChan);
     m_srvToClGate = new BlockingGate(m_srvToClChan);
 
+    // Server initializations
     m_dispatcher = new DesktopSrvDispatcher(m_clToSrvGate, this);
 
     m_updHandlerSrv = new UpdateHandlerServer(m_srvToClGate, m_dispatcher, this);
@@ -104,11 +101,13 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance, const 
     m_cfgServer = new ConfigServer(m_dispatcher);
     m_gateKickHandler = new GateKickHandler(m_dispatcher);
 
+    // Start servers
     m_dispatcher->resume();
 
+    // Spy for the session change.
     m_sessionChangesWatcher = new SessionChangesWatcher(this);
   } catch (Exception &e) {
-    Log::error(e.getMessage());
+    Log::error(_T("Desktop server application failed with error: %s"),e.getMessage());
     freeResources();
     throw;
   }
@@ -116,9 +115,9 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance, const 
 
 DesktopServerApplication::~DesktopServerApplication()
 {
+  Log::info(_T("The Desktop server application destructor has been called"));
   freeResources();
   Log::info(_T("Desktop server application has been terminated"));
-  delete m_log;
 }
 
 void DesktopServerApplication::freeResources()
@@ -138,6 +137,8 @@ void DesktopServerApplication::freeResources()
 
   if (m_sessionChangesWatcher) delete m_sessionChangesWatcher;
 
+  // This will stop and destroy the dispatcher. So all handles will be
+  // unregistered automatically.
   if (m_dispatcher) delete m_dispatcher;
 
   if (m_gateKickHandler) delete m_gateKickHandler;
@@ -153,12 +154,13 @@ void DesktopServerApplication::freeResources()
 
 void DesktopServerApplication::onAnObjectEvent()
 {
+  Log::error(_T("An error has been occurred in the desktop server.")
+             _T(" Application will be closed."));
   WindowsApplication::shutdown();
 }
 
 void DesktopServerApplication::onConfigReload(ServerConfig *serverConfig)
 {
-  m_log->changeLevel(serverConfig->getLogLevel());
 }
 
 int DesktopServerApplication::run()

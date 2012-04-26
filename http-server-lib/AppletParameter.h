@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,21 +25,27 @@
 #ifndef _APPLET_PARAMETER_H_
 #define _APPLET_PARAMETER_H_
 
+#include "util/AnsiStringStorage.h"
+
 class AppletParameter
 {
 public:
   AppletParameter(const char *name, const char *value);
   virtual ~AppletParameter();
 
+  // Returns formatted string for HTML output or NULL is arguments is not valid.
+  // Remark: string format is "<PARAM NAME="%s" VALUE="%s">".
   const char *getFormattedString() const;
 
+  // Returns true if applet parameter is valid, false otherwise.
   bool isValid() const;
 
 protected:
+  // Returns true if str is valid, false otherwise.
   bool isStringValid(const char *str) const;
 
 protected:
-  char *m_formattedString;
+  AnsiStringStorage m_formattedString;
 
   bool m_isValid;
 };

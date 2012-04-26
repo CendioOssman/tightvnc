@@ -36,6 +36,10 @@ extern char * getenv JPP((const char * name));
 #endif
 #endif
 
+#ifdef WIN32
+// warning C4267: '=' : conversion from 'size_t' to 'unsigned long', possible loss of data
+#pragma warning(disable : 4267)
+#endif
 
 /*
  * Some important notes:

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,9 +31,6 @@ ZLibBase::ZLibBase()
 
 ZLibBase::~ZLibBase()
 {
-  if (m_output != 0) {
-    delete[] m_output;
-  }
 }
 
 void ZLibBase::setInput(const char *input, size_t size)
@@ -44,7 +41,7 @@ void ZLibBase::setInput(const char *input, size_t size)
 
 const char *ZLibBase::getOutput() const
 {
-  return m_output;
+  return &m_output.front();
 }
 
 size_t ZLibBase::getOutputSize() const

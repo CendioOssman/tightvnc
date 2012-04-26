@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -43,7 +43,7 @@ const TCHAR *ControlAuthDialog::getPassword() const
 
 BOOL ControlAuthDialog::onInitDialog()
 {
-  m_password.setString(0);
+  m_password.setString(_T(""));
 
   HWND hwnd = m_ctrlThis.getWindow();
   m_passwordTextBox.setWindow(GetDlgItem(hwnd, IDC_PASSWORD_EDIT));

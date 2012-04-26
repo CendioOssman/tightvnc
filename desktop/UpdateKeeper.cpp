@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,6 +24,10 @@
 
 #include "UpdateKeeper.h"
 
+UpdateKeeper::UpdateKeeper()
+{
+}
+
 UpdateKeeper::UpdateKeeper(const Rect *borderRect)
 {
   m_borderRect.setRect(borderRect);
@@ -37,6 +41,9 @@ void UpdateKeeper::addChangedRegion(const Region *changedRegion)
 {
   AutoLock al(&m_updContLocMut);
 
+  // FIXME: Calling subtract() function is correct if use
+  // copy region instead of copy rectangle.
+  //m_updateContainer.copiedRegion.subtract(changedRegion);
   m_updateContainer.changedRegion.add(changedRegion);
   m_updateContainer.changedRegion.crop(&m_borderRect);
 }
@@ -60,16 +67,21 @@ void UpdateKeeper::addCopyRect(const Rect *copyRect, const Point *src)
   Point *copySrc = &m_updateContainer.copySrc;
   Rect dstCopyRect(copyRect);
 
+  // Create copy of copyRect in the source coordinates.
   Rect srcCopyRect(copyRect);
   srcCopyRect.setLocation(src->x, src->y);
 
+  // Clipping dstCopyRect
   dstCopyRect = dstCopyRect.intersection(&m_borderRect);
+  // Correcting source coordinates
   srcCopyRect.left    += dstCopyRect.left - copyRect->left;
   srcCopyRect.top     += dstCopyRect.top - copyRect->top;
   srcCopyRect.right   += dstCopyRect.right - copyRect->right;
   srcCopyRect.bottom  += dstCopyRect.bottom - copyRect->bottom;
+  // Clipping srcCopyRect
   Rect dummySrcCopyRect(&srcCopyRect);
   srcCopyRect = srcCopyRect.intersection(&m_borderRect);
+  // Correcting destination coordinates
   dstCopyRect.left    += srcCopyRect.left - dummySrcCopyRect.left;
   dstCopyRect.top     += srcCopyRect.top - dummySrcCopyRect.top;
   dstCopyRect.right   += srcCopyRect.right - dummySrcCopyRect.right;
@@ -82,11 +94,15 @@ void UpdateKeeper::addCopyRect(const Rect *copyRect, const Point *src)
   copySrc->x = srcCopyRect.left;
   copySrc->y = srcCopyRect.top;
 
+  // Adding difference between clipped dstCopyRect and original copyRect
+  // to changedRegion. Because without update detectors this information
+  // loses irretrievably.
   Region diff(copyRect);
   Region dstCopyRegion(&dstCopyRect);
   diff.subtract(&dstCopyRegion);
   addChangedRegion(&diff);
 
+  // Old copiedRegion must be added to changedRegion - (?)
   if (!copiedRegion->isEmpty()) {
     changedRegion->add(copiedRegion);
     copiedRegion->clear();
@@ -97,15 +113,19 @@ void UpdateKeeper::addCopyRect(const Rect *copyRect, const Point *src)
   copiedRegion->clear();
   copiedRegion->addRect(&dstCopyRect);
 
+  // copiedRegion must be substracted from changedRegion
   changedRegion->subtract(copiedRegion);
 
+  // Create region that is intersection of changedRegion and srcCopyRect.
   Region addonChangedRegion(&srcCopyRect);
   addonChangedRegion.intersect(changedRegion);
 
+  // Move addonChangedRegion and add it to changedRegion.
   addonChangedRegion.translate(dstCopyRect.left - copySrc->x,
                                dstCopyRect.top - copySrc->y);
   changedRegion->add(&addonChangedRegion);
 
+  // Clipping regions
   m_updateContainer.changedRegion.crop(&m_borderRect);
   m_updateContainer.copiedRegion.crop(&m_borderRect);
 }
@@ -145,19 +165,24 @@ void UpdateKeeper::addUpdateContainer(const UpdateContainer *updateContainer)
 {
   AutoLock al(&m_updContLocMut);
 
+  // FIXME: Use addCopyRegion instead of addCopyRect
+  // Add copied region
   std::vector<Rect> rects;
   std::vector<Rect>::iterator iRect;
   updateContainer->copiedRegion.getRectVector(&rects);
-  int numRects = rects.size();
+  size_t numRects = rects.size();
   if (numRects > 0) {
     iRect = rects.begin();
     addCopyRect(&(*iRect), &updateContainer->copySrc);
   }
 
+  // Add changed region
   addChangedRegion(&updateContainer->changedRegion);
 
+  // Add video region
   m_updateContainer.videoRegion.add(&updateContainer->videoRegion);
 
+  // Set other properties
   if (updateContainer->screenSizeChanged) {
     setScreenSizeChanged();
   }
@@ -181,6 +206,7 @@ void UpdateKeeper::extract(UpdateContainer *updateContainer)
   {
     AutoLock al(&m_updContLocMut);
 
+    // Clipping regions
     m_updateContainer.changedRegion.crop(&m_borderRect);
     m_updateContainer.copiedRegion.crop(&m_borderRect);
 

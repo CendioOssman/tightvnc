@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -43,16 +43,45 @@ public:
   UpdateHandler();
   virtual ~UpdateHandler(void);
 
+  // The extract() function fills in a UpdateContainer object. 
+  // Also, if screen properties (such as resolution, pixel format)
+  // has changed the function reconfigures FrameBuffers. The
+  // reconfiguration posible the only one function.
+  //
+  // If screen size or pixel format have changed the copied region
+  // and the changed region will be cleaned, FrameBuffers will
+  // be reinitialized. Also, if screen size have changed the
+  // screenSizeChanged flag will be set to true. In the next
+  // time call of this function no additional information about
+  // these changes will present.
+
+  // Parameters: 
+  //   updateContainer - pointer to a UpdateContainer object that will be filled
   virtual void extract(UpdateContainer *updateContainer) = 0;
 
+  // This function unconventionally set to update pending of the frame buffer
+  // in the next time call of the extract() function. All found changes
+  // saves to the changedRegion and copiedRegion.
   virtual void setFullUpdateRequested(const Region *region) = 0;
 
+  // Checking a region for updates.
+  // Return:
+  //   true - if updates presents,
+  //   false - if not.
   virtual bool checkForUpdates(Region *region) = 0;
 
+  // Set a region excluded from the region that updates detects.
+  // excludedRegion will never be present in changedRegion or copiedRegion.
   virtual void setExcludedRegion(const Region *excludedRegion) = 0;
 
+  // The function provides access to FrameBuffer data.
+  // The data usage be able until next extract() function call.
+  // Return:
+  //   constant pointer to the FrameBuffer object.
   const FrameBuffer *getFrameBuffer() const { return &m_backupFrameBuffer; }
   const CursorShape *getCursorShape() const { return &m_cursorShape; }
+  // This function for asynchronous access to frame buffer properties
+  // (dimension and pixel format)
   void getFrameBufferProp(Dimension *dim, PixelFormat *pf)
   {
     AutoLock al(&m_fbLocMut);
@@ -62,13 +91,16 @@ public:
 
   void initFrameBuffer(const FrameBuffer *newFb);
 
+  // FIXME: It's no good idea to place this function to here.
+  // Because it uses only for the UpdateHandlerClient class.
   virtual void sendInit(BlockingGate *gate) {}
 
 protected:
   FrameBuffer m_backupFrameBuffer;
   LocalMutex m_fbLocMut;
 
+  // m_cursorShape not thread safed
   CursorShape m_cursorShape;
 };
 
-#endif 
+#endif // __UPDATEHANDLER_H__

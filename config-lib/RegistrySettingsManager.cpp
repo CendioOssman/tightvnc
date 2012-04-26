@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,6 +24,7 @@
 
 #include "RegistrySettingsManager.h"
 #include "util/StringParser.h"
+#include <vector>
 
 RegistrySettingsManager::RegistrySettingsManager()
 : m_key(0)
@@ -59,29 +60,27 @@ bool RegistrySettingsManager::isOk()
 
 void RegistrySettingsManager::extractKeyName(const TCHAR *key, StringStorage *folder)
 {
-  TCHAR *folderString = new TCHAR[_tcslen(key) + 1];
-  _tcscpy(folderString, key);
-  TCHAR *token = _tcsrchr(folderString, _T('\\'));
+  std::vector<TCHAR> folderString(_tcslen(key) + 1);
+  memcpy(&folderString.front(), key, folderString.size());
+  TCHAR *token = _tcsrchr(&folderString.front(), _T('\\'));
   if (token != NULL) {
     *token = _T('\0');
-    folder->setString(folderString);
+    folder->setString(&folderString.front());
   } else {
     folder->setString(_T(""));
   }
-  delete[] folderString;
 }
 
 void RegistrySettingsManager::extractValueName(const TCHAR *key, StringStorage *keyName)
 {
-  TCHAR *nameString = new TCHAR[_tcslen(key) + 1];
-  _tcscpy(nameString, key);
-  TCHAR *token = _tcsrchr(nameString, _T('\\'));
+  std::vector<TCHAR> nameString(_tcslen(key) + 1);
+  memcpy(&nameString.front(), key, nameString.size());
+  TCHAR *token = _tcsrchr(&nameString.front(), _T('\\'));
   if (token != NULL) {
     keyName->setString(++token);
   } else {
     keyName->setString((TCHAR *)key);
   }
-  delete[] nameString;
 }
 
 bool RegistrySettingsManager::keyExist(const TCHAR *name)

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,15 +29,39 @@
 #include "util/Exception.h"
 #include "Lockable.h"
 
+/**
+ * Global mutex (allows to use mutex between separate processes).
+ *
+ * @author yuri, enikey.
+ */
 class GlobalMutex : public Lockable
 {
 public:
+  /**
+   * Creates new global mutex.
+   * @param [optional] name name of mutex.
+   * @param throwIfExsist if flag is set then thows exception if mutex exsists.
+   * @param interSession if set, then mutex can be accessed from separate sessions, if not,
+   * then every session will create it's own mutex.
+   * @remark if name is 0, then mutex will be unnamed.
+   * @throws Exception when cannot create mutex or when throwIfExist flag is set
+   * and mutex already exist.
+   */
   GlobalMutex(const TCHAR *name = 0, bool interSession = false, bool throwIfExist = false) throw(Exception);
 
+  /**
+   * Deletes global mutex.
+   */
   virtual ~GlobalMutex();
 
+  /**
+   * Inherited from Lockable.
+   */
   virtual void lock();
 
+  /**
+   * Inherited from Lockable.
+   */
   virtual void unlock();
 
 private:
@@ -46,4 +70,4 @@ private:
   HANDLE m_mutex;
 };
 
-#endif 
+#endif // __GLOBALMUTEX_H__

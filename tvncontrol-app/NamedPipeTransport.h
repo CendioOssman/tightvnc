@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,21 +30,50 @@
 #include "win-system/Pipe.h"
 #include "win-system/PipeServer.h"
 
+/**
+ * Transport that uses pipe as transport.
+ */
 class NamedPipeTransport : public Transport
 {
 public:
-  NamedPipeTransport(Pipe *client);
+  /**
+   * Creates client pipe transport and takes ownership over pipe transport.
+   */
+  NamedPipeTransport(NamedPipe *client);
+  /**
+   * Creates server pipe transfer and takes ownership over pipe server.
+   */
   NamedPipeTransport(PipeServer *server);
+  /**
+   * Deletes transport and frees resources.
+   */
   virtual ~NamedPipeTransport();
 
+  /**
+   * Returns client transport's IO Stream.
+   */
   virtual Channel *getIOStream();
 
+  /**
+   * Accepts new connection.
+   * @return transport for accepted connection.
+   * @throws Exception on fail.
+   */
   virtual Transport *accept() throw(Exception);
 
+  /**
+   * Destroys transport(closes socket).
+   */
   virtual void close() throw(Exception);
 
 private:
-  Pipe *m_pipe;
+  /**
+   * Connected pipe transport.
+   */
+  NamedPipe *m_pipe;
+  /**
+   * Pipe server.
+   */
   PipeServer *m_pipeServer;
 };
 

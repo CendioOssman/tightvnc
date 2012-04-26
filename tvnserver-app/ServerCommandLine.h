@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,15 +27,27 @@
 
 #include "util/CommandLine.h"
 
+/**
+ * TvnServerApplication command line parser.
+ */
 class ServerCommandLine : public CommandLine
 {
 public:
   ServerCommandLine();
   virtual ~ServerCommandLine();
 
-  bool parse(const TCHAR *commandLine);
+  /**
+   * Parses command line.
+   * @param commandLine command line to parse.
+   * @return true if success, false if command line is invalid.
+   */
+  bool parse(const CommandLineArgs *cmdArgs);
 
+  /**
+   * Checks if help flags are set.
+   * @return true if any of help flags are set.
+   */
   bool showHelp();
 };
 
-#endif 
+#endif // __SERVERCOMMANDLINE_H__

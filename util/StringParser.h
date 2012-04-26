@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,6 +33,7 @@ class StringParser
 public:
   static bool tryParseInt(const TCHAR *str);
   static bool parseInt(const TCHAR *str, int *out);
+  // FIXME: it returns true on values that greater then 0xFFFFFFFF.
   static bool parseUInt(const TCHAR *str, unsigned int *out);
   static bool parseUInt64(const TCHAR *str, UINT64 *out);
   static bool parseHex(const TCHAR *str, unsigned int *out);

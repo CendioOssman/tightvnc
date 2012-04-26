@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,19 +24,17 @@
 
 #include "RfbServer.h"
 #include "server-config-lib/Configurator.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 RfbServer::RfbServer(const TCHAR *bindHost, unsigned short bindPort,
                      RfbClientManager *clientManager,
                      bool lockAddr,
                      const Rect *viewPort)
 : TcpServer(bindHost, bindPort, false, lockAddr),
-  m_clientManager(clientManager),
-  m_viewPortSpecified(false)
+  m_clientManager(clientManager)
 {
   if (viewPort != 0) {
-    m_viewPort = *viewPort;
-    m_viewPortSpecified = true;
+    m_viewPort.setArbitraryRect(viewPort);
   }
 
   TcpServer::start();
@@ -58,6 +56,7 @@ RfbServer::~RfbServer()
 void RfbServer::onAcceptConnection(SocketIPv4 *socket)
 {
   try {
+    // Get incoming connection address and convert it to string.
     SocketAddressIPv4 peerAddr;
     socket->getPeerAddr(&peerAddr);
     StringStorage peerIpString;
@@ -67,6 +66,8 @@ void RfbServer::onAcceptConnection(SocketIPv4 *socket)
 
     struct sockaddr_in addr_in = peerAddr.getSockAddr();
 
+    // Check access control rules for the IP address of the peer.
+    // FIXME: Check loopback-related rules separately, report differently.
     ServerConfig *config = Configurator::getInstance()->getServerConfig();
     IpAccessRule::ActionType action = config->getActionByAddress((unsigned long)addr_in.sin_addr.S_un.S_addr);
 
@@ -76,13 +77,13 @@ void RfbServer::onAcceptConnection(SocketIPv4 *socket)
       return;
     }
 
+    // Access granted, add new RFB client. One more check will follow later in
+    // RfbClientManager::onCheckAccessControl().
+
     socket->enableNaggleAlgorithm(false);
 
-    if (m_viewPortSpecified) {
-      m_clientManager->addNewConnection(socket, &m_viewPort, false, false);
-    } else {
-      m_clientManager->addNewConnection(socket, 0, false, false);
-    }
+    m_clientManager->addNewConnection(socket, &m_viewPort, false, false);
+
   } catch (Exception &ex) {
     Log::error(_T("Failed to process incoming rfb connection with following reason: \"%s\""), ex.getMessage());
   }

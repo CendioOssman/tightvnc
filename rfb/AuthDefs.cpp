@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,6 +28,18 @@ const char *const AuthDefs::SIG_NONE = "NOAUTH__";
 const char *const AuthDefs::SIG_VNC = "VNCAUTH_";
 const char *const AuthDefs::SIG_EXTERNAL = "XTRNAUTH";
 
+UINT32 SecurityDefs::convertFromAuthType(UINT32 authType)
+{
+  switch (authType) {
+  case AuthDefs::NONE:
+    return NONE;
+  case AuthDefs::VNC:
+    return VNC;
+  }
+
+  return INVALID; // no corresponding authentication method
+}
+
 UINT32 AuthDefs::convertFromSecurityType(UINT32 securityType)
 {
   switch (securityType) {
@@ -37,5 +49,5 @@ UINT32 AuthDefs::convertFromSecurityType(UINT32 securityType)
     return VNC;
   }
 
-  return 0; 
+  return 0; // no corresponding authentication method
 }

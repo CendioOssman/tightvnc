@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -102,8 +102,8 @@ void File::getName(StringStorage *name) const
   for (; i > 0; i--) {
     if (buffer[i - 1] == File::s_separatorChar) {
       break;
-    } 
-  } 
+    } // if found separator
+  } // for every char in string
 
   m_pathName.getSubstring(name, i, m_pathName.getLength() - 1);
 }
@@ -114,9 +114,9 @@ void File::getFileExtension(StringStorage *ext) const
 
   getName(&fileName);
 
-  int pointPos = fileName.findLast(_T('.'));
+  size_t pointPos = fileName.findLast(_T('.'));
 
-  if (pointPos == -1) {
+  if (pointPos == (size_t)-1) {
     ext->setString(_T(""));
   } else {
     fileName.getSubstring(ext, pointPos + 1, fileName.getLength() - 1);
@@ -137,8 +137,8 @@ bool File::isDirectory() const
   if (getFileInfo(&fileInfo)) {
     if (fileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
       return true;
-    } 
-  } 
+    } // if normal file
+  } // if can get file info
   return false;
 }
 
@@ -183,10 +183,16 @@ bool File::list(StringStorage *fileList, UINT32 *filesCount) const
   HANDLE hfile;
   WIN32_FIND_DATA findFileData;
 
+  //
+  // Change error mode to avoid windows error message in message box
+  // when we attemt to find first file on unmounted device
+  //
+
   UINT savedErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
 
   hfile = FindFirstFile(folderPath.getString(), &findFileData);
 
+  // Restore error mode
   SetErrorMode(savedErrorMode);
 
   if (hfile == INVALID_HANDLE_VALUE) {
@@ -194,6 +200,10 @@ bool File::list(StringStorage *fileList, UINT32 *filesCount) const
   }
 
   do {
+
+    //
+    // Skip "fake" file names
+    //
 
     if (_tcscmp(findFileData.cFileName, _T(".")) == 0 ||
         _tcscmp(findFileData.cFileName, _T("..")) == 0) {
@@ -226,7 +236,7 @@ bool File::listRoots(StringStorage *rootList, UINT32 *rootsCount)
   }
 
   UINT32 count = 0;
-  int i = 0;
+  size_t i = 0;
 
   while (drivesList[i] != '\0') {
 
@@ -245,7 +255,7 @@ bool File::listRoots(StringStorage *rootList, UINT32 *rootsCount)
 
     i += _tcscspn(&drivesList[i], _T("\0")) + 1;
     count++;
-  } 
+  } // while
 
   if (rootList == NULL) {
     *rootsCount = count;
@@ -278,6 +288,16 @@ bool File::renameTo(File *dest)
   return true;
 }
 
+bool File::renameTo(const TCHAR *dest, const TCHAR *source)
+{
+  // Try delete the destination file. Any error will be ignored.
+  DeleteFile(dest);
+  if (MoveFile(source, dest) == 0) {
+    return false;
+  }
+  return true;
+}
+
 bool File::setLastModified(INT64 time)
 {
   _ASSERT(time >= 0);
@@ -292,6 +312,10 @@ bool File::setLastModified(INT64 time)
   if (hfile == INVALID_HANDLE_VALUE) {
     return false;
   }
+
+  //
+  // Convert unix time to windows file time structure
+  //
 
   FILETIME ft;
 
@@ -323,15 +347,21 @@ bool File::getFileInfo(WIN32_FIND_DATA *fileInfo) const
 {
   HANDLE fileHandle;
 
+  //
+  // Change error mode to avoid windows error message in message box
+  // when we attemt to find first file on unmounted device
+  //
+
   UINT savedErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
 
   fileHandle = FindFirstFile(m_pathName.getString(), fileInfo);
 
+  // Restore error mode
   SetErrorMode(savedErrorMode);
 
   if (fileHandle == INVALID_HANDLE_VALUE) {
     return false;
-  } 
+  } // if file exists and we get file info
 
   FindClose(fileHandle);
   return true;

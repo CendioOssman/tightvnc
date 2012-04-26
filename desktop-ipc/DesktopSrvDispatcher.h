@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,14 +25,14 @@
 #ifndef __DESKTOPSRVDISPATCHER_H__
 #define __DESKTOPSRVDISPATCHER_H__
 
-#include "thread/Thread.h"
+#include "thread/GuiThread.h"
 #include "BlockingGate.h"
 #include "ClientListener.h"
 #include "util/AnEventListener.h"
 #include "win-system/WindowsEvent.h"
 #include <map>
 
-class DesktopSrvDispatcher: public Thread
+class DesktopSrvDispatcher: public GuiThread
 {
 public:
   DesktopSrvDispatcher(BlockingGate *gate,
@@ -53,4 +53,4 @@ protected:
   AnEventListener *m_extErrorListener;
 };
 
-#endif 
+#endif // __DESKTOPSRVDISPATCHER_H__

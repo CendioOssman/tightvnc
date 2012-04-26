@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -75,8 +75,10 @@ void RegistrySecurityAttributes::fillExplicitAccesses(EXPLICIT_ACCESS serviceRul
   _ASSERT(m_serviceOwner->isValid());
   _ASSERT(m_applicationOwner->isValid());
 
+  // All access for service.
   fillExplicitAccess(&serviceRules[0], m_admins);
   fillExplicitAccess(&serviceRules[1], m_serviceOwner);
+  // All access for application.
   fillExplicitAccess(&applicationRules[0], m_admins);
   fillExplicitAccess(&applicationRules[1], m_applicationOwner);
 }

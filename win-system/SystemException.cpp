@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -66,7 +66,12 @@ const TCHAR *SystemException::getSystemErrorDescription() const
 
 void SystemException::createMessage(const TCHAR *userMessage, int errcode)
 {
-  _ASSERT(!(userMessage == 0 && errcode == ERROR_SUCCESS));
+  if (userMessage == 0 && errcode == ERROR_SUCCESS) {
+    userMessage = _T("Thrown a system exception but the program")
+                  _T(" cannot identify the corresponding system error.");
+  }
+
+  // Get description of windows specific error.
 
   bool formatMessageOk = true;
 
@@ -85,6 +90,8 @@ void SystemException::createMessage(const TCHAR *userMessage, int errcode)
 
   StringStorage windowsErrorDescription(buffer);
 
+  // Remove bad characters.
+
   const TCHAR badCharacters[] = { 10, 13, _T('\n'), _T('\t') };
 
   windowsErrorDescription.removeChars(badCharacters, sizeof(badCharacters) / sizeof(TCHAR));
@@ -93,6 +100,8 @@ void SystemException::createMessage(const TCHAR *userMessage, int errcode)
     windowsErrorDescription.truncate(1);
   }
 
+  // Create system error part of message.
+
   if (formatMessageOk) {
     m_systemMessage.format(_T("%s (error code %d)"),
       windowsErrorDescription.getString(),
@@ -100,6 +109,8 @@ void SystemException::createMessage(const TCHAR *userMessage, int errcode)
   } else {
     m_systemMessage.format(_T("Error code %d"), errcode);
   }
+
+  // Use user message if specified.
 
   if (errcode != 0) {
     if (userMessage == 0) {

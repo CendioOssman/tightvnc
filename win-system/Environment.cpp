@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,15 +27,17 @@
 
 #include <shlobj.h>
 #include <crtdbg.h>
-#include <Wtsapi32.h>
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "win-system/AutoImpersonator.h"
 #include "win-system/WTS.h"
+#include "win-system/ProcessHandle.h"
 #include "Shell.h"
 #include "DynamicLibrary.h"
+#include <vector>
 
 OSVERSIONINFO Environment::m_osVerInfo = { 0 };
 typedef VOID (WINAPI *SendSas)(BOOL asUser);
+typedef HRESULT (WINAPI *DwmIsCompositionEnabled)(BOOL *pfEnabled);
 
 Environment::Environment()
 {
@@ -50,6 +52,7 @@ void Environment::getErrStr(StringStorage *out)
   DWORD errCode = GetLastError();
   TCHAR buffer[1024];
 
+  // FIXME: Remove "new line" character from buffer.
   if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                     NULL, errCode,
                     MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
@@ -84,7 +87,7 @@ bool Environment::getSpecialFolderPath(int specialFolderId, StringStorage *out)
   default:
     _ASSERT(FALSE);
     return false;
-  } 
+  } // switch
 
   bool returnVal = false;
 
@@ -99,29 +102,41 @@ bool Environment::getSpecialFolderPath(int specialFolderId, StringStorage *out)
 
 bool Environment::getCurrentModulePath(StringStorage *out)
 {
-  TCHAR *buffer;
-  size_t size = MAX_PATH;
+  std::vector<TCHAR> buffer;
+  DWORD size = MAX_PATH;
 
   while (true) {
-    buffer = new TCHAR[size + 1];
-    DWORD ret = GetModuleFileName(NULL, buffer, size);
+    // Allocate buffer
+    buffer.resize(size + 1);
+    // Try to get file name
+    DWORD ret = GetModuleFileName(NULL, &buffer[0], size);
 
     if (ret == 0) {
-      delete[] buffer;
       return false;
     } else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      delete[] buffer;
       size += 128;
     } else {
       break;
     }
-  } 
+  } // while
 
-  out->setString(buffer);
-  delete[] buffer;
+  out->setString(&buffer[0]);
 
   return true;
-} 
+} // void
+
+bool Environment::isItTheSamePathAsCurrent(unsigned int pId)
+{
+  StringStorage currModulePath, testedModulePath;
+  ProcessHandle pHandle;
+
+  pHandle.openProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                      0, pId);
+  pHandle.getProcessModulePath(&testedModulePath);
+  getCurrentModulePath(&currModulePath);
+
+  return currModulePath.isEqualTo(&testedModulePath);
+}
 
 bool Environment::getCurrentModuleFolderPath(StringStorage *out)
 {
@@ -129,9 +144,9 @@ bool Environment::getCurrentModuleFolderPath(StringStorage *out)
     return false;
   }
 
-  int lastPos = out->findLast(_T('\\'));
+  size_t lastPos = out->findLast(_T('\\'));
 
-  if (lastPos >= 0) {
+  if (lastPos != (size_t)-1) {
     out->getSubstring(out, 0, max(lastPos - 1, 0));
   }
 
@@ -172,7 +187,7 @@ void Environment::restoreWallpaper()
   AutoImpersonator ai(&imp);
 
   if (SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, 0, 0) == 0) {
-      SystemException(_T("Cannot restore desktop wallpaper"));
+      throw SystemException(_T("Cannot restore desktop wallpaper"));
   }
 }
 
@@ -183,7 +198,7 @@ void Environment::disableWallpaper()
   AutoImpersonator ai(&imp);
 
   if (SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, _T(""), 0) == 0) {
-    SystemException(_T("Cannot disable desktop wallpaper"));
+    throw SystemException(_T("Cannot disable desktop wallpaper"));
   }
 }
 
@@ -202,6 +217,12 @@ bool Environment::isWinNTFamily()
 {
   init();
   return m_osVerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT;
+}
+
+bool Environment::isWin2000()
+{
+  init();
+  return m_osVerInfo.dwMajorVersion == 5 && m_osVerInfo.dwMinorVersion == 0;
 }
 
 bool Environment::isWinXP()
@@ -226,6 +247,7 @@ void Environment::simulateCtrlAltDel()
 {
   Log::info(_T("Requested Ctrl+Alt+Del simulation"));
 
+  // Are we running on Windows NT OS family?
   if (!isVistaOrLater() && isWinNTFamily()) {
     CtrlAltDelSimulator cadSim;
     cadSim.wait();
@@ -242,9 +264,34 @@ void Environment::simulateCtrlAltDelUnderVista()
     if (sendSas == 0) {
       throw Exception(_T("The SendSAS function has not been found"));
     }
-    sendSas(FALSE); 
+    sendSas(FALSE); // Try only under service
   } catch (Exception &e) {
     Log::error(_T("The simulateCtrlAltDelUnderVista() function failed: %s"),
                e.getMessage());
+  }
+}
+
+bool Environment::isAeroOn()
+{
+  try {
+    DynamicLibrary dwmLib(_T("Dwmapi.dll"));
+    DwmIsCompositionEnabled dwmIsEnabled =
+      (DwmIsCompositionEnabled)dwmLib.getProcAddress("DwmIsCompositionEnabled");
+    if (dwmIsEnabled == 0) {
+      throw Exception(_T("The DwmIsCompositionEnabled() has not been found in the Dwmapi.dll"));
+    }
+    BOOL result = FALSE;
+    HRESULT dwmIsEnabledResult = dwmIsEnabled(&result);
+    if (dwmIsEnabledResult != S_OK) {
+      StringStorage errMess;
+      errMess.format(_T("The DwmIsCompositionEnabled() error code is %d"),
+                     (int)dwmIsEnabledResult);
+      throw Exception(_T(""));
+    }
+    return result != FALSE;
+  } catch (Exception &e) {
+    Log::error(_T("The DwmIsCompositionEnabled() function failed: %s"),
+               e.getMessage());
+    throw;
   }
 }

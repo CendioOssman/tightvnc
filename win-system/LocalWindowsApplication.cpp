@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,8 +27,9 @@
 #include "util/winhdr.h"
 #include "thread/DesktopSelector.h"
 
-LocalWindowsApplication::LocalWindowsApplication(HINSTANCE hInstance)
- : WindowsApplication(hInstance)
+LocalWindowsApplication::LocalWindowsApplication(HINSTANCE hInstance,
+                                                 const TCHAR *windowClassName)
+ : WindowsApplication(hInstance, windowClassName)
 {
   HWINSTA winSta = 0;
 
@@ -45,6 +46,7 @@ LocalWindowsApplication::LocalWindowsApplication(HINSTANCE hInstance)
 
   CloseWindowStation(winSta);
 
+  // FIXME: why we don't check returning values?
   DesktopSelector::selectDesktop();
 }
 

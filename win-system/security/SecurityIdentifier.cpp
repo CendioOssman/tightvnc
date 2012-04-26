@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -39,6 +39,12 @@ SecurityIdentifier::SecurityIdentifier(SID *sid)
   }
 }
 
+SecurityIdentifier::SecurityIdentifier(const TCHAR *sidString)
+: m_sid(0)
+{
+  getSidByString(sidString, (PSID *)&m_sid);
+}
+
 SecurityIdentifier::~SecurityIdentifier()
 {
   LocalFree(m_sid);
@@ -62,6 +68,7 @@ void SecurityIdentifier::toString(StringStorage *sidString)
   LocalFree(localAllocatedSidString);
 }
 
+// FIXME: refactor this method.
 SecurityIdentifier *SecurityIdentifier::getProcessOwner(HANDLE processHandle)
 {
   HANDLE procToken;
@@ -87,18 +94,19 @@ SecurityIdentifier *SecurityIdentifier::getProcessOwner(HANDLE processHandle)
 
 SecurityIdentifier *SecurityIdentifier::createSidFromString(const TCHAR *sidString)
 {
-  PSID pSid = 0;
-
-  if (ConvertStringSidToSid(sidString, &pSid) == FALSE) {
-    throw SystemException();
-  }
-
-  _ASSERT(IsValidSid(pSid));
-
-  return new SecurityIdentifier((SID *)pSid);
+  return new SecurityIdentifier(sidString);
 }
 
 SID *SecurityIdentifier::getSid() const
 {
   return m_sid;
+}
+
+void SecurityIdentifier::getSidByString(const TCHAR *sidString, PSID *sid)
+{
+  if (ConvertStringSidToSid(sidString, sid) == FALSE) {
+    throw SystemException();
+  }
+
+  _ASSERT(IsValidSid(*sid));
 }

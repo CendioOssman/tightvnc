@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,6 +35,7 @@ public:
   Rect(const Rect &rect) { setRect(&rect); }
   Rect(int lt, int tp, int rt, int bm) { setRect(lt, tp, rt, bm); }
   Rect(int width, int height) { setRect(0, 0, width, height); }
+  Rect(const RECT *rect) {fromWindowsRect(rect);}
 
   virtual ~Rect(void) {}
   
@@ -65,6 +66,25 @@ public:
     return *this;
   }
 
+  inline bool isValid() const
+  {
+    if (right < left || bottom < top) {
+      return false;
+    }
+    return true;
+  }
+
+  inline bool isPointInRect(int pointX, int pointY) {
+    if (pointX < left || pointX >= right) {
+      return false;
+    }
+    if (pointY < top || pointY >= bottom) {
+      return false;
+    }
+    return true;
+  }
+
+  // Convert to windows RECT
   inline RECT toWindowsRect() const {
                                 RECT winRect;
                                 winRect.left    = left;
@@ -73,7 +93,8 @@ public:
                                 winRect.bottom  = bottom;
                                 return winRect; } const
 
-  inline void fromWindowsRect(RECT *winRect)
+  // Load from windows RECT
+  inline void fromWindowsRect(const RECT *winRect)
   {
     left    = winRect->left;
     top     = winRect->top;
@@ -121,8 +142,11 @@ public:
                    (top > other->top) ? top : other->top,
                    (right < other->right) ? right : other->right,
                    (bottom < other->bottom) ? bottom : other->bottom);
+    if (!result.isValid()) {
+      result.clear();
+    }
     return result;
   }
 };
 
-#endif 
+#endif // __RECT_H__

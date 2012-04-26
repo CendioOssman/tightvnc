@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 #include "Poller.h"
 #include "region/Region.h"
 #include "server-config-lib/Configurator.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 Poller::Poller(UpdateKeeper *updateKeeper,
                UpdateListener *updateListener,
@@ -79,6 +79,7 @@ void Poller::execute()
         m_screenGrabber->grab();
         Log::info(_T("end of grabbing screen for polling"));
 
+        // Polling
         int pollingWidth = m_pollingRect.getWidth();
         int pollingHeight = m_pollingRect.getHeight();
         int screenWidth = screenFrameBuffer->getDimension().width;
@@ -98,8 +99,9 @@ void Poller::execute()
 
         m_updateKeeper->addChangedRegion(&region);
       }
-    } 
+    } // AutoLock
 
+    // Send event
     if (!region.isEmpty()) {
       doUpdate();
     }

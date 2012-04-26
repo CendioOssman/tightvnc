@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,13 @@
 
 #include "util/Exception.h"
 
+/**
+ * Exception on remote side class.
+ *
+ * Exception of such type can be raised only when execution of remote method (when
+ * using remote proxy objects for example) throws some kind of exception and this exception
+ * has been sended to client side.
+ */
 class RemoteException : public Exception
 {
 public:

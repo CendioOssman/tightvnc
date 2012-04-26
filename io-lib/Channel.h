@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,11 +30,23 @@
 #include "InputStream.h"
 #include "OutputStream.h"
 
+/**
+ * Channel interface (abstract class) that joins together
+ * InputStream and OutputStream).
+ */
 class Channel : public InputStream, public OutputStream
 {
 public:
+  /**
+   * Destructor, does nothing.
+   */
   virtual ~Channel();
 
+  /**
+   * Closes channel and break all blocking operation that executed at the moment of close() call.
+   * @throw Exception on error.
+   * @fixme why Exception, but not IOException?
+   */
   virtual void close() throw(Exception)= 0;
 };
 

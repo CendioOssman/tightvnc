@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,10 +29,22 @@
 
 #include "SystemException.h"
 
+/**
+ * Wrapper on WinAPI workstation functions.
+ */
 class Workstation
 {
 public:
+  /**
+   * Locks workstation.
+   * @throws SystemException on fail.
+   */
   static void lock() throw(SystemException);
+  /**
+   * Logs off interactive user.
+   * @throws SystemException on fail.
+   * @remark caller must be run on interactive session.
+   */
   static void logOff() throw(SystemException);
 };
 

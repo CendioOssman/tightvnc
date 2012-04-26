@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 #include "HttpClient.h"
 
 #include "thread/ZombieKiller.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 HttpServer::HttpServer(const TCHAR *bindHost, unsigned short bindPort, bool lockAddr)
 : TcpServer(bindHost, bindPort, true, lockAddr)

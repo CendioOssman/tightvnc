@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,6 +26,17 @@
 #define _OPERATION_NOT_PERMITTED_EXECEPTIONH_H_
 
 #include "util/Exception.h"
+
+//
+// This exception is raised when client receives valid (from ft protocol extension
+// point of view) rfb message, but it's invalid from file transfer client logic.
+//
+// For example:
+//
+// Client is removing files, it's waiting for the rmReply or lastRequestFailed,
+// but rfb message that comes from server is downloadDataReply or uploadDataReply or
+// something that can't be received in current client state.
+//
 
 class OperationNotPermittedException : public Exception
 {

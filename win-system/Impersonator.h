@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,14 +30,27 @@
 
 #include "SystemException.h"
 
+/**
+Class for impersonating current process as user that logged on current
+console session.
+@remark: can work only in XP and later cause it uses WTSQueryUserToken function.
+*/
 class Impersonator
 {
 public:
   Impersonator();
   virtual ~Impersonator();
 
+  /**
+  Impersonates calling process as user that logged on current console session.
+  @throws SystemException if impersonation fails.
+  */
   virtual void impersonateAsLoggedUser() throw(SystemException);
 
+  /**
+  Cancels effect of impersonateAsLoggedUser method call.
+  @throws SystemException on fail.
+  */
   virtual void revertToSelf() throw(SystemException);
 
 protected:

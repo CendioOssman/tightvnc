@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,6 +31,7 @@
 #include "server-config-lib/IpAccessControl.h"
 #include "util/CommonHeader.h"
 #include "util/StringParser.h"
+#include "util/AnsiStringStorage.h"
 
 IpAccessControlDialog::IpAccessControlDialog()
 : BaseDialog(IDD_CONFIG_ACCESS_CONTROL_PAGE), m_parentDialog(NULL)
@@ -147,7 +148,8 @@ void IpAccessControlDialog::updateUI()
   for (size_t i = 0; i < m_container->size(); i++) {
     IpAccessRule *ip = m_container->at(i);
     m_list.addItem(m_list.getCount(), _T(""), (LPARAM)ip);
-    setListViewItemText(i, ip);
+    _ASSERT((int)i == i);
+    setListViewItemText((int)i, ip);
   }
 
   m_allowLoopbackConnections.check(m_config->isLoopbackConnectionsAllowed());
@@ -166,6 +168,7 @@ void IpAccessControlDialog::updateUI()
 
 void IpAccessControlDialog::apply()
 {
+  // Query timeout string storage
   StringStorage qtStringStorage;
   m_queryTimeout.getText(&qtStringStorage);
 
@@ -178,6 +181,10 @@ void IpAccessControlDialog::apply()
   m_config->acceptOnlyLoopbackConnections(m_onlyLoopbackConnections.isChecked());
   m_config->setDefaultActionToAccept(m_defaultActionAccept.isChecked());
   m_config->setQueryTimeout(timeout);
+
+  //
+  // Put IP access rules container in correct order
+  //
 
   IpAccessControl *ipRules = m_config->getAccessControl();
   ipRules->clear();
@@ -238,6 +245,7 @@ void IpAccessControlDialog::onAddButtonClick()
 
 void IpAccessControlDialog::onEditButtonClick()
 {
+  // If nothing selected
   if (m_list.getSelectedIndex() == -1) {
     return ;
   }
@@ -258,6 +266,7 @@ void IpAccessControlDialog::onEditButtonClick()
 void IpAccessControlDialog::onRemoveButtonClick()
 {
   int si = m_list.getSelectedIndex();
+  // If nothing selected
   if (si == -1) {
     return ;
   }
@@ -288,6 +297,7 @@ void IpAccessControlDialog::onRemoveButtonClick()
 void IpAccessControlDialog::onMoveUpButtonClick()
 {
   int si = m_list.getSelectedIndex();
+  // If nothing selected
   if ((si == -1) || (si == 0)) {
     return ;
   }
@@ -305,6 +315,7 @@ void IpAccessControlDialog::onMoveUpButtonClick()
 void IpAccessControlDialog::onMoveDownButtonClick()
 {
   int si = m_list.getSelectedIndex();
+  // If nothing selected
   if ((si == -1) || (si == m_list.getCount() - 1)) {
     return ;
   }
@@ -361,27 +372,30 @@ void IpAccessControlDialog::onIpCheckUpdate()
   StringStorage ipStorage;
   m_ip.getText(&ipStorage);
 
+   // Check if ip address is valid.
+
   if (!IpAccessRule::isIpAddressStringValid(ipStorage.getString())) {
     if (ipStorage.isEmpty()) {
-      m_ipCheckResult.setText(_T(""));
+      m_ipCheckResult.setText(StringTable::getString(IDS_ENTER_IP_HINT));
     } else {
       m_ipCheckResult.setText(StringTable::getString(IDS_BAD_IP_HINT));
     }
     return;
   }
 
-  size_t ansiBufferLength = ipStorage.getLength() + 1;
-  char *ansiBuffer = new char[ansiBufferLength];
-  ipStorage.toAnsiString(ansiBuffer, ansiBufferLength);
-  unsigned int addr = inet_addr(ansiBuffer);
-  delete[] ansiBuffer;
+  //
+  // Convert ip to ansi string
+  //
+
+  AnsiStringStorage ansiIpStorage(&ipStorage);
+  unsigned int addr = inet_addr(ansiIpStorage.getString());
 
   IpAccessRule::ActionType action = IpAccessRule::ACTION_TYPE_ALLOW;
-  unsigned int rulesCount = 0;
+  int rulesCount = 0;
   if (m_list.getCount() > 0) {
     rulesCount = m_list.getCount();
   }
-  for (size_t i = 0; i < rulesCount; i++) {
+  for (int i = 0; i < rulesCount; i++) {
     IpAccessRule *rule = (IpAccessRule *)m_list.getItemData(i);
     if (rule->isIncludingAddress(addr)) {
       action = rule->getAction();
@@ -413,6 +427,18 @@ void IpAccessControlDialog::onQueryTimeoutUpdate()
 
 void IpAccessControlDialog::updateButtonsState()
 {
+  /*if (m_onlyLoopbackConnections.isChecked()) {
+    m_list.setEnabled(false);
+    m_addButton.setEnabled(false);
+    m_editButton.setEnabled(false);
+    m_removeButton.setEnabled(false);
+    m_moveDownButton.setEnabled(false);
+    m_moveUpButton.setEnabled(false);
+    return ;
+  } else {
+    m_list.setEnabled(true);
+    m_addButton.setEnabled(true);
+  }*/
 
   int si = m_list.getSelectedIndex();
   if (si == -1) {

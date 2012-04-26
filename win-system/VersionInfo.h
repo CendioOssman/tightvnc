@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,14 +28,29 @@
 #include "util/CommonHeader.h"
 #include "SystemException.h"
 
+/**
+ * Contains information about executable file version info.
+ */
 class VersionInfo
 {
 public:
+  /**
+   * Creates version info of specified file.
+   * @param pathToFile path to executable file to get version info from.
+   * @throws SystemException on fail.
+   */
   VersionInfo(const TCHAR *pathToFile) throw(SystemException);
 
+  /**
+   * Returns product version info string.
+   * @return product version info string.
+   */
   const TCHAR *getProductVersionString() const;
 
 private:
+  /**
+   * Product version as string.
+   */
   StringStorage m_productVersionString;
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,7 +26,8 @@
 #define __COMMANDLINE_H__
 
 #include "util/CommonHeader.h"
-#include <vector>
+#include "CommandLineArgs.h"
+#include "KeyContainer.h"
 
 typedef enum UseArgument {
   NO_ARG,
@@ -45,26 +46,40 @@ public:
   CommandLine();
   ~CommandLine();
 
-  bool parse(const CommandLineFormat *format, int formatSize, const TCHAR *commandLine);
+  /**
+   * Parse the command line string using the specified format data.
+   * This function must be called before calling optionSpecified() or
+   * getOption().
+   * @param format array of CommandLineFormat structures.
+   * @param formatSize count of CommandLineFormat array elements.
+   * @param commandLine command line to proccess.
+   * @return true on successful parsing, false otherwise.
+   */
+  bool parse(const CommandLineFormat *format, int formatSize,
+             const CommandLineArgs *cmdArgs);
 
+  /**
+   * Check if the option was actually specified in the command line.
+   * @param key zero-terminated TCHAR string containing the command line key.
+   * @param arg output value for argument of key (optional).
+   * @return true if option has been found, false otherwise.
+   */
   bool optionSpecified(const TCHAR *key, StringStorage *arg = 0) const;
 
+  /**
+   * Gets option with the specified index.
+   * @param index index of key.
+   * @param key output value for key.
+   * @param arg output value for argument of key (optional).
+   * @return true if option at the specified index exists, false otherwise.
+   */
   bool getOption(int index, StringStorage *key, StringStorage *arg = 0) const;
 
 protected:
-  class KeyContainer
-  {
-  public:
-    KeyContainer() : isArgument(false) {}
-    StringStorage key;
-    bool isArgument;
-    StringStorage argument;
-  };
+  bool matchKey(const TCHAR *keyTemplate, StringStorage *key);
+  bool removeKeyPrefix(StringStorage *key);
 
-  bool matchKey(const TCHAR *keyTemplate, TCHAR *key);
-  bool removeKeyPrefix(TCHAR *key);
-
-  std::vector<KeyContainer *> m_foundKeys;
+  std::vector<KeyContainer> m_foundKeys;
 };
 
-#endif 
+#endif // __COMMANDLINE_H__

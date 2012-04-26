@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -49,4 +49,4 @@ private:
   WindowsEvent m_threadSleeper;
 };
 
-#endif 
+#endif // __PIPEIMPERSONATEDTHREAD_H__

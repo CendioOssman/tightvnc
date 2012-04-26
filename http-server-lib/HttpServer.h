@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,15 +28,33 @@
 #include "util/CommonHeader.h"
 #include "network/TcpServer.h"
 
+/**
+ * Simple tcp server that accepts connections and give management over
+ * incoming connections to HttpClient class.
+ */
 class HttpServer : public TcpServer
 {
 public:
+  /**
+   * Creates and starts http server.
+   * @param bindHost host to bind.
+   * @param bindPort port bind.
+   * @param lockAddr determinates if server must set exclusive address.
+   * @throws Exception on fail.
+   */
   HttpServer(const TCHAR *bindHost,
              unsigned short bindPort,
              bool lockAddr) throw(Exception);
+  /**
+   * Stops http server thread and deletes http server.
+   */
   virtual ~HttpServer();
 
 protected:
+  /**
+   * Inherited from superclass.
+   * Give management over incoming connection to new HttpClientThread instance.
+   */
   virtual void onAcceptConnection(SocketIPv4 *socket);
 };
 

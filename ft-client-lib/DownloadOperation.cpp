@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,8 +23,6 @@
 //
 
 #include "DownloadOperation.h"
-
-#include "file-lib/FileSeeker.h"
 
 DownloadOperation::DownloadOperation(const FileInfo *filesToDownload,
                                      size_t filesCount,
@@ -61,7 +59,18 @@ void DownloadOperation::start()
   m_totalBytesToCopy = 0;
   m_totalBytesCopied = 0;
 
+  // Notify listeners that operation have started
   notifyStart();
+
+  //
+  // Try to calculate input files size.
+  //
+  // Then this state will be finished, we can
+  // start files download.
+  //
+  // See decFoldersToCalcSizeCount, onDirSizeReply, onLastRequestFailed
+  // methods.
+  //
 
   tryCalcInputFilesSize();
 
@@ -79,6 +88,9 @@ void DownloadOperation::onFileListReply()
 
 void DownloadOperation::onDownloadReply()
 {
+  //
+  // Cleanup
+  //
 
   if (m_fos != NULL) {
     try { m_fos->close(); } catch (...) { }
@@ -88,6 +100,10 @@ void DownloadOperation::onDownloadReply()
     delete m_file;
   }
 
+  //
+  // Try to create file on local file system and open it for writting
+  //
+
   m_file = new File(m_pathToTargetFile.getString());
 
   if (m_fileOffset == 0) {
@@ -95,19 +111,21 @@ void DownloadOperation::onDownloadReply()
   }
 
   try {
-    m_fos = new FileOutputStream(m_file);
-
-    FileSeeker fileSeeker(m_fos->getFD());
-    if (!fileSeeker.seek((INT64)m_fileOffset)) {
-      throw IOException(_T("Cannot seek to initial file position"));
-    }
-
+    StringStorage path;
+    m_file->getPath(&path);
+    m_fos = new WinFileChannel(path.getString(), F_WRITE, FM_OPEN);
+    // Seek to initial file position to continue writting
+    m_fos->seek((INT64)m_fileOffset);
     m_totalBytesCopied += m_fileOffset;
-  } catch (IOException &ioEx) {
+  } catch (Exception &ioEx) {
     notifyFailedToDownload(ioEx.getMessage());
     gotoNext();
-    return ;
+    return;
   }
+
+  //
+  // Send first request for file data
+  //
 
   UINT32 dataSize = 1024 * 8;
   bool compression = m_replyBuffer->isCompressionSupported();
@@ -127,19 +145,27 @@ void DownloadOperation::onDownloadDataReply()
 
   try {
     DataOutputStream dos(m_fos);
-    dos.writeFully(m_replyBuffer->getDownloadBuffer(),
-              m_replyBuffer->getDownloadBufferSize());
+    dos.writeFully(&m_replyBuffer->getDownloadBuffer().front(),
+                   m_replyBuffer->getDownloadBufferSize());
   } catch (IOException &ioEx) {
     notifyFailedToDownload(ioEx.getMessage());
     gotoNext();
     return ;
   }
 
+  //
+  // Notify that we receive some data
+  //
+
   m_totalBytesCopied += m_replyBuffer->getDownloadBufferSize();
 
   if (m_copyListener != NULL) {
     m_copyListener->dataChunkCopied(m_totalBytesCopied, m_totalBytesToCopy);
   }
+
+  //
+  // Send next download data request
+  //
 
   bool compression = m_replyBuffer->isCompressionSupported();
 
@@ -148,6 +174,9 @@ void DownloadOperation::onDownloadDataReply()
 
 void DownloadOperation::onDownloadEndReply()
 {
+  //
+  // Cleanup
+  //
 
   try { m_fos->close(); } catch (...) { }
   delete m_fos;
@@ -167,16 +196,22 @@ void DownloadOperation::onDownloadEndReply()
 
 void DownloadOperation::onLastRequestFailedReply()
 {
+  //
+  // This LRF message received from get folder size request
+  // we do need to download next file
+  //
 
   if (m_foldersToCalcSizeLeft > 0) {
     decFoldersToCalcSizeCount();
   } else {
+    // Logging
     StringStorage message;
 
     m_replyBuffer->getLastErrorMessage(&message);
 
     notifyFailedToDownload(message.getString());
 
+    // Download next file
     gotoNext();
   }
 }
@@ -192,10 +227,11 @@ void DownloadOperation::startDownload()
   if (isTerminating()) {
     killOp();
     return ;
-  } 
+  } // if terminating
 
   FileInfo *fileInfo = m_toCopy->getFileInfo();
 
+  // Logging
   if (m_toCopy->getFirst()->getParent() == NULL) {
     StringStorage message;
 
@@ -203,18 +239,18 @@ void DownloadOperation::startDownload()
                    fileInfo->isDirectory() ? _T("folder") : _T("file"));
 
     notifyInformation(message.getString());
-  } 
+  } // logging
 
   if (fileInfo->isDirectory()) {
     processFolder();
   } else {
     processFile();
-  } 
+  } // if not directory
 
   if (isTerminating()) {
     killOp();
     return ;
-  } 
+  } // if terminating
 }
 
 void DownloadOperation::processFile()
@@ -226,6 +262,10 @@ void DownloadOperation::processFile()
   if (targetFile.exists()) {
     FileInfo *sourceFileInfo = m_toCopy->getFileInfo();
     FileInfo targetFileInfo(&targetFile);
+
+    //
+    // Copy listener must decide what to do with this situation
+    //
 
     int action = m_copyListener->targetFileExists(sourceFileInfo,
                                                   &targetFileInfo,
@@ -243,13 +283,14 @@ void DownloadOperation::processFile()
     case CopyFileEventListener::TFE_CANCEL:
       if (!isTerminating()) {
         terminate();
-      } 
+      } // if not terminating
       return ;
     default:
       _ASSERT(FALSE);
-    } 
-  } 
+    } // switch
+  } // if target file exists
 
+  // Send request that we want to download file
   m_sender->sendDownloadRequest(m_pathToSourceFile.getString(), m_fileOffset);
 }
 
@@ -259,6 +300,7 @@ void DownloadOperation::processFolder()
   if (local.exists() && local.isDirectory()) {
   } else {
     if (!local.mkdir()) {
+      // Logging
       StringStorage message;
 
       message.format(_T("Error: failed to create local folder '%s'"),
@@ -266,6 +308,7 @@ void DownloadOperation::processFolder()
 
       notifyError(message.getString());
 
+      // Download next file
       gotoNext();
       return ;
     }
@@ -284,12 +327,20 @@ void DownloadOperation::gotoNext()
   bool hasParent = current->getFirst()->getParent() != NULL;
 
   if (hasChild) {
+    // If it has child, we must download child file list first
     changeFileToDownload(current->getChild());
     startDownload();
   } else if (hasNext) {
+    // If it has no child, but has next file, we must download next file
     changeFileToDownload(current->getNext());
     startDownload();
   } else {
+
+    //
+    // If it has no child and not next, but has parent file,
+    // we must go to parent file (folder i mean), set childs to NULL
+    // cause we already download child files and go to next file.
+    //
 
     FileInfoList *first = current->getFirst();
     if (hasParent) {
@@ -299,9 +350,9 @@ void DownloadOperation::gotoNext()
       gotoNext();
     } else {
       killOp();
-    } 
-  } 
-} 
+    } // if / else
+  } // if / else
+} // void
 
 void DownloadOperation::tryCalcInputFilesSize()
 {
@@ -331,6 +382,10 @@ void DownloadOperation::tryCalcInputFilesSize()
 
 void DownloadOperation::killOp()
 {
+  //
+  // If not files to download, than clear memory and
+  // operation is finished
+  //
 
   delete m_toCopy->getRoot();
   m_toCopy = NULL;
@@ -342,6 +397,7 @@ void DownloadOperation::decFoldersToCalcSizeCount()
 {
   m_foldersToCalcSizeLeft--;
 
+  // No more folders to calc size, start download
   if (m_foldersToCalcSizeLeft == 0) {
     startDownload();
   }

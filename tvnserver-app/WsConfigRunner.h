@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,8 @@
 
 #include "thread/Thread.h"
 
+// This class runs TvnControl in current session.
+// This class only for application mode running.
 class WsConfigRunner : private Thread
 {
 public:
@@ -40,4 +42,4 @@ private:
   bool m_serviceMode;
 };
 
-#endif 
+#endif // __WSCONFIGRUNNER_H__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,22 +30,29 @@
 
 #include "win-system/Impersonator.h"
 
-#include "desktop/WinDesktop.h"
+#include "desktop/DesktopInterface.h"
 
 class FileTransferSecurity : private Impersonator
 {
 public:
-  FileTransferSecurity(WinDesktop *desktop);
+  FileTransferSecurity(DesktopInterface *desktop);
   virtual ~FileTransferSecurity();
 
+  // Sets access rights for calling process for execution
+  // file transfer request handler code.
   void beginMessageProcessing();
+  // Checks result and throws exception if caller
+  // must not execute file transfer code and return error
+  // to client.
   void throwIfAccessDenied() throw(Exception);
+  // Sets previous (before startMessageProcessing call) access rights
+  // for calling process.
   void endMessageProcessing();
 
 protected:
   bool m_hasAccess;
 
-  WinDesktop *m_desktop;
+  DesktopInterface *m_desktop;
 };
 
 #endif

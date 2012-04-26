@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -41,5 +41,5 @@ void ProgressBar::setRange(WORD min, WORD max)
 
 void ProgressBar::setPos(WORD pos)
 {
-  SendMessage(m_hwnd, PBM_SETPOS, (int)pos, 0);
+  SendMessage(m_hwnd, PBM_SETPOS, (WPARAM)pos, 0);
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "UpdateHandlerServer.h"
+#include "log-server/Log.h"
 
 UpdateHandlerServer::UpdateHandlerServer(BlockingGate *forwGate,
                                          DesktopSrvDispatcher *dispatcher,
@@ -49,7 +50,10 @@ void UpdateHandlerServer::onUpdate()
   AutoLock al(m_forwGate);
   try {
     m_forwGate->writeUInt8(UPDATE_DETECTED);
-  } catch (...) {
+  } catch (Exception &e) {
+    Log::error(_T("An error has been occurred while sending the")
+               _T(" UPDATE_DETECTED message from UpdateHandlerServer: %s"),
+               e.getMessage());
     m_extTerminationListener->onAnObjectEvent();
   }
 }
@@ -70,6 +74,7 @@ void UpdateHandlerServer::onRequest(UINT8 reqCode, BlockingGate *backGate)
     receiveExcludingReg(backGate);
     break;
   case FRAME_BUFFER_INIT:
+    // Init from client
     serverInit(backGate);
     break;
   default:
@@ -97,14 +102,18 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
 
   backGate->writeUInt8(updCont.screenSizeChanged);
   if (updCont.screenSizeChanged) {
+    // Send new screen properties
     sendPixelFormat(&newPf, backGate);
     sendDimension(&fb->getDimension(), backGate);
   } else {
+    // Send video region
     sendRegion(&updCont.videoRegion, backGate);
+    // Send changed region
     std::vector<Rect> rects;
     std::vector<Rect>::iterator iRect;
     updCont.changedRegion.getRectVector(&rects);
-    unsigned int countChangedRect = rects.size();
+    unsigned int countChangedRect = (unsigned int)rects.size();
+    _ASSERT(countChangedRect == rects.size());
     backGate->writeUInt32(countChangedRect);
 
     for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
@@ -113,6 +122,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
       sendFrameBuffer(fb, rect, backGate);
     }
 
+    // Send "copyrect"
     bool hasCopyRect = !updCont.copiedRegion.isEmpty();
     backGate->writeUInt8(hasCopyRect);
     if (hasCopyRect) {
@@ -123,19 +133,25 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
       sendFrameBuffer(fb, &(*iRect), backGate);
     }
 
+    // Send cursor position if it has been changed.
     backGate->writeUInt8(updCont.cursorPosChanged);
     if (updCont.cursorPosChanged) {
       sendPoint(&updCont.cursorPos, backGate);
     }
 
+    // Send cursor shape if it has been changed.
     backGate->writeUInt8(updCont.cursorShapeChanged);
     if (updCont.cursorShapeChanged) {
       const CursorShape *curSh = m_updateHandler->getCursorShape();
       sendDimension(&curSh->getDimension(), backGate);
       sendPoint(&curSh->getHotSpot(), backGate);
 
+      // Send pixels
       backGate->writeFully(curSh->getPixels()->getBuffer(), curSh->getPixelsSize());
-      backGate->writeFully((void *)curSh->getMask(), curSh->getMaskSize());
+      // Send mask
+      if (curSh->getMaskSize()) {
+        backGate->writeFully((void *)curSh->getMask(), curSh->getMaskSize());
+      }
     }
   }
 }
@@ -163,6 +179,8 @@ void UpdateHandlerServer::receiveExcludingReg(BlockingGate *backGate)
 
 void UpdateHandlerServer::serverInit(BlockingGate *backGate)
 {
+  // FIXME: Use another method to initialize m_backupFrameBuffer
+  // because this method use a lot of memory.
   FrameBuffer fb;
   readPixelFormat(&m_oldPf, backGate);
   Dimension dim = readDimension(backGate);

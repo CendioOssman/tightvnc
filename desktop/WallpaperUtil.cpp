@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,7 +25,7 @@
 #include "WallpaperUtil.h"
 #include "win-system/Environment.h"
 #include "server-config-lib/Configurator.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 WallpaperUtil::WallpaperUtil()
 {

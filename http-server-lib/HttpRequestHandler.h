@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,6 +34,7 @@ public:
   HttpRequestHandler(DataInputStream *dataInput, DataOutputStream *dataOutput, const TCHAR *peerHost = 0);
   virtual ~HttpRequestHandler();
 
+  // Reads HTTP request from input and sends responce to output.
   virtual void processRequest() throw(IOException);
 
 protected:

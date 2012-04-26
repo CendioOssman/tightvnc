@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "AutoImpersonator.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 AutoImpersonator::AutoImpersonator(Impersonator *imp)
 : m_imp(imp)

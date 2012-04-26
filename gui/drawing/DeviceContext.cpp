@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -37,9 +37,17 @@ DeviceContext::DeviceContext(DeviceContext* compatibleDevice)
   m_dc = CreateCompatibleDC(compatibleDevice->m_dc);
 }
 
+DeviceContext::DeviceContext(PaintWindow* pntWnd)
+: m_wnd(0), m_hasOwnDC(false)
+{
+  m_dc = pntWnd->getHDCPaint();
+}
+
 DeviceContext::~DeviceContext()
 {
-  ReleaseDC(m_wnd, m_dc);
+  if (m_wnd) {
+    ReleaseDC(m_wnd, m_dc);
+  }
   if (m_hasOwnDC) {
     DeleteDC(m_dc);
   }

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,82 +30,45 @@ CommandLine::CommandLine()
 
 CommandLine::~CommandLine()
 {
-  std::vector<KeyContainer *>::iterator iter;
-  for (iter = m_foundKeys.begin(); iter != m_foundKeys.end(); iter++) {
-    if (*iter) {
-      delete *iter;
-    }
-  }
 }
 
 bool CommandLine::parse(const CommandLineFormat *format,
                         int formatSize,
-                        const TCHAR *commandLine)
+                        const CommandLineArgs *cmdArgs)
 {
-  std::vector<TCHAR *> argContainer;
-  std::vector<TCHAR *>::iterator argIter;
-
-  const TCHAR *startPos = commandLine, *endPos = commandLine;
-
-  while (*endPos != 0 && *startPos != 0) {
-    for (; *startPos == _T(' ') && *startPos != 0; startPos++);
-
-    endPos = startPos;
-
-    bool isEmptyArg = false;
-    if (*endPos == _T('\"')) {
-      endPos++; startPos++;
-      if (*endPos == _T('\"')) {
-        isEmptyArg = true;
-      }
-      for (; *endPos != _T('\"') && *endPos != 0; endPos++);
-    } else {
-      for (; *endPos != _T(' ') && *endPos != 0; endPos++);
-    }
-
-    if (endPos > startPos || isEmptyArg) {
-      size_t argLen = endPos - startPos;
-      TCHAR *arg = new TCHAR[argLen + 1];
-      memcpy(arg, startPos, argLen * sizeof(TCHAR));
-      arg[argLen] = 0;
-      argContainer.push_back(arg);
-    }
-
-    startPos = endPos + 1;
-  }
+  std::vector<StringStorage> argContainer;
+  std::vector<StringStorage>::iterator argIter;
+  cmdArgs->getArgVector(&argContainer);
 
   bool result = true;
   for (argIter = argContainer.begin(); argIter != argContainer.end() && result;
        argIter++) {
-    TCHAR *key = *argIter;
+    StringStorage *key = &(*argIter);
     if (!removeKeyPrefix(key)) {
       result = false;
       break;
     }
 
+    key->toLowerCase();
+
     result = false;
     for (int i = 0; i < formatSize; i++) {
       if (matchKey(format[i].keyName, key)) {
-        KeyContainer *keyContainer = new KeyContainer;
+        KeyContainer keyContainer;
         result = true;
 
         if (format[i].useArg == NEEDS_ARG) {
           argIter++;
           if (argIter == argContainer.end()) {
-            delete keyContainer;
             return false;
           }
-          keyContainer->isArgument = true;
-          keyContainer->argument.setString(*argIter);
+          keyContainer.isArgument = true;
+          keyContainer.argument.setString((*argIter).getString());
         }
-        keyContainer->key.setString(format[i].keyName);
+        keyContainer.key.setString(format[i].keyName);
         m_foundKeys.push_back(keyContainer);
       }
     }
-  }
-
-  for (argIter = argContainer.begin(); argIter != argContainer.end(); argIter++) {
-    delete[] *argIter;
   }
 
   return result;
@@ -114,9 +77,9 @@ bool CommandLine::parse(const CommandLineFormat *format,
 bool CommandLine::optionSpecified(const TCHAR *key, StringStorage *arg) const
 {
   bool found = false;
-  std::vector<KeyContainer *>::const_iterator iter;
+  std::vector<KeyContainer>::const_iterator iter;
   for (iter = m_foundKeys.begin(); iter != m_foundKeys.end(); iter++) {
-    KeyContainer *foundKey = (*iter);
+    const KeyContainer *foundKey = &(*iter);
     if (_tcscmp(foundKey->key.getString(), key) == 0) {
       found = true;
       if (foundKey->isArgument && arg != 0) {
@@ -133,7 +96,7 @@ bool CommandLine::getOption(int index, StringStorage *key, StringStorage *arg) c
     return false;
   }
 
-  KeyContainer *foundKey = m_foundKeys.at((size_t)index);
+  const KeyContainer *foundKey = &m_foundKeys[(size_t)index];
 
   key->setString(foundKey->key.getString());
 
@@ -144,23 +107,17 @@ bool CommandLine::getOption(int index, StringStorage *key, StringStorage *arg) c
   return true;
 }
 
-bool CommandLine::matchKey(const TCHAR *keyTemplate, TCHAR *key)
+bool CommandLine::matchKey(const TCHAR *keyTemplate, StringStorage *key)
 {
-  keyTemplate++;
-  TCHAR *k = key;
-  for (; *k != 0; k++) {
-    *k = _totlower(*k);
-  }
-  return _tcscmp(keyTemplate, key) == 0;
+  return key->isEqualTo(++keyTemplate);
 }
 
-bool CommandLine::removeKeyPrefix(TCHAR *key)
+bool CommandLine::removeKeyPrefix(StringStorage *key)
 {
-  if (*key != '/' && *key != '-') {
+  try {
+    key->remove(0, 1);
+    return true;
+  } catch (...) {
     return false;
   }
-  for (; *key != 0; key++) {
-    *key = *(key + 1);
-  }
-  return true;
 }

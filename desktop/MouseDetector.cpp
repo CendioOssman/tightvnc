@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 //
 
 #include "MouseDetector.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 
 const int MOUSE_SLEEP_TIME = 10;
 
@@ -48,6 +48,7 @@ Point MouseDetector::getCursorPos() const
 {
   POINT curPoint;
   GetCursorPos(&curPoint);
+  // Correcting point to frame buffer coordinates
   curPoint.x -= GetSystemMetrics(SM_XVIRTUALSCREEN);
   curPoint.y -= GetSystemMetrics(SM_YVIRTUALSCREEN);
   return Point(curPoint.x, curPoint.y);

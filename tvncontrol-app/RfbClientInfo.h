@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,6 +35,8 @@ public:
   RfbClientInfo(UINT32 id, const TCHAR *peerAddr);
   virtual ~RfbClientInfo();
 
+  // FIXME: Debug.
+  // FIXME: These members must be protected.
 public:
   UINT32 m_id;
   StringStorage m_peerAddr;

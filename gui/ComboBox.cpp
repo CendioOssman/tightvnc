@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -57,7 +57,7 @@ void ComboBox::insertItem(int index, const TCHAR *text, void *tag)
   setItemData(index, tag);
 }
 
-int ComboBox::getItemsCount()
+int ComboBox::getItemsCount() const
 {
   return ComboBox_GetCount(m_hwnd);
 }
@@ -67,9 +67,17 @@ void ComboBox::setItemData(int index, void *tag)
   ComboBox_SetItemData(m_hwnd, index, (LPARAM)tag);
 }
 
-void *ComboBox::getItemData(int index)
+void *ComboBox::getItemData(int index) const
 {
   return (void *)ComboBox_GetItemData(m_hwnd, index);
+}
+
+void ComboBox::getItemText(int index, StringStorage *storage) const
+{
+  size_t length = ComboBox_GetLBTextLen(m_hwnd, index);
+  std::vector<TCHAR> buf(length + 1);
+  ComboBox_GetLBText(m_hwnd, index, &buf.front());
+  storage->setString(&buf.front());
 }
 
 int ComboBox::getSelectedItemIndex()

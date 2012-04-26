@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,6 +36,7 @@ public:
   Icon(HICON icon);
   Icon(Bitmap *bitmap);
   Icon(Bitmap *bitmap, Bitmap *mask);
+  Icon(DWORD icon);
   virtual ~Icon();
 
   HICON getHICON();

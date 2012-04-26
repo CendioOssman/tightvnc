@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -84,6 +84,8 @@ protected:
   virtual void sendConfigSettings(BlockingGate *gate);
   virtual void readConfigSettings(BlockingGate *gate);
 
+  // FIXME: Remove m_forwGate from this class.
+  // Forward gate will send requests
   BlockingGate *m_forwGate;
 
   static const UINT8 EXTRACT_REQ = 0;
@@ -98,6 +100,10 @@ protected:
   static const UINT8 KEYBOARD_EVENT = 32;
   static const UINT8 USER_INPUT_INIT = 33;
   static const UINT8 USER_INFO_REQ = 34;
+  static const UINT8 DESKTOP_COORDS_REQ = 35;
+  static const UINT8 WINDOW_COORDS_REQ = 36;
+  static const UINT8 WINDOW_HANDLE_REQ = 37;
+  static const UINT8 DISPLAY_NUMBER_COORDS_REQ = 38;
 
   static const UINT8 CONFIG_RELOAD_REQ = 50;
   static const UINT8 SOFT_INPUT_ENABLING_REQ = 51;
@@ -108,4 +114,4 @@ private:
   void checkDimension(const Dimension *dim);
 };
 
-#endif 
+#endif // __DESKTOPSERVERPROTO_H__

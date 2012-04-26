@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,16 +34,36 @@ public:
   ~TextBox();
 public:
 
-  DWORD getTextLengthLimit();
+  //
+  // Text limit
+  //
+
+  size_t getTextLengthLimit();
   void setTextLengthLimit(size_t limit);
+
+  //
+  // Methods for multiline textboxes
+  //
 
   int getCurrentLineIndex();
   int getLineCount();
 
+  //
+  // Get / set caret position
+  //
+
   int getCaretPos();
   void setCaretPos(int h, int v);
 
+  //
+  // Text selection
+  //
+
   void selectText(size_t startPos, size_t endPos);
+
+  //
+  // Tooltip methods
+  //
 
   void showBalloonTip(Tooltip *tip);
 };

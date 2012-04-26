@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -43,7 +43,38 @@ public:
 
 protected:
 
+  //
+  // Method called by copy operation when data chunk of source file is copied
+  // to target file.
+  //
+  // Parameters:
+  //
+  // totalBytesCopied - total length of data in bytes that copied to target
+  // file system during copy operation execution
+  //
+  // totalBytesToCopy - total length of data in bytes that must be copied to target
+  // file system during copy operation execution
+  //
+
   virtual void dataChunkCopied(UINT64 totalBytesCopied, UINT64 totalBytesToCopy) = 0;
+
+  //
+  // Method called by copy operation when some file must be copied,
+  // but target file with such name already exists and operation doesn't
+  // know what to do file target file.
+  //
+  // Next operation activity depends on this method returning value.
+  //
+  // Valid returning values:
+  //
+  // TFE_OVERWRITE - overwrite
+  // TFE_SKIP - skip
+  // TFE_APPEND - append
+  // TFE_CANCEL - terminate operation
+  //
+  // Remark: method must return valid value (see above), or assertion will
+  // fail.
+  //
 
   virtual int targetFileExists(FileInfo *sourceFileInfo,
                                FileInfo *targetFileInfo,

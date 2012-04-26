@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 
 #include "MouseGrabber.h"
 #include "util/CommonHeader.h"
+#include "win-system/Screen.h"
 
 class WindowsMouseGrabber : public MouseGrabber
 {
@@ -48,9 +49,16 @@ private:
                        char *maskAND);
   static bool testBit(char byte, int index);
 
+  // This function combines the windows cursor mask and image and convert
+  // theirs to rfb format. This function uses for monochrome cursor image.
   static void winMonoShapeToRfb(const FrameBuffer *pixels,
                                 char *maskAND, char *maskXOR);
 
+  //   This function combines windows the cursor mask and image and convert
+  // theirs to rfb format. This function uses for 16 or 24 bit color cursor
+  // image.
+  //   Also, this function determines whether image contains the alhpa channel
+  // and returns true in this case.
   template< typename T >
   bool winColorShapeToRfb(const FrameBuffer *pixels,
                           char *maskAND);
@@ -58,6 +66,7 @@ private:
   UINT32 getAlphaMask(const PixelFormat *pf);
 
   HCURSOR m_lastHCursor;
+  Screen m_screen;
 };
 
-#endif 
+#endif // __WINDOWSMOUSEGRABBER_H__

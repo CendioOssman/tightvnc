@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -47,10 +47,18 @@ public:
 
 protected:
 
+  //
+  // BaseDialog overrided methods
+  //
+
   virtual BOOL onInitDialog();
   virtual BOOL onCommand(UINT cID, UINT nID);
   virtual BOOL onNotify(UINT controlID, LPARAM data) { return TRUE; }
   virtual BOOL onDestroy() { return TRUE; }
+
+  //
+  // Controls event handlers
+  //
 
   void onOkButtonClick();
   void onCancelButtonClick();
@@ -60,11 +68,18 @@ private:
   bool validateInput();
 
 protected:
+  // Controls
   TextBox m_firstIp;
   TextBox m_lastIp;
   CheckBox m_access[3];
+  // Data
   IpAccessRule *m_data;
   bool m_isOpenedForEdit;
+
+  //
+  // Balloon tips with warning when user writes incorrect value
+  // to textbox
+  //
 
   BalloonTip m_warningBalloonTip;
   BalloonTip m_lastIpLessThanFirstBT;

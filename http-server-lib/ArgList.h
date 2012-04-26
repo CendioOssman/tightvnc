@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,10 +36,15 @@ public:
   ArgList(const char *argString);
   virtual ~ArgList();
 
+  // Return arguments count.
   size_t getCount() const;
 
+  // Returns key name with specified index or NULL if index out of range.
+  // It can be used for enumerating keys.
   const char *getKey(size_t index);
 
+  // Returns value of argument with specified key or NULL if no such
+  // argument.
   const char *getValue(const char *key);
 
 protected:

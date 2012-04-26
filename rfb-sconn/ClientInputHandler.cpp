@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,6 +31,7 @@ ClientInputHandler::ClientInputHandler(RfbCodeRegistrator *codeRegtor,
 : m_extEventListener(extEventListener),
   m_viewOnly(viewOnly)
 {
+  // Request codes
   codeRegtor->regCode(ClientMsgDefs::KEYBOARD_EVENT, this);
   codeRegtor->regCode(ClientMsgDefs::POINTER_EVENT, this);
 }
@@ -45,7 +46,7 @@ void ClientInputHandler::onRequest(UINT32 reqCode, RfbInputGate *input)
   case ClientMsgDefs::KEYBOARD_EVENT:
     {
       bool down = input->readUInt8() != 0;
-      input->readUInt16(); 
+      input->readUInt16(); // Pad
       UINT32 keyCode = input->readUInt32();
       if (!m_viewOnly) {
         m_extEventListener->onKeyboardEvent(keyCode, down);

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,14 +29,33 @@
 #include "InputStream.h"
 #include "IOException.h"
 
+/**
+ * Data input stream class (decorator pattern).
+ * Allows to read typed data from input stream.
+ */
 class DataInputStream : public InputStream
 {
 public:
+  /**
+   * Creates new DataInputStream.
+   * @param inputStream input stream that will be used to read data.
+   */
   DataInputStream(InputStream *inputStream);
   virtual ~DataInputStream();
 
+  /**
+   * Inherited from superclass.
+   * Delegates execution of method to real input stream.
+   */
   virtual size_t read(void *buffer, size_t len) throw(IOException);
 
+  /**
+   * Reads exactly specified count of bytes from input stream.
+   * @param buffer [out] target buffer to receive data.
+   * @param len count of bytes to read.
+   * @throws IOException on error.
+   * @fixme really it can throw any kind of exception.
+   */
   void readFully(void *buffer, size_t len) throw(IOException);
 
   UINT8 readUInt8() throw(IOException);

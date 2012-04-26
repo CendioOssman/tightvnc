@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,31 +25,24 @@
 #include "PipeClient.h"
 #include "util/Exception.h"
 
-PipeClient::PipeClient(const TCHAR *pipeName, bool needToConnect)
-{
-  if (needToConnect) {
-    openConnection();
-  }
-}
-
 PipeClient::PipeClient()
 {
 }
 
-Pipe *PipeClient::connect(const TCHAR *name)
+NamedPipe *PipeClient::connect(const TCHAR *name)
 {
   StringStorage pipeName;
   pipeName.format(_T("\\\\.\\pipe\\%s"), name);
 
   HANDLE hPipe;
-  hPipe = CreateFile(pipeName.getString(),  
-                     GENERIC_READ |         
+  hPipe = CreateFile(pipeName.getString(),  // pipe name
+                     GENERIC_READ |         // read and write access
                      GENERIC_WRITE,
-                     0,                     
-                     NULL,                  
-                     OPEN_EXISTING,         
-                     0,                     
-                     NULL);                 
+                     0,                     // no sharing
+                     NULL,                  // default security attributes
+                     OPEN_EXISTING,         // opens existing pipe
+                     FILE_FLAG_OVERLAPPED,  // asynchronous mode
+                     NULL);                 // no template file
 
   if (hPipe == INVALID_HANDLE_VALUE) {
     int errCode = GetLastError();
@@ -59,10 +52,10 @@ Pipe *PipeClient::connect(const TCHAR *name)
   }
 
   DWORD dwMode = PIPE_READMODE_BYTE;
-  if (!SetNamedPipeHandleState(hPipe,   
-                               &dwMode,   
-                               NULL,      
-                               NULL)      
+  if (!SetNamedPipeHandleState(hPipe,   // pipe handle
+                               &dwMode,   // new pipe mode
+                               NULL,      // don't set maximum bytes
+                               NULL)      // don't set maximum time
                                ) {
     int errCode = GetLastError();
     StringStorage errMess;
@@ -70,22 +63,5 @@ Pipe *PipeClient::connect(const TCHAR *name)
     throw Exception(errMess.getString());
   }
 
-  return new Pipe(hPipe, false);
-}
-
-void PipeClient::breakConnect()
-{
-}
-
-PipeClient::~PipeClient()
-{
-  closeConnection();
-}
-
-void PipeClient::openConnection()
-{
-}
-
-void PipeClient::closeConnection()
-{
+  return new NamedPipe(hPipe, false);
 }

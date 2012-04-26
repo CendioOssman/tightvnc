@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -50,6 +50,7 @@ void ScreenGrabber::setWorkRect(Rect *workRect)
 
 bool ScreenGrabber::setWorkRectDefault()
 {
+  // Set workRect to full screen by default
   if (!applyNewFullScreenRect()) {
     return false;
   }

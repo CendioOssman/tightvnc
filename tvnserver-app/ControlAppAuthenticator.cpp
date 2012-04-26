@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -63,6 +63,7 @@ bool ControlAppAuthenticator::authenticate(const UINT8 cryptPassword[8],
 
 void ControlAppAuthenticator::checkBeforeAuth()
 {
+  // Wait ban time before authentication
   UINT64 banTime = 1;
   while (banTime != 0 && !m_isBreaked) {
     banTime = checkBan();

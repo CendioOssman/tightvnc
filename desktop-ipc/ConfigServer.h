@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,6 +36,7 @@ public:
   virtual ~ConfigServer();
 
 protected:
+  // Internal dispatcher
   virtual void onRequest(UINT8 reqCode, BlockingGate *backGate);
 
   void reloadSettings(BlockingGate *backGate);
@@ -44,4 +45,4 @@ protected:
   DesktopConfigLocal m_deskConf;
 };
 
-#endif 
+#endif // __CONFIGSERVER_H__

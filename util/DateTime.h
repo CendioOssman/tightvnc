@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,27 +29,66 @@
 #include "winhdr.h"
 #include "StringStorage.h"
 
+/**
+ * DateTime class.
+ */
 class DateTime
 {
 public:
+  /**
+   * Creates empty DateTime.
+   */
   DateTime();
 
+  /**
+   * Creates DateTime object with specified time value.
+   * @param timeValue count of milliseconds from unix epoch.
+   */
   DateTime(UINT64 timeValue);
 
+  /**
+   * Creates DateTime object from windows FILETIME structure.
+   * @param ft time as FILETIME structure.
+   */
   DateTime(FILETIME ft);
 
+  /**
+   * Returns time in milliseconds from unix epoch.
+   */
   UINT64 getTime() const;
 
   DateTime operator- (const DateTime &d2);
   DateTime operator+ (const DateTime &d2);
 
+  /**
+   * Converts this DateTime to FILETIME structure.
+   * @param [out] ft output parameter.
+   */
   void toFileTime(LPFILETIME ft) const;
 
+  /**
+   * Converts this DateTime to SYSTEMTIME structure in UTC format.
+   * @param [out] st output parameter.
+   */
+  // FIXME: Rename this method because the now() function already
+  // returns in the local time and to convert after that this function
+  // must be used but time do not converting to UTC in this case.
   void toUtcSystemTime(LPSYSTEMTIME st) const;
 
+  /**
+   * Converts this DateTime to SYSTEMTIME structure in local format.
+   * @param [out] st output parameter.
+   */
   void toLocalSystemTime(LPSYSTEMTIME st) const;
+  /**
+   * Converts this DateTime to string.
+   * @param [out] out output parameter.
+   */
   void toString(StringStorage *out) const;
 
+  /**
+   * Returns current local time.
+   */
   static DateTime now();
 
 protected:

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -82,11 +82,16 @@ BOOL PortMappingDialog::onInitDialog()
 
   m_extraPorts = Configurator::getInstance()->getServerConfig()->getPortMappingContainer();
 
+  //
+  // Fill listbox.
+  //
+
   StringStorage mappingString;
 
   for (size_t i = 0; i < m_extraPorts->count(); i++) {
     m_extraPorts->at(i)->toString(&mappingString);
-    m_exPortsListBox.insertString(i, mappingString.getString());
+    _ASSERT((int)i == i);
+    m_exPortsListBox.insertString((int)i, mappingString.getString());
   }
 
   return TRUE;
@@ -158,6 +163,10 @@ void PortMappingDialog::onRemoveButtonClick()
   m_extraPorts->remove(selectedIndex);
 
   ((ConfigDialog *)m_parent)->updateApplyButtonState();
+
+  //
+  // Restore selection after item is removed.
+  //
 
   if (m_exPortsListBox.getCount() > 0) {
     m_exPortsListBox.setSelectedIndex(selectedIndex);

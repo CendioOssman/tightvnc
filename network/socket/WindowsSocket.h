@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,11 +28,20 @@
 #include "util/CommonHeader.h"
 #include "util/Exception.h"
 
+//
+// Class that startup and cleanup Windows Sockets subsystem.
+//
 class WindowsSocket
 {
 public:
+  // Initializes Windows sockets subsystem.
+  // Throws exception if winsock already initialized or
+  // if was error during winsock startup.
   static void startup(BYTE loVer, BYTE hiVer) throw(Exception);
 
+  //  Deinitializes Windows sockets subsystem.
+  // Throws exception if winsock does not initialized or
+  // if was error during winsock cleanup.
   static void cleanup() throw(Exception);
 
 protected:

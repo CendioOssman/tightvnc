@@ -20,9 +20,6 @@
     <ClCompile Include="AutoImpersonator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CrashHook.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CtrlAltDelSimulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -47,6 +44,9 @@
     <ClCompile Include="LocalWindowsApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ParentProcess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Pipe.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Process.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ProcessHandle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Registry.cpp">
@@ -95,10 +98,16 @@
     <ClCompile Include="VersionInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WinCommandLineArgs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="WindowsApplication.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WindowsEvent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinHandles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WinStaLibrary.cpp">
@@ -113,6 +122,30 @@
     <ClCompile Include="WTS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NamedPipe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PipeImpersonatedThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsDisplays.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinProcessCommandLine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinClipboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SystemInformation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DibSection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Screen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnonymousPipe.h">
@@ -122,9 +155,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AutoImpersonator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CrashHook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CtrlAltDelSimulator.h">
@@ -151,6 +181,9 @@
     <ClInclude Include="LocalWindowsApplication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ParentProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Pipe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -161,6 +194,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Process.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcessHandle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Registry.h">
@@ -199,10 +235,16 @@
     <ClInclude Include="VersionInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="WinCommandLineArgs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="WindowsApplication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WindowsEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WinHandles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WinStaLibrary.h">
@@ -215,6 +257,30 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WTS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NamedPipe.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PipeImpersonatedThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsDisplays.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WinProcessCommandLine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WinClipboard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemInformation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DibSection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Screen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -41,6 +41,7 @@ public:
                   AnEventListener *extTerminationListener);
   virtual ~UserInputServer();
 
+  // Internal dispatcher
   virtual void onRequest(UINT8 reqCode, BlockingGate *backGate);
 
   virtual void onClipboardUpdate(const StringStorage *newClipboard);
@@ -49,12 +50,17 @@ protected:
   virtual void applyNewPointerPos(BlockingGate *backGate);
   virtual void applyNewClipboard(BlockingGate *backGate);
   virtual void applyKeyEvent(BlockingGate *backGate);
+  virtual void ansDesktopCoords(BlockingGate *backGate);
+  virtual void ansWindowCoords(BlockingGate *backGate);
   virtual void ansUserInfo(BlockingGate *backGate);
+  virtual void ansWindowHandle(BlockingGate *backGate);
+  virtual void ansDisplayNumberCoords(BlockingGate *backGate);
 
+  // At first time server must get init information.
   void serverInit(BlockingGate *backGate);
 
   WindowsUserInput *m_userInput;
   AnEventListener *m_extTerminationListener;
 };
 
-#endif 
+#endif // __USERINPUTSERVER_H__

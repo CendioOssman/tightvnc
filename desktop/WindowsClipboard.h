@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,16 +26,17 @@
 #define __WINDOWSCLIPBOARD_H__
 
 #include "util/CommonHeader.h"
-#include "gui/Window.h"
+#include "gui/MessageWindow.h"
 #include "ClipboardListener.h"
-#include "thread/Thread.h"
+#include "thread/GuiThread.h"
 
-class WindowsClipboard : protected Window, Thread
+class WindowsClipboard : protected MessageWindow, GuiThread
 {
 public:
   WindowsClipboard(ClipboardListener *clipboardListener);
   virtual ~WindowsClipboard(void);
 
+  // This function replaces clipboard content by the text
   virtual bool writeToClipBoard(const TCHAR *text);
 
   virtual void readFromClipBoard(StringStorage *clipDest) const;
@@ -53,8 +54,7 @@ protected:
 
   ClipboardListener *m_clipboardListener;
 
-  static const TCHAR m_clipbWinClassName[];
   static const HINSTANCE m_hinst;
 };
 
-#endif 
+#endif // __WINDOWSCLIPBOARD_H__

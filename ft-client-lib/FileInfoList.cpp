@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -51,6 +51,10 @@ FileInfoList::FileInfoList(const FileInfo *filesInfo, size_t count)
 
 FileInfoList::~FileInfoList()
 {
+  //
+  // This class is owner of child and next list elements
+  // so in destructor it must free allocated memory.
+  //
 
   if (m_child != NULL) {
     delete m_child;
@@ -76,12 +80,15 @@ void FileInfoList::setPrev(FileInfoList *prev)
   m_prev = prev;
 }
 
-void FileInfoList::setChild(const FileInfo *filesInfo, UINT32 count)
+void FileInfoList::setChild(const FileInfo *filesInfo, size_t count)
 {
+  // Cleanup
   if (m_child != NULL) {
     delete m_child;
   }
+  // Parent to child relationship
   m_child = FileInfoList::fromArray(filesInfo, count);
+  // Child to parent relationship
   if (m_child != NULL) {
     m_child->m_parent = this;
   }
@@ -99,18 +106,23 @@ FileInfoList *FileInfoList::getParent()
 
 FileInfoList *FileInfoList::getRoot()
 {
+  // In our list only first element of leaf can has parent
   FileInfoList *first = getFirst();
+  // first have no parent, so first is root
   if (first->getParent() == NULL) {
     return first;
   }
+  // continue searching root list
   return first->getParent()->getRoot();
 }
 
 FileInfoList *FileInfoList::getFirst()
 {
+  // If have no prev, than this is first element of leaf
   if (getPrev() == NULL) {
     return this;
   }
+  // continue searching
   return getPrev()->getFirst();
 }
 
@@ -140,6 +152,12 @@ void FileInfoList::getAbsolutePath(StringStorage *storage, TCHAR directorySepara
 
   StringStorage parentAbsolutePath(_T(""));
 
+  //
+  // if parent of first element of this leaf exists
+  // than absolute path prefix is parent absolute path with
+  // added directory separator symbol in the end.
+  //
+
   bool firstHasParent = (first != NULL) && (first->getParent() != NULL);
 
   if (firstHasParent) {
@@ -147,8 +165,8 @@ void FileInfoList::getAbsolutePath(StringStorage *storage, TCHAR directorySepara
     firstParent->getAbsolutePath(&parentAbsolutePath, directorySeparator);
     if (!parentAbsolutePath.endsWith(directorySeparator)) {
       parentAbsolutePath.appendChar(directorySeparator);
-    } 
-  } 
+    } // if parent path have no directory separator in the end
+  } // if first has parent
 
   const TCHAR *fileName = m_fileInfo.getFileName();
 
@@ -156,7 +174,7 @@ void FileInfoList::getAbsolutePath(StringStorage *storage, TCHAR directorySepara
   storage->appendString(fileName);
 }
 
-FileInfoList *FileInfoList::fromArray(const FileInfo *filesInfo, UINT32 count)
+FileInfoList *FileInfoList::fromArray(const FileInfo *filesInfo, size_t count)
 {
   if (count == 0) {
     return NULL;

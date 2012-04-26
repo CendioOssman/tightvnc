@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "BitmapGraphics.h"
 
-BitmapGraphics::BitmapGraphics(DeviceContext *complatibleDC, size_t width, size_t height)
+BitmapGraphics::BitmapGraphics(DeviceContext *complatibleDC, int width, int height)
 : Graphics(complatibleDC), m_isPainting(false)
 {
   m_bitmap = new Bitmap(complatibleDC->m_dc, width, height);

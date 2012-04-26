@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -38,13 +38,27 @@ public:
   virtual size_t read(void *buffer, size_t len);
   virtual size_t write(const void *buffer, size_t len);
 
+  // Replaces invalid channel by the new valid.
+  // At the next the read()/write() function call read()/write()
+  // generates the ReconnectException if this is not the first initialization
   void replaceChannel(Channel *newChannel);
 
+  // Closes connection and break all blocked operation.
+  // @throw Exception on error.
   virtual void close();
 
 private:
+  // @param funName - is a function name that will be placed to the
+  // ReconnectException text.
+  // @throw ReconnectException on reconnect detection.
+  // @throw IOException on other errors.
   Channel *getChannel(const TCHAR *funName);
 
+  // @param funName - is a function name that will be placed to the
+  // ReconnectException text.
+  // @param channel - currently using transport.
+  // @throw ReconnectException on reconnect detection.
+  // @throw IOException on other errors.
   void waitForReconnect(const TCHAR *funName, Channel *channel);
 
   bool m_isClosed;
@@ -58,4 +72,4 @@ private:
   unsigned int m_timeOut;
 };
 
-#endif 
+#endif // __RECONNECTINGCHANNEL_H__

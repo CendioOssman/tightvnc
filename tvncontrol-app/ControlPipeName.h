@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,12 +27,23 @@
 
 #include "util/CommonHeader.h"
 
+/**
+ * Used to create pipe name for control transport.
+ */
 class ControlPipeName
 {
 public:
+  /**
+   * Creates pipe name for control transport.
+   * @param forService flag determinating if we create pipe name for service or application.
+   * @param pipeName [out] target pipe name.
+   */
   static void createPipeName(bool forService, StringStorage *pipeName);
 
 private:
+  /**
+   * Don't allow instanizing of this class.
+   */
   ControlPipeName() { };
 };
 

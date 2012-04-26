@@ -1,4 +1,4 @@
-// Copyright (C) 2000-2010 Constantin Kaplinsky.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -49,7 +49,7 @@ void PortMappingContainer::pushBack(PortMapping element)
   m_vector.push_back(element);
 }
 
-int PortMappingContainer::find(PortMapping searchElement) const
+size_t PortMappingContainer::find(PortMapping searchElement) const
 {
   for (size_t i = 0; i < count(); i++) {
     PortMapping each = m_vector.at(i);
@@ -59,22 +59,22 @@ int PortMappingContainer::find(PortMapping searchElement) const
       return i;
     }
   }
-  return -1;
+  return (size_t)-1;
 }
 
-int PortMappingContainer::findByPort(int port) const
+size_t PortMappingContainer::findByPort(int port) const
 {
   for (size_t i = 0; i < count(); i++) {
     if (m_vector.at(i).getPort() == port) {
       return i;
     }
   }
-  return -1;
+  return (size_t)-1;
 }
 
-void PortMappingContainer::remove(int index)
+void PortMappingContainer::remove(size_t index)
 {
-  int i = 0;
+  size_t i = 0;
   for (std::vector<PortMapping>::iterator it = m_vector.begin();
        it != m_vector.end(); it++) {
     if (i == index) {
@@ -87,9 +87,9 @@ void PortMappingContainer::remove(int index)
 
 void PortMappingContainer::remove(PortMapping removeMapping)
 {
-  int index = find(removeMapping);
+  size_t index = find(removeMapping);
 
-  if (index != -1) {
+  if (index != (size_t)-1) {
     remove(index);
   }
 }
@@ -119,7 +119,8 @@ bool PortMappingContainer::equals(const PortMappingContainer *other) const
 
 void PortMappingContainer::serialize(DataOutputStream *output) const
 {
-  output->writeUInt32(count());
+  _ASSERT((unsigned int)count() == count());
+  output->writeUInt32((unsigned int)count());
 
   StringStorage string;
 

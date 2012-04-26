@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,31 +26,13 @@
 #define __WINDESKTOP_H__
 
 #include "util/CommonHeader.h"
-#include "UpdateHandler.h"
-#include "DesktopServerWatcher.h"
-#include "UserInput.h"
-#include "InputBlocker.h"
-#include "desktop-ipc/DesktopConfigClient.h"
+#include "DesktopConfigLocal.h"
 #include "desktop/WallpaperUtil.h"
-#include "desktop-ipc/ReconnectingChannel.h"
-#include "desktop-ipc/BlockingGate.h"
-#include "desktop-ipc/GateKicker.h"
-#include "desktop-ipc/DesktopSrvDispatcher.h"
-#include "util/AnEventListener.h"
-#include "desktop-ipc/ReconnectionListener.h"
-#include "ClipboardListener.h"
-#include "UpdateListener.h"
-#include "fb-update-sender/UpdateRequestListener.h"
-#include "server-config-lib/ConfigReloadListener.h"
-#include "UpdateSendingListener.h"
-#include "AbnormDeskTermListener.h"
+#include "thread/GuiThread.h"
+#include "GuiDesktop.h"
 
-class WinDesktop : public AnEventListener,
-                   public ReconnectionListener,
-                   public UpdateListener,
-                   public ClipboardListener, public UpdateRequestListener,
-                   public ConfigReloadListener,
-                   public Thread
+class WinDesktop : public GuiThread,
+                   public GuiDesktop
 {
 public:
   WinDesktop(ClipboardListener *extClipListener,
@@ -58,61 +40,22 @@ public:
              AbnormDeskTermListener *extDeskTermListener);
   virtual ~WinDesktop();
 
-  void getCurrentUserInfo(StringStorage *desktopName,
-                          StringStorage *userName);
-  void getFrameBufferProperties(Dimension *dim, PixelFormat *pf);
-
-  void setKeyboardEvent(UINT32 keySym, bool down);
-  void setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask);
-  void setNewClipText(const StringStorage *newClipboard);
-
 protected:
   virtual void execute();
   virtual void onTerminate();
 
 private:
-  virtual void onAnObjectEvent();
-  virtual void onReconnect(Channel *newChannelTo, Channel *newChannelFrom);
-  virtual void onUpdate();
-  virtual void onClipboardUpdate(const StringStorage *newClipboard);
-  virtual void onUpdateRequest(const Rect *rectRequested, bool incremental);
-  virtual void onConfigReload(ServerConfig *serverConfig);
-
-  void applyNewConfiguration();
-  bool isRemoteInputAllowed();
-
-  void sendUpdate();
-
   void freeResource();
-  void closeDesktopServerTransport();
 
-  ReconnectingChannel *m_clToSrvChan;
-  ReconnectingChannel *m_srvToClChan;
-  BlockingGate *m_clToSrvGate;
-  BlockingGate *m_srvToClGate;
+  // Writes some desktop info to log.
+  void logDesktopInfo();
 
-  DesktopServerWatcher *m_deskServWatcher;
-  DesktopSrvDispatcher *m_dispatcher;
+  virtual bool isRemoteInputTempBlocked();
+  virtual void applyNewConfiguration();
 
-  GateKicker *m_gateKicker;
-  UpdateHandler *m_updateHandler;
-  UserInput *m_userInputClient; 
-  UserInput *m_userInput;
-  DesktopConfig *m_deskConf;
   WallpaperUtil *m_wallPaper;
 
-  WindowsEvent m_newUpdateEvent;
-
-  Region m_fullReqRegion;
-  LocalMutex m_reqRegMutex;
-
-  StringStorage m_receivedClip;
-  StringStorage m_sentClip;
-  LocalMutex m_storedClipCritSec;
-
-  ClipboardListener *m_extClipListener;
-  UpdateSendingListener *m_extUpdSendingListener;
-  AbnormDeskTermListener *m_extDeskTermListener;
+  DesktopConfigLocal *m_deskConf;
 };
 
-#endif 
+#endif // __WINDESKTOP_H__

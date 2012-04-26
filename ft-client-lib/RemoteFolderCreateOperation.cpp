@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -42,6 +42,7 @@ RemoteFolderCreateOperation::~RemoteFolderCreateOperation()
 
 void RemoteFolderCreateOperation::start()
 {
+  // Logging
   StringStorage message;
 
   message.format(_T("Creating remote folder '%s'"),
@@ -49,18 +50,22 @@ void RemoteFolderCreateOperation::start()
 
   notifyInformation(message.getString());
 
+  // Nofity all that operation have started
   notifyStart();
 
+  // Send mkdir request to server
   m_sender->sendMkDirRequest(m_pathToTargetFile.getString());
 }
 
 void RemoteFolderCreateOperation::onMkdirReply()
 {
+  // Notify all that operation have ended
   notifyFinish();
 }
 
 void RemoteFolderCreateOperation::onLastRequestFailedReply()
 {
+  // Logging
   StringStorage message;
 
   message.format(_T("Error: failed to create remote folder '%s'"),
@@ -68,5 +73,6 @@ void RemoteFolderCreateOperation::onLastRequestFailedReply()
 
   notifyError(message.getString());
 
+  // Notify all that operation have ended
   notifyFinish();
 }

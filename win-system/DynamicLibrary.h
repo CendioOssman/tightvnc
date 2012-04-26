@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,15 +29,30 @@
 
 #include "util/Exception.h"
 
+/**
+Dynamic library class.
+*/
 class DynamicLibrary
 {
 public:
+  /**
+  Load dynamic library with specified filename.
+  @param filename path to library file.
+  @throws Exception on error.
+  */
   DynamicLibrary(const TCHAR *filename) throw(Exception);
   DynamicLibrary();
   virtual ~DynamicLibrary();
 
+  // Use the init() function after default constructor calling to load
+  // a library before the getProcAddress() function calling.
   void init(const TCHAR *filename);
 
+  /**
+  Gets procedure address.
+  @param procName procedure name.
+  @return address of procedure or 0 if failed.
+  */
   FARPROC getProcAddress(const char *procName);
 
 protected:

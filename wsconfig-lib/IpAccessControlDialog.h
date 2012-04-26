@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -42,10 +42,18 @@ public:
 
   void setParentDialog(BaseDialog *dialog);
 
+  //
+  // BaseDialog overrided methods
+  //
+
   virtual BOOL onInitDialog();
   virtual BOOL onCommand(UINT controlID, UINT notificationID);
   virtual BOOL onNotify(UINT controlID, LPARAM data);
   virtual BOOL onDestroy() { return TRUE; }
+
+  //
+  // Helper methods
+  //
 
   bool validateInput();
   void updateUI();
@@ -53,6 +61,10 @@ public:
 
 private:
   void initControls();
+
+  //
+  // Control event handlers
+  //
 
   void onAddButtonClick();
   void onEditButtonClick();
@@ -68,14 +80,21 @@ private:
   void onIpCheckUpdate();
   void onQueryTimeoutUpdate();
 
+  //
+  // Private helper methods
+  //
+
   void updateButtonsState();
   void updateCheckBoxesState();
   void setListViewItemText(int index, IpAccessRule *control);
 
 private:
+  // Configuration
   IpAccessControl *m_container;
   ServerConfig *m_config;
+  // Child dialog
   EditIpAccessRuleDialog m_editDialog;
+  // Controls
   ListView m_list;
   Control m_addButton;
   Control m_editButton;

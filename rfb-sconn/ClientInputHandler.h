@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -40,10 +40,11 @@ public:
   void setViewOnlyFlag(bool value) { m_viewOnly = value; }
 
 protected:
+  // Listen function
   virtual void onRequest(UINT32 reqCode, RfbInputGate *input);
 
   ClientInputEventListener *m_extEventListener;
   bool m_viewOnly;
 };
 
-#endif 
+#endif // __CLIENTINPUTHANDLER_H__

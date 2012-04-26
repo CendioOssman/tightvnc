@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,11 +25,20 @@
 #ifndef _TVN_SERVER_LISTENER_H_
 #define _TVN_SERVER_LISTENER_H_
 
+/**
+ * Listener of TightVNC server (TvnServer class) events.
+ */
 class TvnServerListener
 {
 public:
+  /**
+   * Destructor, does nothing.
+   */
   virtual ~TvnServerListener();
 
+  /**
+   * Slot of TvnServer shutdown signal (generated in TvnServer::shutdown() method).
+   */
   virtual void onTvnServerShutdown() = 0;
 };
 

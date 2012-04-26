@@ -35,6 +35,9 @@
     <ClCompile Include="ExtraRfbServers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LogManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="OutgoingRfbConnectionThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -86,6 +89,18 @@
     <ClCompile Include="WsConfigRunner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WinEventLogWriter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConnectToTcpDispatcherThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NamingDefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CrashHook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdditionalActionApplication.h">
@@ -110,6 +125,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ExtraRfbServers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LogManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="OutgoingRfbConnectionThread.h">
@@ -161,6 +179,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WsConfigRunner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WinEventLogWriter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConnectToTcpDispatcherThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NamingDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CrashHook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

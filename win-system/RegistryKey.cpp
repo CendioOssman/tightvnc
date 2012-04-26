@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //
 
 #include "RegistryKey.h"
+#include <vector>
 
 RegistryKey::RegistryKey(HKEY rootKey, const TCHAR *entry,
                          bool createIfNotExists, SECURITY_ATTRIBUTES *sa)
@@ -42,9 +43,29 @@ RegistryKey::RegistryKey(HKEY rootKey)
   m_entry.setString(_T(""));
 }
 
+RegistryKey::RegistryKey()
+{
+}
+
 RegistryKey::~RegistryKey()
 {
   close();
+}
+
+void RegistryKey::open(HKEY rootKey,
+                       const TCHAR *entry,
+                       bool createIfNotExists,
+                       SECURITY_ATTRIBUTES *sa)
+{
+  initialize(rootKey, entry, createIfNotExists, sa);
+}
+
+void RegistryKey::open(RegistryKey *rootKey,
+                       const TCHAR *entry,
+                       bool createIfNotExists,
+                       SECURITY_ATTRIBUTES *sa)
+{
+  initialize(rootKey->m_key, entry, createIfNotExists, sa);
 }
 
 HKEY RegistryKey::getHKEY() const
@@ -79,27 +100,32 @@ bool RegistryKey::deleteSubKeyTree(const TCHAR *subkey)
 
   bool retVal = true;
 
+  // Subkey
   RegistryKey key(this, subkey);
 
   size_t subkeys2Count = 0;
   StringStorage *subkeys2Names = 0;
 
-  if (key.getSubKeyNames(NULL, &subkeys2Count)) {
-    subkeys2Names = new StringStorage[subkeys2Count];
+  //
+  // Delete subkeys of subkey
+  //
 
-    key.getSubKeyNames(subkeys2Names, NULL);
+  if (key.getSubKeyNames(NULL, &subkeys2Count) && subkeys2Count != 0) {
+    std::vector<StringStorage> subkeys2Names(subkeys2Count);
 
+    key.getSubKeyNames(&subkeys2Names[0], NULL);
+
+    // Enumerate subkeys
     for (size_t i = 0; i < subkeys2Count; i++) {
       if (!key.deleteSubKeyTree(subkeys2Names[i].getString())) {
         retVal = false;
       }
     }
-
-    delete[] subkeys2Names;
   } else {
     retVal = false;
   }
 
+  // Delete subkey
   if (!deleteSubKey(subkey)) {
     retVal = false;
   }
@@ -140,7 +166,9 @@ bool RegistryKey::setValueAsString(const TCHAR *name, const TCHAR *value)
     return false;
   }
 
-  DWORD size = (_tcslen(value) + 1) * sizeof(TCHAR);
+  size_t origSize = (_tcslen(value) + 1) * sizeof(TCHAR);
+  DWORD size = (DWORD)origSize;
+  _ASSERT(size == origSize);
   return RegSetValueEx(m_key, name, 0, REG_SZ, (BYTE *)value, size) == ERROR_SUCCESS;
 }
 
@@ -150,7 +178,8 @@ bool RegistryKey::setValueAsBinary(const TCHAR *name, const void *value, size_t 
     return false;
   }
 
-  DWORD size = sizeInBytes;
+  DWORD size = (DWORD)sizeInBytes;
+  _ASSERT(size == sizeInBytes);
   return RegSetValueEx(m_key, name, 0, REG_BINARY, (BYTE *)value, size) == ERROR_SUCCESS;
 }
 
@@ -191,10 +220,9 @@ bool RegistryKey::getValueAsString(const TCHAR *name, StringStorage *out)
     return false;
   }
 
-  TCHAR *buffer = new TCHAR[size + 1];
+  std::vector<TCHAR> buffer(size + 1);
 
-  if (RegQueryValueEx(m_key, name, 0, &type, (BYTE *)buffer, &size) != ERROR_SUCCESS) {
-    delete[] buffer;
+  if (RegQueryValueEx(m_key, name, 0, &type, (BYTE *)&buffer[0], &size) != ERROR_SUCCESS) {
     return false;
   }
 
@@ -202,9 +230,7 @@ bool RegistryKey::getValueAsString(const TCHAR *name, StringStorage *out)
     buffer[size] = _T('\0');
   }
 
-  out->setString(buffer);
-
-  delete[] buffer;
+  out->setString(&buffer[0]);
 
   return true;
 }
@@ -250,14 +276,14 @@ bool RegistryKey::getSubKeyNames(StringStorage *subKeyNames, size_t *count)
     } else {
       break;
     }
-  } 
+  } // while
 
   if (count != NULL) {
     *count = (size_t)i;
   }
 
   return ret == ERROR_NO_MORE_ITEMS;
-} 
+} // void
 
 bool RegistryKey::isOpened()
 {
@@ -293,32 +319,24 @@ DWORD RegistryKey::enumKey(DWORD i, StringStorage *name)
   DWORD length = 1024;
   DWORD increaseStep = 1024;
 
-  TCHAR *buffer = 0;
+  std::vector<TCHAR> buffer;
 
   DWORD ret;
 
   while (true) {
-    if (buffer != 0) {
-      delete[] buffer;
-    }
+    buffer.resize(length + 1);
 
-    buffer = new TCHAR[length + 1];
-
-    ret = RegEnumKey(m_key, i, buffer, length);
+    ret = RegEnumKey(m_key, i, &buffer[0], length);
 
     if (ret == ERROR_SUCCESS) {
-      name->setString(buffer);
+      name->setString(&buffer[0]);
       break;
     } else if (ret == ERROR_MORE_DATA) {
       length += increaseStep;
     } else {
       break;
     }
-  } 
-
-  if (buffer != 0) {
-    delete[] buffer;
-  }
+  } // while
 
   return ret;
 }
@@ -340,11 +358,11 @@ bool RegistryKey::tryOpenSubKey(HKEY key, const TCHAR *subkey, HKEY *openedKey, 
       }
       if (ret != ERROR_SUCCESS) {
         return false;
-      } 
+      } // if cannot create key.
     } else {
       return false;
     }
-  } 
+  } // if cannot open key
 
   return true;
 }

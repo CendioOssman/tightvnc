@@ -11,10 +11,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="jaricom.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="jcapimin.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="jcapistd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="jcarith.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="jccoefct.c">
@@ -65,6 +71,9 @@
     <ClCompile Include="jdapistd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="jdarith.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="jdatadst.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -98,9 +107,6 @@
     <ClCompile Include="jdmerge.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="jdphuff.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="jdpostct.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -129,9 +135,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="jidctint.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="jidctred.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="jmemmgr.c">

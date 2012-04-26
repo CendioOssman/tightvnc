@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,19 +35,28 @@ public:
   Tab();
   Tab(BaseDialog *dialog, const TCHAR *caption);
 
+  //
+  // Access methods to protected members
+  //
+
   void setCaption(const TCHAR *caption) { m_caption.setString(caption); }
 
   const TCHAR *getCaption() {
-    if (m_caption.isNull()) {
-      m_caption.setString(_T(""));
-    }
     return m_caption.getString();
   }
 
   void setDialog(BaseDialog *dialog) { m_dialog = dialog; }
   BaseDialog *getDialog() { return m_dialog; }
 
+  //
+  // Method return true if tab has dialog
+  //
+
   bool isOk() { return m_dialog != NULL; }
+
+  //
+  // Changes visible state of dialog donates by this tab
+  //
 
   void setVisible(bool visible);
 

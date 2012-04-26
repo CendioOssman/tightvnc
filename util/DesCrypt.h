@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -33,9 +33,15 @@ public:
   DesCrypt();
   virtual ~DesCrypt();
 
+  // Encrypt the given buffer.
+  // The sizes of both "dst" and "src" must be multiples of 8.
+  // Both "dst" and "src" may point to the same buffer.
   void encrypt(UINT8 *dst, const UINT8 *src, size_t dataLen,
                const UINT8 *key);
 
+  // Decrypt the given buffer.
+  // The sizes of both "dst" and "src" must be multiples of 8.
+  // Both "dst" and "src" may point to the same buffer.
   void decrypt(UINT8 *dst, const UINT8 *src, size_t dataLen,
                const UINT8 *key);
 
@@ -47,8 +53,14 @@ private:
 
   void clearKey();
 
+  // Sets the internal key register according to the hexadecimal
+  // key contained in the 8 bytes of hexkey, according to the DES,
+  // for encryption or decryption according to mode.
   void deskey(const UINT8 hexKey[8], OperationMode mode);
 
+  // Encrypts/Decrypts (according to the key currently loaded in the
+  // internal key register) one block of eight bytes at address 'from'
+  // into the block at address 'to'.  They can be the same.
   void des(const unsigned char from[8], unsigned char to[8]);
 
   static void scrunch(const unsigned char *outof, unsigned long *into);
@@ -61,4 +73,4 @@ private:
   unsigned long m_knL[32];
 };
 
-#endif 
+#endif // __DESCRYPT_H__

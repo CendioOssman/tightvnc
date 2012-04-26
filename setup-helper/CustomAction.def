@@ -1,0 +1,5 @@
+﻿LIBRARY "setup-helper"
+
+EXPORTS
+
+AllowSas

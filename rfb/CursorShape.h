@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -42,11 +42,13 @@ public:
   bool setPixelFormat(const PixelFormat *pixelFormat);
   PixelFormat getPixelFormat() const { return m_pixels.getPixelFormat(); }
 
+  // This function set both PixelFormat and Dimension
   bool setProperties(const Dimension *newDim, const PixelFormat *pixelFormat);
 
   const FrameBuffer *getPixels() const { return &m_pixels; }
   int getPixelsSize() const { return m_pixels.getBufferSize(); }
-  const char *getMask() const { return m_mask; }
+  const char *getMask() const { return m_mask.empty() ? 0 : &m_mask.front(); }
+  void assignMaskFromRfb(const char *srcMask);
   void assignMaskFromWindows(const char *srcMask);
   int getMaskSize() const;
   int getMaskWidthInBytes() const;
@@ -54,12 +56,16 @@ public:
   void setHotSpot(int x, int y) { m_hotSpot.x = x; m_hotSpot.y = y; }
   Point getHotSpot() const { return m_hotSpot; }
 
+  // Resets the cursor shape to empty state (zero dimension and hot spot
+  // and empty masks). But the pixel format saves the same.
+  void resetToEmpty();
+
 private:
   bool resizeBuffer();
 
   FrameBuffer m_pixels;
-  char *m_mask;
+  std::vector<char> m_mask;
   Point m_hotSpot;
 };
 
-#endif 
+#endif // __CURSORSHAPE_H__

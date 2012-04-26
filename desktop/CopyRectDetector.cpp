@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,12 +27,10 @@
 
 CopyRectDetector::CopyRectDetector()
 {
-  m_lastWinProps = new std::list<WinProp>;
 }
 
 CopyRectDetector::~CopyRectDetector()
 {
-  delete m_lastWinProps;
 }
 
 void CopyRectDetector::detectWindowMovements(Rect *copyRect, Point *source)
@@ -40,14 +38,14 @@ void CopyRectDetector::detectWindowMovements(Rect *copyRect, Point *source)
   m_copyRect.clear();
   m_source.clear();
 
-  m_newWinProps = new std::list<WinProp>;
   EnumWindows((WNDENUMPROC)enumWindowsFnCopyRect, (LPARAM)this);
-  delete m_lastWinProps;
   m_lastWinProps = m_newWinProps;
+  m_newWinProps.clear();
   *copyRect = m_copyRect;
   *source = m_source;
 }
 
+// Callback routine used internally to catch window movement...
 BOOL CALLBACK CopyRectDetector::enumWindowsFnCopyRect(HWND hwnd, LPARAM arg)
 {
   CopyRectDetector *_this = (CopyRectDetector *)arg;
@@ -58,15 +56,18 @@ BOOL CopyRectDetector::checkWindowMovements(HWND hwnd)
 {
   Rect currRect;
   if (IsWindowVisible(hwnd) && getWinRect(hwnd, &currRect)) {
+    // Store window properties in the new list
     WinProp newWinProp(hwnd, &currRect);
-    m_newWinProps->push_back(newWinProp);
+    m_newWinProps.push_back(newWinProp);
 
     Rect prevRect;
     if (findPrevWinProps(hwnd, &prevRect)) {
-      if (!prevRect.isEqualTo(&currRect) && currRect.area() > m_copyRect.area()) {
+      if ((prevRect.left != currRect.left || prevRect.top != currRect.top) &&
+          currRect.area() > m_copyRect.area()) {
         m_copyRect = currRect;
         m_source.setPoint(prevRect.left, prevRect.top);
 
+        // Adjust
         int destopX = GetSystemMetrics(SM_XVIRTUALSCREEN);
         int destopY = GetSystemMetrics(SM_YVIRTUALSCREEN);
         m_copyRect.move(-destopX, -destopY);
@@ -91,7 +92,7 @@ bool CopyRectDetector::findPrevWinProps(HWND hwnd, Rect *rect)
 {
   std::list<WinProp>::iterator winPropsIter;
   WinProp *winProp;
-  for (winPropsIter = m_lastWinProps->begin(); winPropsIter != m_lastWinProps->end();
+  for (winPropsIter = m_lastWinProps.begin(); winPropsIter != m_lastWinProps.end();
        winPropsIter++) {
     winProp = &(*winPropsIter);
     if (winProp->hwnd == hwnd) {

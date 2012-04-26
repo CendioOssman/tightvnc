@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,16 +29,35 @@
 
 #include <list>
 
+/**
+ * Command that executes sequence of commands.
+ */
 class MacroCommand : public Command
 {
 public:
+  /**
+   * Creates macro command with empty command list.
+   */
   MacroCommand();
+  /**
+   * Destructor, does nothing.
+   */
   virtual ~MacroCommand();
+  /**
+   * Executes macro command (sequence of commands that pushed to macro by
+   * calling of addCommand() method).
+   */
   virtual void execute();
 
+  /**
+   * Adds command to the end of list of commands to execute.
+   */
   void addCommand(Command *command);
 
 private:
+  /**
+   * List of commands to execute.
+   */
   std::list<Command *> m_commandList;
 };
 

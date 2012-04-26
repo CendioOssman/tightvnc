@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,56 +28,82 @@
 #include "region/Dimension.h"
 #include "rfb/PixelFormat.h"
 
+// FIXME: Move implementation to the .cpp file.
+
 class FrameBuffer
 {
 public:
   FrameBuffer(void);
   virtual ~FrameBuffer(void);
 
-  bool assignProperties(const FrameBuffer *srcFrameBuffer);
-  bool clone(const FrameBuffer *srcFrameBuffer);
-  void setColor(UINT8 reg, UINT8 green, UINT8 blue);
+  virtual bool assignProperties(const FrameBuffer *srcFrameBuffer);
+  virtual bool clone(const FrameBuffer *srcFrameBuffer);
+  virtual void setColor(UINT8 red, UINT8 green, UINT8 blue);
+  virtual void fillRect(const Rect *dstRect, UINT32 color);
 
-  bool isEqualTo(const FrameBuffer *frameBuffer);
+  // Return value: true - if equal
+  //               false - if PixelFormats or size differs
+  virtual bool isEqualTo(const FrameBuffer *frameBuffer);
 
-  bool copyFrom(const Rect *dstRect, const FrameBuffer *srcFrameBuffer,
+  // Copy to self by specified destination rectangle from the specified
+  // coordinates of srcFrameBuffer
+  virtual bool copyFrom(const Rect *dstRect, const FrameBuffer *srcFrameBuffer,
                 int srcX, int srcY);
-  bool copyFrom(const FrameBuffer *srcFrameBuffer,
+  // The same as above but destination rect is m_dimension
+  virtual bool copyFrom(const FrameBuffer *srcFrameBuffer,
                 int srcX, int srcY);
-  void move(const Rect *dstRect, const int srcX, const int srcY);
-  bool cmpFrom(const Rect *dstRect, const FrameBuffer *srcFrameBuffer,
+  // Overlays the source image to this with by the AND mask
+  virtual bool overlay(const Rect *dstRect,
+               const FrameBuffer *srcFrameBuffer,
+               int srcX, int srcY,
+               const char *andMask);
+  virtual void move(const Rect *dstRect, const int srcX, const int srcY);
+  // Return value: true - if equal
+  //               false - if PixelFormats or data differs
+  virtual bool cmpFrom(const Rect *dstRect, const FrameBuffer *srcFrameBuffer,
                const int srcX, const int srcY);
 
-  bool setDimension(const Dimension *newDim);
-  bool setDimension(const Rect *rect)
+  virtual bool setDimension(const Dimension *newDim);
+  virtual bool setDimension(const Rect *rect)
   {
     Dimension dim(rect);
     return setDimension(&dim);
   }
 
-  void setEmptyDimension(const Rect *dimByRect);
+  // Sets dimension to the frame buffer without buffer resizing
+  virtual void setEmptyDimension(const Rect *dimByRect);
 
-  void setEmptyPixelFmt(const PixelFormat *pf);
+  // Sets pixel format to the frame buffer without buffer resizing
+  virtual void setEmptyPixelFmt(const PixelFormat *pf);
 
-  inline Dimension getDimension() const { return m_dimension; }
+  virtual void setPropertiesWithoutResize(const Dimension *newDim, const PixelFormat *pf);
 
-  bool setPixelFormat(const PixelFormat *pixelFormat);
-  inline PixelFormat getPixelFormat() const { return m_pixelFormat; }
+  virtual inline Dimension getDimension() const { return m_dimension; }
 
-  bool setProperties(const Dimension *newDim, const PixelFormat *pixelFormat);
-  bool setProperties(const Rect *dimByRect, const PixelFormat *pixelFormat);
+  virtual bool setPixelFormat(const PixelFormat *pixelFormat);
+  virtual inline PixelFormat getPixelFormat() const { return m_pixelFormat; }
 
-  size_t getBitsPerPixel() const;
+  // This function set both PixelFormat and Dimension
+  virtual bool setProperties(const Dimension *newDim, const PixelFormat *pixelFormat);
+  virtual bool setProperties(const Rect *dimByRect, const PixelFormat *pixelFormat);
 
-  size_t getBytesPerPixel() const;
+  // Return the number of bits occupied by one pixel (can be 8, 16 or 32).
+  virtual UINT8 getBitsPerPixel() const;
 
-  void setBuffer(void *newBuffer) { m_buffer = newBuffer; }
-  inline virtual void *getBuffer() const { return m_buffer; }
+  // Return the number of bytes occupied by one pixel (can be 1, 2 or 4).
+  virtual UINT8 getBytesPerPixel() const;
 
+  virtual void setBuffer(void *newBuffer) { m_buffer = newBuffer; }
+  virtual inline void *getBuffer() const { return m_buffer; }
+
+  // Return a pointer to the pixel data specified by the coordinates of that
+  // pixel. getBufferPtr(0, 0) should be equivalent to getBuffer(). This
+  // function does not check if the coordinates are within the frame buffer
+  // boundaries.
   virtual void *getBufferPtr(int x, int y) const;
 
-  inline virtual int getBufferSize() const;
-  inline int getBytesPerRow() const { return m_dimension.width *
+  virtual inline int getBufferSize() const;
+  virtual inline int getBytesPerRow() const { return m_dimension.width *
                                              m_pixelFormat.bitsPerPixel / 8; }
 
 protected:
@@ -86,10 +112,15 @@ protected:
                 const int srcX, const int srcY,
                 Rect *dstClippedRect, Rect *srcClippedRect);
 
+  template<class PIXEL_T> bool overlayT(const Rect *dstRect,
+                                        const FrameBuffer *srcFrameBuffer,
+                                        int srcX, int srcY,
+                                        const char *andMask);
+
   Dimension m_dimension;
 
   PixelFormat m_pixelFormat;
   void *m_buffer;
 };
 
-#endif 
+#endif // __FRAMEBUFFER_H__

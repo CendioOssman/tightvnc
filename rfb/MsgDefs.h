@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -48,4 +48,4 @@ public:
   static const UINT32 SERVER_CUT_TEXT = 3;
 };
 
-#endif 
+#endif // __RFB_MSG_DEFS_H_INCLUDED__

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -25,6 +25,7 @@
 #include "IpAccessRule.h"
 #include "Configurator.h"
 #include "util/CommonHeader.h"
+#include "util/AnsiStringStorage.h"
 
 IpAccessRule::IpAccessRule()
 : m_action(ACTION_TYPE_DENY)
@@ -53,9 +54,9 @@ bool IpAccessRule::parse(const TCHAR *string, IpAccessRule *rule)
     if (!parseIp(string, rule)) {
       if (!parseSubnet(string, rule)) {
         return false;
-      } 
-    } 
-  } 
+      } // cannot parse string as ip/netmask
+    } // cannot parse single ip
+  } // cannot parse string as ip range
   return true;
 }
 
@@ -155,22 +156,20 @@ bool IpAccessRule::isEqualTo(IpAccessRule *other) const
   return false;
 }
 
+//
+// TODO: Create own inet_addr method that will support TCHAR strings
+//
+
 bool IpAccessRule::isIncludingAddress(unsigned long ip) const
 {
-  size_t size1 = 100;
-  size_t size2 = 100;
+  AnsiStringStorage firstIpAnsi(&m_firstIp);
+  AnsiStringStorage lastIpAnsi(&m_lastIp);
 
-  char firstIpAnsi[100];
-  char lastIpAnsi[100];
-
-  m_firstIp.toAnsiString(&firstIpAnsi[0], size1);
-  m_lastIp.toAnsiString(&lastIpAnsi[0], size2);
-
-  unsigned long firstIp = inet_addr(&firstIpAnsi[0]);
+  unsigned long firstIp = inet_addr(firstIpAnsi.getString());
   unsigned long lastIp  = firstIp;
 
   if (!m_lastIp.isEmpty()) {
-    lastIp = inet_addr(&lastIpAnsi[0]);
+    lastIp = inet_addr(lastIpAnsi.getString());
   }
 
   if (ip == firstIp || ip == lastIp) {
@@ -198,8 +197,8 @@ bool IpAccessRule::isIpAddressStringValid(const TCHAR *string)
   for (size_t i = 0; i < arraySize; i++) {
     if (!tryParseIPPart(stringArray[i].getString())) {
       return false;
-    } 
-  } 
+    } // if
+  } // for
   return true;
 }
 
@@ -223,12 +222,12 @@ bool IpAccessRule::tryParseIPPart(const TCHAR *string)
 {
   size_t len = _tcslen(string);
   if (len < 1 || _tcsspn(string, _T("0123456789")) != len)
-    return false;	
-  if (len > 4) 
+    return false;	// not a non-negative number
+  if (len > 4) // length is more than 4 symbols
     return false;
   int value = _ttoi(string);
   if (value > 255)
-    return false;	
+    return false;	// not a number in the range 0..255
   return true;
 }
 
@@ -240,39 +239,21 @@ void IpAccessRule::getIpRange(const TCHAR *ip, const TCHAR *netmask,
   firstIp->setString(_T(""));
   lastIp->setString(_T(""));
 
-  size_t ipAnsiLength = _tcslen(ip);
-  size_t netmaskAnsiLength = _tcslen(netmask);
+  AnsiStringStorage ipAnsi(&ipStorage);
+  AnsiStringStorage netmaskAnsi(&netmaskStorage);
 
-  char *ipAnsi = new char[ipAnsiLength + 1];
-  char *netmaskAnsi = new char[netmaskAnsiLength + 1];
-
-  ipStorage.toAnsiString(ipAnsi, ipAnsiLength + 1);
-  netmaskStorage.toAnsiString(netmaskAnsi, netmaskAnsiLength + 1);
-
-  unsigned long ipAddr = inet_addr(ipAnsi);
-  unsigned long netmaskAddr = inet_addr(netmaskAnsi);
+  unsigned long ipAddr = inet_addr(ipAnsi.getString());
+  unsigned long netmaskAddr = inet_addr(netmaskAnsi.getString());
   unsigned long subnetAddr = ipAddr & netmaskAddr;
   unsigned long broadcastAddr = subnetAddr | (~netmaskAddr);
 
   in_addr addr = {0};
 
   memcpy(&addr, &subnetAddr, sizeof(unsigned long));
-  char *subnetworkAnsi = inet_ntoa(addr);
-#ifdef _UNICODE
-  firstIp->fromAnsiString(subnetworkAnsi);
-#else
-  firstIp->setString(subnetworkAnsi);
-#endif
+  AnsiStringStorage subnetworkAnsi(inet_ntoa(addr));
+  subnetworkAnsi.toStringStorage(firstIp);
 
   memcpy(&addr, &broadcastAddr, sizeof(unsigned long));
-  char *broadcastAnsi = inet_ntoa(addr);
-
-#ifdef _UNICODE
-  lastIp->fromAnsiString(broadcastAnsi);
-#else
-  lastIp->setString(broadcastAnsi);
-#endif
-
-  delete[] ipAnsi;
-  delete[] netmaskAnsi;
+  AnsiStringStorage broadcastAnsi(inet_ntoa(addr));
+  broadcastAnsi.toStringStorage(lastIp);
 }

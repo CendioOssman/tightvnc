@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,20 +28,35 @@
 #include "util/CommonHeader.h"
 #include "region/Point.h"
 #include "desktop-ipc/BlockingGate.h"
+#include "region/Rect.h"
 
+// This class will be an abstract interface for user input such as keyboard,
+// mouse pointer, e.t.c., on the server side.
 class UserInput
 {
 public:
   UserInput();
   virtual ~UserInput();
 
+  // FIXME: It's no good idea to place this function to here.
+  // Because it uses only for the UserInputClient class.
   virtual void sendInit(BlockingGate *gate) {}
 
+  // Client to server user inputs
   virtual void setNewClipboard(const StringStorage *newClipboard) = 0;
+  // By the keyFlag argument will be set the mouse button state as described in
+  // the rfb protocol.
   virtual void setMouseEvent(const Point *newPos, UINT8 keyFlag) = 0;
   virtual void setKeyboardEvent(UINT32 keySym, bool down) = 0;
   virtual void getCurrentUserInfo(StringStorage *desktopName,
                                   StringStorage *userName) = 0;
+
+  virtual void getPrimaryDisplayCoords(Rect *rect) = 0;
+  virtual void getDisplayNumberCoords(Rect *rect,
+                                      unsigned char dispNumber) = 0;
+
+  virtual void getWindowCoords(HWND hwnd, Rect *rect) = 0;
+  virtual HWND getWindowHandleByName(const StringStorage *windowName) = 0;
 };
 
-#endif 
+#endif // __USERINPUT_H__

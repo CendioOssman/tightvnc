@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,12 +28,18 @@
 #include "gui/BaseDialog.h"
 #include "gui/TextBox.h"
 
+/**
+ * Control authentication dialog.
+ */
 class ControlAuthDialog : public BaseDialog
 {
 public:
   ControlAuthDialog();
   virtual ~ControlAuthDialog();
 
+  /**
+   * Returns control password specified by user (in plain text).
+   */
   const TCHAR *getPassword() const;
 protected:
   virtual BOOL onInitDialog();

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,23 +26,18 @@
 #define __PIPECLIENT_H__
 
 #include "util/CommonHeader.h"
-#include "Pipe.h"
+#include "NamedPipe.h"
 
+/**
+ * Pipe client factory.
+ */
 class PipeClient
 {
 public:
+  static NamedPipe *connect(const TCHAR *name) throw(Exception);
+
+private:
   PipeClient();
-  virtual ~PipeClient();
-
-  Pipe *connect(const TCHAR *name) throw(Exception);
-
-  void breakConnect() throw(Exception);
-
-  PipeClient(const TCHAR *pipeName, bool needToConnect = true);
-
-  virtual void closeConnection();
-protected:
-  virtual void openConnection();
 };
 
-#endif 
+#endif // __PIPECLIENT_H__

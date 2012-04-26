@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -105,6 +105,11 @@ void VideoRegionsConfigDialog::updateUI()
 
 void VideoRegionsConfigDialog::apply()
 {
+  // FIXME: Bad code
+
+  //
+  // Clear old video classes names container
+  //
 
     AutoLock al(m_config);
 
@@ -112,24 +117,33 @@ void VideoRegionsConfigDialog::apply()
   
     videoClasses->clear();
   
+    //
+    // Split text from text area to string array
+    //
   
     StringStorage classNamesStringStorage;
     m_videoRegions.getText(&classNamesStringStorage);
+
   size_t len = _tcslen(classNamesStringStorage.getString());
-  TCHAR *classNames = new TCHAR[len + 1];
-  _tcscpy(classNames, classNamesStringStorage.getString());
+  std::vector<TCHAR> classNames(len + 1);
+  memcpy(&classNames.front(), classNamesStringStorage.getString(),
+         classNames.size() * sizeof(TCHAR));
   TCHAR delimiter[3] = {13, 10, 0};
-  TCHAR *pch = _tcstok(classNames, &delimiter[0]);
+  TCHAR *pch = _tcstok(&classNames.front(), delimiter);
   while (pch != NULL) {
     size_t length = _tcslen(pch);
     if (length > 0) {
+      // FIXME: Use other container without pointers.
       TCHAR *className = new TCHAR[length + 1];
       _tcscpy(className, pch);
       videoClasses->push_back(className);
     }
     pch = _tcstok(NULL, &delimiter[0]);
   }
-  delete[] classNames;
+
+  //
+  // TODO: Create parseUInt method
+  //
 
   StringStorage vriss;
 
@@ -147,13 +161,18 @@ void VideoRegionsConfigDialog::initControls()
   m_videoRecognitionInterval.setWindow(GetDlgItem(hwnd, IDC_VIDEO_RECOGNITION_INTERVAL));
   m_videoRecognitionIntervalSpin.setWindow(GetDlgItem(hwnd, IDC_VIDEO_RECOGNITION_INTERVAL_SPIN));
 
-  int limitters[] = {50, 200};
-  int deltas[] = {5, 10};
+  int limitersTmp[] = {50, 200};
+  int deltasTmp[] = {5, 10};
+
+  std::vector<int> limitters(limitersTmp, limitersTmp + sizeof(limitersTmp) /
+                                                        sizeof(int));
+  std::vector<int> deltas(deltasTmp, deltasTmp + sizeof(deltasTmp) /
+                                                 sizeof(int));
 
   m_videoRecognitionIntervalSpin.setBuddy(&m_videoRecognitionInterval);
   m_videoRecognitionIntervalSpin.setAccel(0, 1);
   m_videoRecognitionIntervalSpin.setRange32(0, INT_MAX);
-  m_videoRecognitionIntervalSpin.setAutoAccelerationParams(limitters, deltas, 2, 50);
+  m_videoRecognitionIntervalSpin.setAutoAccelerationParams(&limitters, &deltas, 50);
   m_videoRecognitionIntervalSpin.enableAutoAcceleration(true);
 }
 

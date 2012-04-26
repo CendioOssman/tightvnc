@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -48,7 +48,7 @@ private:
 
 protected:
   StringStorage m_pathToTargetRoot;
-  FileInfo *m_filesToDelete;
+  vector<FileInfo> m_filesToDelete;
   UINT32 m_filesCount;
 };
 

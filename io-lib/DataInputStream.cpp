@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,6 +24,7 @@
 
 #include "DataInputStream.h"
 #include <vector>
+#include "util/Utf8StringStorage.h"
 
 #define SETBYTE(y, n) (((y) & 0xFF) << ((n) * 8))
 
@@ -126,8 +127,9 @@ void DataInputStream::readUTF8(StringStorage *storage)
   if (sizeInBytes > 0) {
     std::vector<char> buffer(sizeInBytes);
     readFully(&buffer.front(), sizeInBytes);
-    storage->fromUTF8String(&buffer.front(), sizeInBytes);
+    Utf8StringStorage utf8String(&buffer);
+    utf8String.toStringStorage(storage);
   } else {
-    storage->setString(0);
+    storage->setString(_T(""));
   }
 }

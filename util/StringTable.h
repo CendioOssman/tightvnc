@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -31,9 +31,21 @@
 
 using namespace std;
 
+/**
+ * Helper class with only static methods to get strings from resources.
+ */
 class StringTable
 {
 public:
+  /**
+   * Returns string with specified id from resources.
+   * @param id identifier of string in resource file.
+   * @return requested string or "Requested string from StringTable cannot be received" if not found.
+   * @remark string table hashes loaded strings in private container.
+   * @remark this method must be used after ResourceLoader is initialized
+   * (or assertion check will fail), cause this method used it.
+   * @fixme stub.
+   */
   static const TCHAR *getString(UINT id);
 
 private:

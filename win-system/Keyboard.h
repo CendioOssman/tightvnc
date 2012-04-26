@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,13 +29,31 @@
 
 #include "SystemException.h"
 
+/**
+ * Wrapper on base WinAPI keyboard functions.
+ */
 class Keyboard
 {
 public:
+  /**
+   * Copied current keyboard state (256 virtual keys state) to state array.
+   * @param state [out] array of 256 virtual key states.
+   * @throws SystemException on error.
+   */
   static void getState(BYTE state[256]) throw(SystemException);
 
+  /**
+   * Sets current keyboard state.
+   * @param state array of 256 virtual key states.
+   * @throws SystemException on error.
+   */
   static void setState(BYTE state[256]) throw(SystemException);
 
+  /**
+   * Check if specified key is in pressed state.
+   * @param vkCode virtual code of key.
+   * @return true if key is pressed, false if released.
+   */
   static bool isKeyPressed(BYTE vkCode);
 
 };

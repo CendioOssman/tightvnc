@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -46,7 +46,13 @@ public:
   virtual void setKeyboardEvent(UINT32 keySym, bool down);
   virtual void getCurrentUserInfo(StringStorage *desktopName,
                                   StringStorage *userName);
+  virtual void getPrimaryDisplayCoords(Rect *rect);
+  virtual void getDisplayNumberCoords(Rect *rect,
+                                      unsigned char dispNumber);
+  virtual void getWindowCoords(HWND hwnd, Rect *rect);
+  virtual HWND getWindowHandleByName(const StringStorage *windowName);
 
+  // To catch a new clipboard
   virtual void onRequest(UINT8 reqCode, BlockingGate *backGate);
 
 protected:
@@ -54,4 +60,4 @@ protected:
   ClipboardListener *m_clipboardListener;
 };
 
-#endif 
+#endif // __USERINPUTCLIENT_H__

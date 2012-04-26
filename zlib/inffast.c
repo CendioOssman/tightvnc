@@ -10,6 +10,11 @@
 #include "infutil.h"
 #include "inffast.h"
 
+#ifdef WIN32
+// warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data
+#pragma warning(disable : 4244)
+#endif
+
 struct inflate_codes_state {int dummy;}; /* for buggy compilers */
 
 /* simplify the use of the inflate_huft type with some defines */

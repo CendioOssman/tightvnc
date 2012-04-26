@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,7 +29,9 @@
 #include "server-config-lib/Configurator.h"
 #include "config-lib/RegistrySettingsManager.h"
 #include "util/VncPassCrypt.h"
-#include "file-lib/FileInputStream.h"
+#include "util/AnsiStringStorage.h"
+#include "tvnserver-app/NamingDefs.h"
+#include "file-lib/WinFile.h"
 
 #include "tvnserver/resource.h"
 
@@ -64,7 +66,8 @@ void ControlMessage::send()
 void ControlMessage::sendData()
 {
   m_gate->writeUInt32(m_messageId);
-  m_gate->writeUInt32(m_tunnel->size());
+  _ASSERT((UINT32)m_tunnel->size() == m_tunnel->size());
+  m_gate->writeUInt32((UINT32)m_tunnel->size());
   m_gate->writeFully(m_tunnel->toByteArray(), m_tunnel->size());
 }
 
@@ -109,17 +112,17 @@ void ControlMessage::checkRetCode()
 
 void ControlMessage::authFromFile()
 {
-  File passFile(m_passwordFile.getString());
-  FileInputStream passInput(&passFile);
-  char ansiPassword[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  passInput.read(ansiPassword, 8);
+  WinFile file(m_passwordFile.getString(), F_READ, FM_OPEN);
+  char ansiBuff[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  file.read(ansiBuff, 8);
   for (int i = 0; i < 8; i++) {
-    if (ansiPassword[i] == '\r' || ansiPassword[i] == '\n') {
-      ansiPassword[i] = '\0';
+    if (ansiBuff[i] == '\r' || ansiBuff[i] == '\n') {
+      ansiBuff[i] = '\0';
     }
   }
+  AnsiStringStorage ansiPwd(ansiBuff);
   StringStorage password;
-  password.fromAnsiString(ansiPassword);
+  ansiPwd.toStringStorage(&password);
   ControlAuth auth(m_gate, password.getString());
   send();
 }
@@ -127,7 +130,7 @@ void ControlMessage::authFromFile()
 void ControlMessage::authFromRegistry()
 {
   HKEY rootKey = m_forService ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
-  RegistrySettingsManager sm(rootKey, _T("Software\\TightVNC\\Server\\"), 0);
+  RegistrySettingsManager sm(rootKey, RegistryPaths::SERVER_PATH, 0);
 
   unsigned char hidePassword[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
   unsigned char plainPassword[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -138,12 +141,15 @@ void ControlMessage::authFromRegistry()
                        &passSize)) {
     VncPassCrypt::getPlainPass(plainPassword, hidePassword);
 
+    AnsiStringStorage plainAnsiString((char *)plainPassword);
     StringStorage password;
-    password.fromAnsiString((char *)plainPassword);
+    plainAnsiString.toStringStorage(&password);
+    // Clear ansi plain password from memory.
     memset(plainPassword, 0, sizeof(plainPassword));
     ControlAuth auth(m_gate, password.getString());
 
     send();
   } else {
+    // Ignore errors for silent.
   }
 }

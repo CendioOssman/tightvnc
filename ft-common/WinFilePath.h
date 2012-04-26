@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,18 +32,28 @@ class WinFilePath : public StringStorage
 public:
   WinFilePath();
   WinFilePath(const TCHAR *string);
-  WinFilePath(const StringStorage &stringBuffer);
+  WinFilePath(const WinFilePath &stringBuffer);
 
   ~WinFilePath();
 
+  //
+  // Helper method
+  // FIXME: May we we don't need this method
+  //
+
   bool parentPathIsRoot();
 
+  //
+  // Override parent method
+  //
   virtual void setString(const TCHAR *string);
 
-private:
-  void convertToWindowsPath();
+  void operator = (const StringStorage &other);
 
-protected:
+  bool operator == (const StringStorage &str) const;
+  bool operator < (const StringStorage &str) const;
+
+private:
   bool m_parentPathIsRoot;
 };
 

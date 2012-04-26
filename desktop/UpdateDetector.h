@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,15 +26,15 @@
 #define __UPDATEDETECTOR_H__
 
 #include "UpdateKeeper.h"
-#include "thread/Thread.h"
+#include "thread/GuiThread.h"
 #include "UpdateListener.h"
 
-class UpdateDetector : public Thread
+class UpdateDetector : public GuiThread
 {
 public:
   UpdateDetector(UpdateKeeper *updateKeeper,
                  UpdateListener *updateListener);
-  virtual ~UpdateDetector(void);
+  virtual ~UpdateDetector();
 
   void setUpdateKeeper(UpdateKeeper *updateKeeper) { m_updateKeeper = updateKeeper; }
   UpdateKeeper *getUpdateKeeper() const { return m_updateKeeper; }
@@ -52,4 +52,4 @@ protected:
   UpdateListener *m_updateListener;
 };
 
-#endif 
+#endif // __UPDATEDETECTOR_H__

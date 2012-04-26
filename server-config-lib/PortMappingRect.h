@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -36,10 +36,16 @@ public:
   PortMappingRect();
   virtual ~PortMappingRect();
 
+  // Converts this rect to string value.
   void toString(StringStorage *string) const;
 
+  // Returns true if string can be parsed to rect object,
+  // false otherwise.
   static bool tryParse(const TCHAR *string);
 
+  // Parsed string and sets parsed values to output rect.
+  // Returns true if string is valid, false otherwise.
+  // Remark: "out" parameter can be null.
   static bool parse(const TCHAR *string, PortMappingRect *out);
 };
 

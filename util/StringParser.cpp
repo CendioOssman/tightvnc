@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -42,6 +42,7 @@ bool StringParser::parseInt(const TCHAR *str, int *out)
 
 bool StringParser::parseUInt(const TCHAR *str, unsigned int *out)
 {
+  // Check the minus sign manually because _tcstoul does not fail on it.
   if (str != 0 && str[0] == _T('-')) {
     return false;
   }

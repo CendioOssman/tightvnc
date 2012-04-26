@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -56,7 +56,7 @@ bool FileTransferOperation::isTerminating()
 
 void FileTransferOperation::notifyStart()
 {
-  AutoLock al(&m_listenersCS);
+  AutoLock al(&m_listeners);
 
   vector<OperationEventListener *>::iterator it;
   for (it = m_listeners.begin(); it != m_listeners.end(); it++) {
@@ -67,7 +67,7 @@ void FileTransferOperation::notifyStart()
 
 void FileTransferOperation::notifyFinish()
 {
-  AutoLock al(&m_listenersCS);
+  AutoLock al(&m_listeners);
 
   vector<OperationEventListener *>::iterator it;
   for (it = m_listeners.begin(); it != m_listeners.end(); it++) {
@@ -80,7 +80,7 @@ void FileTransferOperation::notifyError(const TCHAR *message)
 {
   Log::message(_T("%s\n"), message);
 
-  AutoLock al(&m_listenersCS);
+  AutoLock al(&m_listeners);
 
   vector<OperationEventListener *>::iterator it;
   for (it = m_listeners.begin(); it != m_listeners.end(); it++) {
@@ -93,7 +93,7 @@ void FileTransferOperation::notifyInformation(const TCHAR *message)
 {
   Log::message(_T("%s\n"), message);
 
-  AutoLock al(&m_listenersCS);
+  AutoLock al(&m_listeners);
 
   vector<OperationEventListener *>::iterator it;
   for (it = m_listeners.begin(); it != m_listeners.end(); it++) {

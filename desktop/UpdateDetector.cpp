@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,12 +26,11 @@
 
 UpdateDetector::UpdateDetector(UpdateKeeper *updateKeeper,
                                UpdateListener *updateListener)
-: Thread(),
-m_updateKeeper(updateKeeper),
+: m_updateKeeper(updateKeeper),
 m_updateListener(updateListener)
 {
 }
 
-UpdateDetector::~UpdateDetector(void)
+UpdateDetector::~UpdateDetector()
 {
 }

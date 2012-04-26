@@ -26,6 +26,9 @@
     <ClCompile Include="DesktopServerWatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="HookInstaller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="HooksUpdateDetector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -33,9 +36,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="InputBlocker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="KeyEvent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="LocalUpdateHandler.cpp">
@@ -104,6 +104,33 @@
     <ClCompile Include="WindowsUserInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Desktop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GuiDesktop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DesktopClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GrabOptimizator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ScreenDriver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ScreenDriverFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StandardScreenDriver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MirrorScreenDriver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MirrorDriverClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AbnormDeskTermListener.h">
@@ -124,6 +151,9 @@
     <ClInclude Include="DesktopServerWatcher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="HookInstaller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="HooksUpdateDetector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -131,9 +161,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="InputBlocker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="KeyEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LocalUpdateHandler.h">
@@ -200,6 +227,36 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WindowsUserInput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Desktop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DesktopInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GuiDesktop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DesktopClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GrabOptimizator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ScreenDriver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ScreenDriverFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StandardScreenDriver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MirrorScreenDriver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MirrorDriverClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

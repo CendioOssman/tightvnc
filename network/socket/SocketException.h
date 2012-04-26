@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,14 +32,24 @@
 class SocketException : public Exception
 {
 public:
+  // Creates socket exception object with error value eq to current value
+  // of WSAGetLastError().
+  // Error string generates automaticly;
   SocketException();
+  // Creates socket exception object with specified error numner.
+  // Error string generates automaticly;
   SocketException(int error);
+  // Creates socket exception object with specified message.
+  // Error number is sets to zero.
   SocketException(const TCHAR *message);
+  // Destructor.
   virtual ~SocketException();
 
+  // Returns error number.
   int errno();
 
 protected:
+  // Sets m_errno and generates error description string.
   void setErrno(int error);
 
 protected:

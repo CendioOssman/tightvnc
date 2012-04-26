@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -61,6 +61,7 @@ void PipeImpersonatedThread::execute()
 {
   m_success = ImpersonateNamedPipeClient(m_pipeHandle) != 0;
   if (!m_success) {
+    // Store fault reason
     Environment::getErrStr(&m_faultReason);
   }
   m_impersonationReadyEvent.notify();

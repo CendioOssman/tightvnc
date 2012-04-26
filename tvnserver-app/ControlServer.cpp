@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 
 #include "ControlServer.h"
 #include "ControlClient.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
 #include "tvncontrol-app/NamedPipeTransport.h"
 
 ControlServer::ControlServer(PipeServer *pipeServer,
@@ -53,6 +53,7 @@ ControlServer::~ControlServer()
 
   delete m_pipeServer;
 
+  // Unblock all client if it has been blocked by authenticator
   m_authenticator.breakAndDisableAuthentications();
 
   Log::message(_T("%s"), _T("Control server stopped"));
@@ -62,13 +63,13 @@ void ControlServer::execute()
 {
   try {
     while (!isTerminating()) {
-      Pipe *pipe = m_pipeServer->accept();
+      NamedPipe *pipe = m_pipeServer->accept();
       Transport *transport = new NamedPipeTransport(pipe);
 
       ControlClient *clientThread = new ControlClient(transport,
                                                       m_rfbClientManager,
                                                       &m_authenticator,
-                                                      pipe->getPipeHandle());
+                                                      pipe->getHandle());
 
       clientThread->resume();
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -24,9 +24,11 @@
 
 #include "ScreenHooks.h"
 #include "util/CommonHeader.h"
+#include "tvnserver-app/NamingDefs.h"
 #include "region/Point.h"
 #include "region/Region.h"
 
+// Pre-definition:
 LRESULT CALLBACK callWndRetProc(int nCode, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK getMsgProc(int code, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK sysMsgProc(int code, WPARAM wParam, LPARAM lParam);
@@ -37,8 +39,8 @@ void sendNClientRegion(HWND hwnd);
 Rect getWindowRect(HWND hwnd);
 Rect getClientRect(HWND hwnd);
 
+// Per-instance variables:
 HMODULE g_hModule = 0;
-const UINT specIpcCode = RegisterWindowMessage(_T("HOOK.MESSAGE.CODE"));
 
 #pragma comment(linker, "/section:.shared,RWS")
 #pragma data_seg(".shared")
@@ -124,6 +126,7 @@ void processMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message) {
   case WM_PAINT:
+    //FIXME: Process a region that folowing with WM_PAINT.
   case WM_CTLCOLOREDIT:
   case WM_ACTIVATE:
   case WM_ERASEBKGND:
@@ -135,7 +138,7 @@ void processMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
   case WM_VSCROLL:
     sendNClientRegion(hwnd);
     break;
-  case 0x0092: 
+  case 0x0092: // Menu
     sendClientRect(hwnd);
     sendNClientRegion(hwnd);
     break;
@@ -143,7 +146,7 @@ void processMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if (lParam != 0) {
       DRAWITEMSTRUCT *dts = (DRAWITEMSTRUCT *)lParam;
       HWND ctlHwnd = dts->hwndItem;
-      if (wParam == 0) { 
+      if (wParam == 0) { // it is a menu control
       } else {
         sendRect(&getWindowRect(ctlHwnd));
       }
@@ -158,8 +161,9 @@ void sendRect(const Rect *rect)
   INT16 top    = (INT16)rect->top;
   INT16 right  = (INT16)rect->right;
   INT16 bottom = (INT16)rect->bottom;
-  PostMessage(g_targetWinHwnd, specIpcCode, MAKEWPARAM(top, left),
-                                            MAKELPARAM(bottom, right));
+  PostMessage(g_targetWinHwnd, HookDefinitions::SPEC_IPC_CODE,
+              MAKEWPARAM(top, left),
+              MAKELPARAM(bottom, right));
 }
 
 void sendClientRect(HWND hwnd)

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,13 +29,18 @@
 #include "network/socket/SocketStream.h"
 #include "RfbInitializer.h"
 #include "ClientAuthListener.h"
-#include "util/Log.h"
+#include "log-server/Log.h"
+#include "server-config-lib/Configurator.h"
 
-RfbClient::RfbClient(SocketIPv4 *socket,
+RfbClient::RfbClient(NewConnectionEvents *newConnectionEvents,
+                     SocketIPv4 *socket,
                      ClientTerminationListener *extTermListener,
                      ClientAuthListener *extAuthListener, bool viewOnly,
-                     bool isOutgoing, unsigned int id, const Rect *viewPort)
-: m_socket(socket), 
+                     bool isOutgoing, unsigned int id,
+                     const ViewPortState *constViewPort,
+                     const ViewPortState *dynViewPort)
+: m_socket(socket), // now we own the socket
+  m_newConnectionEvents(newConnectionEvents),
   m_viewOnly(viewOnly),
   m_isOutgoing(isOutgoing),
   m_shared(false),
@@ -48,13 +53,10 @@ RfbClient::RfbClient(SocketIPv4 *socket,
   m_clipboardExchange(0),
   m_clientInputHandler(0),
   m_id(id),
-  m_desktop(0)
+  m_desktop(0),
+  m_constViewPort(constViewPort),
+  m_dynamicViewPort(dynViewPort)
 {
-  if (viewPort != 0) {
-    m_viewPort.setArbitraryRect(viewPort);
-  } else {
-    m_viewPort.setFullDesktop();
-  }
   resume();
 }
 
@@ -67,6 +69,7 @@ RfbClient::~RfbClient()
 
 void RfbClient::disconnect()
 {
+  // Shutdown and close socket.
   try { m_socket->shutdown(SD_BOTH); } catch (...) { }
   try { m_socket->close(); } catch (...) { }
   Log::message(_T("Connection has been closed"));
@@ -89,6 +92,7 @@ void RfbClient::getPeerHost(StringStorage *host)
   if (m_socket->getPeerAddr(&addr)) {
     addr.toString(host);
   } else {
+    // FIXME: This may occur if the close() function has been called.
     _ASSERT(FALSE);
 
     host->setString(_T("unknown"));
@@ -102,6 +106,7 @@ void RfbClient::getLocalIpAddress(StringStorage *address)
   if (m_socket->getLocalAddr(&addr)) {
     addr.toString(address);
   } else {
+    // FIXME: This may occur if the close() function has been called.
     _ASSERT(FALSE);
 
     address->setString(_T("unknown"));
@@ -136,6 +141,12 @@ void RfbClient::setViewOnlyFlag(bool value)
   m_clientInputHandler->setViewOnlyFlag(m_viewOnly);
 }
 
+void RfbClient::changeDynViewPort(const ViewPortState *dynViewPort)
+{
+  AutoLock al(&m_viewPortMutex);
+  m_dynamicViewPort.changeState(dynViewPort);
+}
+
 void RfbClient::notifyAbStateChanging(ClientState state)
 {
   setClientState(state);
@@ -149,6 +160,14 @@ void RfbClient::onTerminate()
 
 void RfbClient::execute()
 {
+  // Initialized by default message that will be logged on normal way
+  // of disconnection.
+  StringStorage peerStr;
+  getPeerHost(&peerStr);
+  StringStorage sysLogMessage;
+  sysLogMessage.format(_T("The client %s has disconnected"),
+                       peerStr.getString());
+
   ServerConfig *config = Configurator::getInstance()->getServerConfig();
 
   WindowsEvent connClosingEvent;
@@ -164,6 +183,7 @@ void RfbClient::execute()
                                 !m_isOutgoing);
 
   try {
+    // First initialization phase
     try {
       Log::info(_T("Entering RFB initialization phase 1"));
       rfbInitializer.authPhase();
@@ -177,36 +197,45 @@ void RfbClient::execute()
       Log::debug(_T("Authenticated with view-only password = %d"), (int)m_viewOnlyAuth);
       m_viewOnly = m_viewOnly || m_viewOnlyAuth;
 
+      // Let RfbClientManager handle new authenticated connection.
       m_desktop = m_extAuthListener->onClientAuth(this);
 
       Log::info(_T("View only = %d"), (int)m_viewOnly);
     } catch (Exception &e) {
       Log::error(_T("Error during RFB initialization: %s"), e.getMessage());
+      throw;
     }
-    if (m_desktop == 0) {
-      throw Exception(_T("Connection unsuccessful"));
-    }
+    _ASSERT(m_desktop != 0);
+
+    m_constViewPort.initDesktopInterface(m_desktop);
+    m_dynamicViewPort.initDesktopInterface(m_desktop);
 
     RfbDispatcher dispatcher(&input, &connClosingEvent);
     Log::debug(_T("Dispatcher has been created"));
     CapContainer srvToClCaps, clToSrvCaps, encCaps;
     RfbCodeRegistrator codeRegtor(&dispatcher, &srvToClCaps, &clToSrvCaps,
                                   &encCaps);
+    // Init modules
+    // UpdateSender initialization
     m_updateSender = new UpdateSender(&codeRegtor, m_desktop,
                                       &output, m_id);
     Log::debug(_T("UpdateSender has been created"));
     PixelFormat pf;
     Dimension fbDim;
     m_desktop->getFrameBufferProperties(&fbDim, &pf);
-    m_updateSender->init(&fbDim, &pf);
+    Rect viewPort = getViewPortRect(&fbDim);
+    m_updateSender->init(&Dimension(&viewPort), &pf);
     Log::debug(_T("UpdateSender has been initialized"));
+    // ClientInputHandler initialization
     m_clientInputHandler = new ClientInputHandler(&codeRegtor, this,
                                                   m_viewOnly);
     Log::debug(_T("ClientInputHandler has been created"));
+    // ClipboardExchange initialization
     m_clipboardExchange = new ClipboardExchange(&codeRegtor, m_desktop, &output,
                                                 m_viewOnly);
     Log::debug(_T("ClipboardExchange has been created"));
 
+    // FileTransfers initialization
     if (config->isFileTransfersEnabled() &&
         rfbInitializer.getTightEnabledFlag()) {
       fileTransfer = new FileTransferRequestHandler(&codeRegtor, &output, m_desktop, !m_viewOnly);
@@ -215,9 +244,8 @@ void RfbClient::execute()
       Log::info(_T("File transfer is not allowed"));
     }
 
-    m_viewPort.update(&fbDim);
-    Rect viewPort = m_viewPort.getViewPortRect();
-
+    // Second initialization phase
+    // Send and receive initialization information between server and viewer
     Log::debug(_T("View port: (%d,%d) (%dx%d)"), viewPort.left,
                                                  viewPort.top,
                                                  viewPort.getWidth(),
@@ -227,6 +255,7 @@ void RfbClient::execute()
                                   &encCaps, &Dimension(&viewPort), &pf);
     Log::debug(_T("RFB initialization phase 2 completed"));
 
+    // Start normal phase
     setClientState(IN_NORMAL_PHASE);
 
     Log::info(_T("Entering normal phase of the RFB protocol"));
@@ -235,10 +264,15 @@ void RfbClient::execute()
     connClosingEvent.waitForEvent();
   } catch (Exception &e) {
     Log::error(_T("Connection will be closed: %s"), e.getMessage());
+    sysLogMessage.format(_T("The client %s has been")
+                         _T(" disconnected for the reason: %s"),
+                         peerStr.getString(), e.getMessage());
   }
 
   disconnect();
+  m_newConnectionEvents->onDisconnect(&sysLogMessage);
 
+  // After this call, we are guaranteed not to be used by other threads.
   notifyAbStateChanging(IN_PENDING_TO_REMOVE);
 
   if (fileTransfer)         delete fileTransfer;
@@ -246,6 +280,7 @@ void RfbClient::execute()
   if (m_clientInputHandler) delete m_clientInputHandler;
   if (m_updateSender)       delete m_updateSender;
 
+  // Let the client manager remove us from the client lists.
   notifyAbStateChanging(IN_READY_TO_REMOVE);
 }
 
@@ -253,9 +288,9 @@ void RfbClient::sendUpdate(const UpdateContainer *updateContainer,
                            const FrameBuffer *frameBuffer,
                            const CursorShape *cursorShape)
 {
-  m_viewPort.update(&frameBuffer->getDimension());
+  Rect viewPortRect = getViewPortRect(&frameBuffer->getDimension());
   m_updateSender->newUpdates(updateContainer, frameBuffer, cursorShape,
-                             &m_viewPort.getViewPortRect());
+                             &viewPortRect);
 }
 
 void RfbClient::sendClipboard(const StringStorage *newClipboard)
@@ -270,6 +305,22 @@ void RfbClient::onKeyboardEvent(UINT32 keySym, bool down)
 
 void RfbClient::onMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
 {
+  // Retrieve a view port rect.
+  PixelFormat pfStub;
+  Dimension fbDim;
+  m_desktop->getFrameBufferProperties(&fbDim, &pfStub);
+  Rect vp = getViewPortRect(&fbDim);
+
   m_updateSender->blockCursorPosSending();
-  m_desktop->setMouseEvent(x, y, buttonMask);
+  m_desktop->setMouseEvent(x + vp.left, y + vp.top, buttonMask);
+}
+
+Rect RfbClient::getViewPortRect(const Dimension *fbDimension)
+{
+  AutoLock al(&m_viewPortMutex);
+  m_constViewPort.update(fbDimension);
+  m_dynamicViewPort.update(fbDimension);
+
+  return m_constViewPort.getViewPortRect().intersection(
+    &m_dynamicViewPort.getViewPortRect());
 }

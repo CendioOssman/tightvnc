@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -26,6 +26,10 @@
 #define _REMOTE_FOLDER_CREATE_OPERAION_H_
 
 #include "FileTransferOperation.h"
+
+//
+// Class that used for creating folder on remote file system.
+//
 
 class RemoteFolderCreateOperation : public FileTransferOperation
 {

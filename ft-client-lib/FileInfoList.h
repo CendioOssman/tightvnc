@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -27,33 +27,102 @@
 
 #include "ft-common/FileInfo.h"
 
+//
+// 2D two-side linked list class with FileInfo data inside
+// specified for using in recursive file transfer client operations
+// like recursive files removal, coping files trees etc.
+//
+//
+// Remark: class is owner of it m_next and m_child lists,
+// it must care about memory allocated for it.
+//
+// Class allocates memory for m_next list and m_child list
+// by own hands and frees memory when it's needed.
+//
+
 class FileInfoList
 {
 public:
 
+  //
+  // Creates empty 2d two-side linked list with fileInfo data inside
+  //
+
   FileInfoList(FileInfo fileInfo);
+
+  //
+  // Creates 1d two-side linked list with data from filesInfo array
+  //
 
   FileInfoList(const FileInfo *filesInfo, size_t count);
 
+  //
+  // Frees memory from next and child lists
+  //
+
   ~FileInfoList();
 
-  void setChild(const FileInfo *filesInfo, UINT32 count);
+  //
+  // Creates new file info list from filesInfo array and set it to child
+  // of this list (also it creates backward "child to parent" relationship).
+  //
+
+  void setChild(const FileInfo *filesInfo, size_t count);
+
+  //
+  // Returns child of this list or 0 if no child
+  //
 
   FileInfoList *getChild();
 
+  //
+  // Returns parent of this list or 0 if no parent
+  //
+
   FileInfoList *getParent();
+
+  //
+  // Returns top root (beggining of all list tree), cannot be 0, always valid list pointer
+  //
 
   FileInfoList *getRoot();
 
+  //
+  // Returns top first (begging of this leaf) element in this list
+  //
+
   FileInfoList *getFirst();
+
+  //
+  // Returns next list element or 0 if no next list
+  //
 
   FileInfoList *getNext();
 
+  //
+  // Returns previous list element or 0 if no such list
+  //
+
   FileInfoList *getPrev();
+
+  //
+  // Sets file info hold by this list
+  //
 
   void setFileInfo(FileInfo fileInfo);
 
+  //
+  // Returns file info hold by this list
+  //
+
   FileInfo *getFileInfo();
+
+  //
+  // Sets absolute filename (calculated by parent files) associated
+  // with hold file info in this list to storage variable.
+  //
+  // directorySeparator is char that used to split directories strings.
+  //
 
   void getAbsolutePath(StringStorage *storage, TCHAR directorySeparator);
 
@@ -62,7 +131,7 @@ protected:
   void setNext(FileInfoList *next);
   void setPrev(FileInfoList *prev);
 
-  static FileInfoList *fromArray(const FileInfo *filesInfo, UINT32 count);
+  static FileInfoList *fromArray(const FileInfo *filesInfo, size_t count);
 
 protected:
 

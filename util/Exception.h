@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,13 +29,29 @@
 
 #include "StringStorage.h"
 
+/**
+ * Common Exception class.
+ */
 class Exception
 {
 public:
+  /**
+   * Creates exception with empty description.
+   */
   Exception();
+  /**
+   * Creates exception with specified description.
+   * @param message description string.
+   */
   Exception(const TCHAR *message);
+  /**
+   * Destructor.
+   */
   virtual ~Exception();
 
+  /**
+   * Returns description of exception.
+   */
   const TCHAR *getMessage() const;
 
 protected:

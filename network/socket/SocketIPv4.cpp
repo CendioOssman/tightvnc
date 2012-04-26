@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -35,6 +35,7 @@ SocketIPv4::SocketIPv4()
 : m_localAddr(NULL), m_peerAddr(NULL), m_isBound(false)
 {
   m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  m_isClosed = false;
 
   if (m_socket == INVALID_SOCKET) {
     throw SocketException();
@@ -43,7 +44,21 @@ SocketIPv4::SocketIPv4()
 
 SocketIPv4::~SocketIPv4()
 {
-  try { close(); } catch (...) { }
+#ifdef _WIN32
+  ::closesocket(m_socket);
+#else
+  ::close(m_socket);
+#endif
+
+  AutoLock l(&m_mutex);
+
+  if (m_peerAddr) {
+    delete m_peerAddr;
+  }
+
+  if (m_localAddr) {
+    delete m_localAddr;
+  }
 }
 
 void SocketIPv4::connect(const TCHAR *host, unsigned short port)
@@ -74,31 +89,7 @@ void SocketIPv4::connect(const SocketAddressIPv4 &addr)
 
 void SocketIPv4::close()
 {
-  int result;
-  
-#ifdef _WIN32
-  result = ::closesocket(m_socket);
-#else
-  result = ::close(m_socket);
-#endif
-
-  m_socket = INVALID_SOCKET;
-
-  AutoLock l(&m_mutex);
-
-  if (m_peerAddr) {
-    delete m_peerAddr;
-  }
-
-  if (m_localAddr) {
-    delete m_localAddr;
-  }
-
-  m_peerAddr = m_localAddr = NULL;
-
-  if (result == SOCKET_ERROR) {
-    throw SocketException();
-  }
+  m_isClosed = true;
 }
 
 void SocketIPv4::shutdown(int how)
@@ -150,44 +141,17 @@ void SocketIPv4::listen(int backlog)
 
 SocketIPv4 *SocketIPv4::accept()
 {
-  SOCKET result;
-
   struct sockaddr_in addr;
-  socklen_t addrlen = sizeof(struct sockaddr_in);
+
+  SOCKET result = getAcceptedSocket(&addr);
 
   SocketIPv4 *accepted;
-
-  fd_set afd;
-
-  timeval timeout;
-  timeout.tv_sec = 0;
-  timeout.tv_usec = 200000;
-
-  while (true) {
-    FD_ZERO(&afd);
-    FD_SET(m_socket, &afd);
-
-    int ret = select(m_socket + 1, &afd, NULL, NULL, &timeout);
-
-    if (ret == SOCKET_ERROR) {
-      throw SocketException();
-    } else if (ret == 0) {
-      continue;
-    } else if (ret > 0) {
-      if (FD_ISSET(m_socket, &afd)) {
-        result = ::accept(m_socket, (struct sockaddr*)&addr, &addrlen);
-        if (result == INVALID_SOCKET) {
-          throw SocketException();
-        }
-        break;
-      } 
-    } 
-  } 
 
   try {
     accepted = new SocketIPv4(); 
     accepted->close();
   } catch(...) {
+    // Cleanup and throw further
 #ifdef _WIN32
     ::closesocket(result);
 #else
@@ -198,15 +162,54 @@ SocketIPv4 *SocketIPv4::accept()
 
   AutoLock l(&accepted->m_mutex);
 
+  // Fall out with exception, no need to check if accepted is NULL
   accepted->m_socket = result;
 
+  // Set local and peer addresses for accepted socket
   accepted->m_peerAddr = new SocketAddressIPv4(addr);
   struct sockaddr_in localAddr;
+  socklen_t addrlen = sizeof(struct sockaddr_in);
   if (getsockname(result, (struct sockaddr *)&localAddr, &addrlen) == 0) {
     accepted->m_localAddr = new SocketAddressIPv4(localAddr);
   }
 
-  return accepted; 
+  return accepted; // Valid and initialized
+}
+
+SOCKET SocketIPv4::getAcceptedSocket(struct sockaddr_in *addr)
+{
+  socklen_t addrlen = sizeof(struct sockaddr_in);
+  fd_set afd;
+
+  timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 200000;
+  SOCKET result = INVALID_SOCKET;
+
+  while (true) {
+    FD_ZERO(&afd);
+    FD_SET(m_socket, &afd);
+
+    // FIXME: The select() and accept() function can provoke an system
+    // exception, if it allows by project settings and closesocket() has alredy
+    // been called.
+    int ret = select((int)m_socket + 1, &afd, NULL, NULL, &timeout);
+
+    if (m_isClosed || ret == SOCKET_ERROR) {
+      throw SocketException();
+    } else if (ret == 0) {
+      continue;
+    } else if (ret > 0) {
+      if (FD_ISSET(m_socket, &afd)) {
+        result = ::accept(m_socket, (struct sockaddr*)addr, &addrlen);
+        if (result == INVALID_SOCKET) {
+          throw SocketException();
+        }
+        break;
+      } // if.
+    } // if select ret > 0.
+  } // while waiting for incoming connection.
+  return result;
 }
 
 int SocketIPv4::send(const char *data, int size, int flags)
@@ -228,10 +231,12 @@ int SocketIPv4::recv(char *buffer, int size, int flags)
 
   result = ::recv(m_socket, buffer, size, flags);
 
+  // Connection has been gracefully closed.
   if (result == 0) {
     throw IOException(_T("Connection has been gracefully closed"));
   }
 
+  // SocketIPv4 error.
   if (result == SOCKET_ERROR) {
     throw IOException(_T("Failed to recv data from socket."));
   }
@@ -265,6 +270,7 @@ bool SocketIPv4::getPeerAddr(SocketAddressIPv4 *addr)
   return true;
 }
 
+/* Auxiliary */
 void SocketIPv4::setSocketOptions(int level, int name, void *value, socklen_t len)
 {
   if (setsockopt(m_socket, level, name, (char*)value, len) == SOCKET_ERROR) {

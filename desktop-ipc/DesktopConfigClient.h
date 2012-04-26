@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,9 +28,8 @@
 #include "desktop-ipc/DesktopServerProto.h"
 #include "DesktopSrvDispatcher.h"
 #include "util/DateTime.h"
-#include "server-config-lib/DesktopConfig.h"
 
-class DesktopConfigClient: public DesktopConfig, public DesktopServerProto
+class DesktopConfigClient: public DesktopServerProto
 {
 public:
   DesktopConfigClient(BlockingGate *forwGate);
@@ -43,4 +42,4 @@ private:
   DateTime m_lastInputTime;
 };
 
-#endif 
+#endif // __DESKTOPCONFIGCLIENT_H__

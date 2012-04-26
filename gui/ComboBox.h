@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,26 +34,40 @@ public:
   ComboBox();
   ~ComboBox();
 
+  // Adds new item to the end of combo box items list.
   int addItem(const TCHAR *text);
 
+  // Adds new item to the end of combo box items list.
   int addItem(const TCHAR *text, void *tag);
 
+  // Inserts new item to the specified position
   void insertItem(int index, const TCHAR *text);
 
+  // Inserts new item to the specified position
   void insertItem(int index, const TCHAR *text, void *tag);
 
-  int getItemsCount();
+  // Returns count of combo box items
+  int getItemsCount() const;
 
+  // Sets user data (tag) associated with combo box item with specified index
   void setItemData(int index, void *tag);
 
-  void *getItemData(int index);
+  // Returns user data associated with combo box item with specified index
+  void *getItemData(int index) const;
 
+  // Sets text associated with combo box item with specified index
+  virtual void getItemText(int index, StringStorage *storage) const;
+
+  // Returns current selected item index
   int getSelectedItemIndex();
 
+  // Selects item with specified index
   void setSelectedItem(int index);
 
+  // Deletes item from specified location
   void deleteItem(int index);
 
+  // Removes all combo box items
   void removeAllItems();
 };
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -81,6 +81,11 @@ PortMappingRect PortMapping::getRect() const
 
 void PortMapping::toString(StringStorage *string) const
 {
+  //
+  // Format:   [port]:[rect.toString()]
+  // It means: [port]:[width]x[height]+[x]+[y]
+  // without square brackets.
+  //
 
   StringStorage rectString;
   m_rect.toString(&rectString);

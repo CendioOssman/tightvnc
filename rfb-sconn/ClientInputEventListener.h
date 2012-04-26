@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -34,4 +34,4 @@ public:
   virtual void onMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask) = 0;
 };
 
-#endif 
+#endif // __CLIENTINPUTEVENTLISTENER_H__

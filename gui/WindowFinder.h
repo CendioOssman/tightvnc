@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -32,11 +32,17 @@
 class WindowFinder
 {
 public:
-  static void WindowFinder::findWindowsByClass(StringVector *classNames,
-                                               std::vector<HWND> *hwndVector);
+  // hwndVector parameter will be cleared before adding new items
+  static void findWindowsByClass(StringVector *classNames,
+                                 std::vector<HWND> *hwndVector);
+
+  // Find first of windows that name contain the string.
+  // It is not case sensitive.
+  static HWND findFirstWindowByName(const StringStorage *windowName);
 
 protected:
-  static BOOL CALLBACK enumFindWindows(HWND hwnd, LPARAM lParam);
+  static BOOL CALLBACK findWindowsByClassFunc(HWND hwnd, LPARAM lParam);
+  static BOOL CALLBACK findWindowsByNameFunc(HWND hwnd, LPARAM lParam);
 };
 
-#endif 
+#endif // __WINDOWFINDER_H__

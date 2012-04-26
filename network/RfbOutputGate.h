@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -30,16 +30,39 @@
 
 #include "thread/LocalMutex.h"
 
+/**
+ * Gate for writting rfb messages.
+ *
+ * @features: gate is synchonized (can be locked and unlocked, supports data buffering, and writting
+ * typized data).
+ * @remark: after every message you want to send to must manually call flush() cause
+ * "autoflush on unlock" is removed.
+ * @author enikey.
+ */
 class RfbOutputGate : public DataOutputStream,
                       public LocalMutex
 {
 public:
+  /**
+   * Creates new rfb output gate.
+   * @param stream real output stream.
+   */
   RfbOutputGate(OutputStream *stream);
+  /**
+   * Deletes rfb output gate.
+   */
   virtual ~RfbOutputGate();
 
+  /**
+   * Flushes inner buffer to real output stream.
+   * @throws IOException on error.
+   */
   virtual void flush() throw(IOException);
 
 private:
+  /**
+   * Tunnel that adds buffering.
+   */
   BufferedOutputStream *m_tunnel;
 };
 

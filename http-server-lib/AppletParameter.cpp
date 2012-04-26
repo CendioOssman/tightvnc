@@ -1,4 +1,4 @@
-// Copyright (C) 2008, 2009, 2010 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -29,7 +29,7 @@
 #include <crtdbg.h>
 
 AppletParameter::AppletParameter(const char *name, const char *value)
-: m_isValid(false), m_formattedString(NULL)
+: m_isValid(false)
 {
   _ASSERT(name != NULL);
   _ASSERT(value != NULL);
@@ -37,26 +37,18 @@ AppletParameter::AppletParameter(const char *name, const char *value)
   m_isValid = isStringValid(name) && isStringValid(value);
 
   if (isValid()) {
-    const char *format = "<PARAM NAME=\"%s\" VALUE=\"%s\" >\n";
-
-    int len = _scprintf(format, name, value) + 1;
-
-    m_formattedString = new char[len];
-
-    sprintf_s(m_formattedString, (size_t)(len), format, name, value);
+    char format[] = "<PARAM NAME=\"%s\" VALUE=\"%s\" >\n";
+    m_formattedString.format(format, name, value);
   }
 }
 
 AppletParameter::~AppletParameter()
 {
-  if (m_formattedString != NULL) {
-    delete[] m_formattedString;
-  }
 }
 
 const char *AppletParameter::getFormattedString() const
 {
-  return m_formattedString;
+  return m_formattedString.getString();
 }
 
 bool AppletParameter::isValid() const
@@ -66,11 +58,12 @@ bool AppletParameter::isValid() const
 
 bool AppletParameter::isStringValid(const char *str) const
 {
+  // Applet argument can contain alnum, '_', '.', ' ' characters.
   for (size_t i = 0; i < strlen(str); i++) {
     if (!(isalnum(str[i]) || str[i] == '_' || str[i] == '.' || str[i] == ' ')) {
       return false;
-    } 
-  } 
+    } // if character is not valid.
+  } // for all characters if value.
 
   return true;
 }
