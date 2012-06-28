@@ -27,13 +27,14 @@
 
 #include "RfbKeySymListener.h"
 #include "util/Keymap.h"
+#include "log-writer/LogWriter.h"
 
 // Translates pressed key to a series of rfb symbols. Gives the series
 // to out by the listener function serial calling.
 class RfbKeySym
 {
 public:
-  RfbKeySym(RfbKeySymListener *extKeySymListener);
+  RfbKeySym(RfbKeySymListener *extKeySymListener, LogWriter *log);
   virtual ~RfbKeySym();
 
   // This function doesn't distinguish between left and right modifiers.
@@ -93,6 +94,8 @@ private:
 
   Keymap m_keyMap;
   bool m_allowProcessCharEvent;
+
+  LogWriter *m_log;
 };
 
 #endif // __RFBKEYSYM_H__

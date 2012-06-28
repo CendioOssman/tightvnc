@@ -44,11 +44,13 @@ public:
   // files to be deleted is located.
   //
 
-  RemoteFilesDeleteOperation(const FileInfo *filesInfoToDelete,
+  RemoteFilesDeleteOperation(LogWriter *logWriter,
+                             const FileInfo *filesInfoToDelete,
                              size_t filesCount,
                              const TCHAR *pathToTargetRoot);
 
-  RemoteFilesDeleteOperation(FileInfo fileInfoToDelete,
+  RemoteFilesDeleteOperation(LogWriter *logWriter,
+                             FileInfo fileInfoToDelete,
                              const TCHAR *pathToTargetRoot);
 
   virtual ~RemoteFilesDeleteOperation();

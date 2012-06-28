@@ -23,7 +23,6 @@
 //
 
 #include "ScreenDriverFactory.h"
-#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
 
 ScreenDriverFactory::ScreenDriverFactory()
@@ -38,42 +37,45 @@ ScreenDriver *ScreenDriverFactory::
 createScreenDriver(UpdateKeeper *updateKeeper,
                    UpdateListener *updateListener,
                    FrameBuffer *fb,
-                   LocalMutex *fbLocalMutex)
+                   LocalMutex *fbLocalMutex,
+                   LogWriter *log)
 {
   if (isMirrorDriverAllowed()) {
-    Log::info(_T("Mirror driver usage is allowed, try to start it..."));
+    log->info(_T("Mirror driver usage is allowed, try to start it..."));
     try {
       return createMirrorScreenDriver(updateKeeper, updateListener,
-                                      fbLocalMutex);
+                                      fbLocalMutex, log);
     } catch (Exception &e) {
-      Log::error(_T("The mirror driver factory has failed: %s"),
+      log->error(_T("The mirror driver factory has failed: %s"),
                  e.getMessage());
     }
   } else {
-    Log::info(_T("Mirror driver usage is disallowed"));
+    log->info(_T("Mirror driver usage is disallowed"));
   }
-  Log::info(_T("Using the standart screen driver"));
+  log->info(_T("Using the standart screen driver"));
   return createStandardScreenDriver(updateKeeper,
                                     updateListener,
                                     fb,
-                                    fbLocalMutex);
+                                    fbLocalMutex, log);
 }
 
 ScreenDriver *ScreenDriverFactory::
 createStandardScreenDriver(UpdateKeeper *updateKeeper,
                            UpdateListener *updateListener,
                            FrameBuffer *fb,
-                           LocalMutex *fbLocalMutex)
+                           LocalMutex *fbLocalMutex,
+                           LogWriter *log)
 {
-  return new StandardScreenDriver(updateKeeper, updateListener, fb, fbLocalMutex);
+  return new StandardScreenDriver(updateKeeper, updateListener, fb, fbLocalMutex, log);
 }
 
 ScreenDriver *ScreenDriverFactory::
 createMirrorScreenDriver(UpdateKeeper *updateKeeper,
                          UpdateListener *updateListener,
-                         LocalMutex *fbLocalMutex)
+                         LocalMutex *fbLocalMutex,
+                         LogWriter *log)
 {
-  return new MirrorScreenDriver(updateKeeper, updateListener, fbLocalMutex);
+  return new MirrorScreenDriver(updateKeeper, updateListener, fbLocalMutex, log);
 }
 
 bool ScreenDriverFactory::isMirrorDriverAllowed()

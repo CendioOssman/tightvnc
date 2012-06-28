@@ -103,9 +103,6 @@ public:
   void setHttpPort(int port);
   int getHttpPort();
 
-  bool isBlankScreenEnabled();
-  void enableBlankScreen(bool enabled);
-
   //
   // Other server options access methods
   //
@@ -283,8 +280,6 @@ protected:
 
   int m_rfbPort;
   int m_httpPort;
-
-  bool m_blankScreen;
 
   //
   // Other server options members group

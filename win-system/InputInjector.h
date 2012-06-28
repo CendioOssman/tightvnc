@@ -26,7 +26,7 @@
 #define _INPUT_INJECTOR_H_
 
 #include "util/CommonHeader.h"
-
+#include "log-writer/LogWriter.h"
 #include "SystemException.h"
 
 /**
@@ -36,7 +36,7 @@
 class InputInjector
 {
 public:
-  InputInjector(bool ctrlAltDelEnabled);
+  InputInjector(bool ctrlAltDelEnabled, LogWriter *log);
 
   // Toggles off all modifiers including the Delete key.
   void resetModifiers();
@@ -121,6 +121,8 @@ private:
   bool m_shiftIsPressed;
   bool m_winIsPressed;
   bool m_ctrlAltDelEnabled;
+
+  LogWriter *m_log;
 };
 
 #endif

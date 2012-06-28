@@ -24,14 +24,14 @@
 
 #include "OutgoingRfbConnectionThread.h"
 
-#include "log-server/Log.h"
-
 OutgoingRfbConnectionThread::OutgoingRfbConnectionThread(const TCHAR *connectHost,
                                                          unsigned int connectPort,
                                                          bool viewOnly,
-                                                         RfbClientManager *clientManager)
+                                                         RfbClientManager *clientManager,
+                                                         LogWriter *log)
 : m_connectHost(connectHost), m_connectPort(connectPort), m_viewOnly(viewOnly),
-  m_clientManager(clientManager)
+  m_clientManager(clientManager),
+  m_log(log)
 {
 }
 
@@ -47,7 +47,7 @@ void OutgoingRfbConnectionThread::execute()
   try {
     socket->connect(m_connectHost.getString(), m_connectPort);
   } catch (Exception &someEx) {
-    Log::error(_T("Failed to connect to %s:%d with reason: '%s'"),
+    m_log->error(_T("Failed to connect to %s:%d with reason: '%s'"),
                m_connectHost.getString(), m_connectPort, someEx.getMessage());
     delete socket;
     return ;

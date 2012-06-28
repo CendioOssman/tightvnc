@@ -33,35 +33,43 @@
 #include "ScaleManager.h"
 #include "ViewerMenu.h"
 #include "gui/ToolBar.h"
+#include "log-writer/LogWriter.h"
 #include "viewer-core/FileTransferCapability.h"
 #include "viewer-core/RemoteViewerCore.h"
 #include "viewer-core/CoreEventsAdapter.h"
 #include "viewer-core/VncAuthentication.h"
 #include "win-system/SystemInformation.h"
+#include "win-system/WindowsApplication.h"
 
 class ViewerWindow : public BaseWindow,
                      public CoreEventsAdapter
 {
 public:
-  ViewerWindow(ConnectionData *conData, ConnectionConfig *conConf);
+  ViewerWindow(WindowsApplication *application,
+               ConnectionData *conData, ConnectionConfig *conConf,
+               Logger *logger = 0);
   virtual ~ViewerWindow();
 
   void setFileTransfer(FileTransferCapability *ft);
   void setRemoteViewerCore(RemoteViewerCore *pCore);
 
+  bool isStopped() const;
+
   static const int WM_USER_ERROR = WM_USER + 1;
   static const int WM_USER_STOP = WM_USER + 2;
+  static const int WM_USER_FS_WARNING = WM_USER + 3;
 
 protected:
   bool onMessage(UINT message, WPARAM wParam, LPARAM lParam);
   bool onEraseBackground(HDC hdc);
   bool onError(WPARAM wParam);
+  bool onFsWarning();
   bool onSize(WPARAM wParam, LPARAM lParam);
   bool onCreate(LPCREATESTRUCT lps);
   bool onCommand(WPARAM wParam, LPARAM lParam);
   bool onNotify(int idCtrl, LPNMHDR pnmh);
   bool onSysCommand(WPARAM wParam, LPARAM lParam);
-  bool onDestroy();
+  bool onClose();
   bool onFocus(WPARAM wParam);
   bool onKillFocus(WPARAM wParam);
 
@@ -72,6 +80,7 @@ protected:
   void commandToolBar();
   void commandPause();
   void onAbout();
+  void commandNewConnection();
   void commandSaveConnection();
   void commandScaleIn();
   void commandScaleOut();
@@ -93,10 +102,19 @@ protected:
   void getPassword(StringStorage *strPassw);
   int translateAccelToTB(int val);
   void applyScreenChanges(bool isFullScreen);
-  void calculateDefaultSize(RECT * prc, int *width, int *height);
+  
+  // function return default rect of viewer window:
+  // if size of remote screen is more local desktop, then return rect of desktop
+  // else return rect of remote screen + border
+  Rect calculateDefaultSize();
+  
+  LogWriter m_logWriter;
+
+  Control m_control;
 
   ConnectionConfigSM m_ccsm;
   ConnectionConfig *m_conConf;
+  WindowsApplication *m_application;
   RemoteViewerCore *m_pViewerCore;
   FileTransferCapability *m_fileTransfer;
   FileTransferMainDialog *m_ftDialog;
@@ -110,9 +128,20 @@ protected:
 
   // for full screen mode
   bool m_isFullScr;
+  // size of work-area in windowed mode. Need for restore size of window
   RECT m_rcNormal;
+  // true after recv first message WM_SIZING
+  bool m_sizeIsChanged;
+  // true, if size of window is SIZE_MAXIMIZED
+  bool m_isMaximized;
   bool m_bToolBar;
   int m_scale;
+
+  // flag is set after onConnected()
+  bool m_isConnected;
+
+  // flag is set, if viewer instance is stopped
+  bool m_stopped;
 
 private:
   vector<int> m_standardScale;
@@ -130,7 +159,7 @@ private:
   void dialogConnectionInfo();
   void switchFullScreenMode();
   void dialogConfiguration();
-
+  void adjustWindowSize();
 };
 
 #endif

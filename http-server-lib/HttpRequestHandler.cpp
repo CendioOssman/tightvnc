@@ -29,15 +29,16 @@
 #include "VncViewerJarBody.h"
 #include "win-system/Environment.h"
 #include "server-config-lib/Configurator.h"
-#include "log-server/Log.h"
 #include "util/AnsiStringStorage.h"
 #include "tvnserver-app/NamingDefs.h"
 
 HttpRequestHandler::HttpRequestHandler(DataInputStream *dataInput,
                                        DataOutputStream *dataOutput,
+                                       LogWriter *log,
                                        const TCHAR *peerHost)
 : m_dataInput(dataInput), m_dataOutput(dataOutput),
-  m_peerHost(peerHost)
+  m_peerHost(peerHost),
+  m_log(log)
 {
 }
 
@@ -57,14 +58,14 @@ void HttpRequestHandler::processRequest()
   ansiRequest.toStringStorage(&request);
 
   if (!httpRequest.parseHeader()) {
-    Log::warning(_T("invalid http request from %s"), m_peerHost.getString());
+    m_log->warning(_T("invalid http request from %s"), m_peerHost.getString());
     return ;
   }
 
   request.replaceChar(_T('\n'), _T(' '));
   request.replaceChar(_T('\t'), _T(' '));
 
-  Log::message(_T("\"%s\" from %s"), request.getString(), m_peerHost.getString());
+  m_log->message(_T("\"%s\" from %s"), request.getString(), m_peerHost.getString());
 
   HttpReply reply(m_dataOutput);
 

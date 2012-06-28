@@ -28,13 +28,14 @@
 #include "util/CommonHeader.h"
 #include <vector>
 #include "thread/LocalMutex.h"
+#include "log-writer/LogWriter.h"
 
 typedef std::vector<TCHAR *> StringContainer;
 
 class WinEventLog
 {
 public:
-  WinEventLog();
+  WinEventLog(LogWriter *log);
   virtual ~WinEventLog();
 
   // This function enables fully functional this object usage,
@@ -59,6 +60,8 @@ private:
 
   HANDLE m_hEventLog;
   LocalMutex m_hEventLogMutex;
+
+  LogWriter *m_log;
 };
 
 #endif // __WINEVENTLOG_H__

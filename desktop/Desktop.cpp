@@ -28,17 +28,20 @@
 
 Desktop::Desktop(ClipboardListener *extClipListener,
                  UpdateSendingListener *extUpdSendingListener,
-                 AbnormDeskTermListener *extDeskTermListener)
+                 AbnormDeskTermListener *extDeskTermListener,
+                 LogWriter *log)
 : m_guiDesktop(0)
 {
   if (Configurator::getInstance()->getServiceFlag()) {
     m_guiDesktop = new DesktopClient(extClipListener,
                                      extUpdSendingListener,
-                                     extDeskTermListener);
+                                     extDeskTermListener,
+                                     log);
   } else {
     m_guiDesktop = new WinDesktop(extClipListener,
                                   extUpdSendingListener,
-                                  extDeskTermListener);
+                                  extDeskTermListener,
+                                  log);
   }
 }
 

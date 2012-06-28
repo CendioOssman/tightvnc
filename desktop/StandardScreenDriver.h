@@ -37,7 +37,7 @@ public:
   StandardScreenDriver(UpdateKeeper *updateKeeper,
                        UpdateListener *updateListener,
                        FrameBuffer *fb,
-                       LocalMutex *fbLocalMutex);
+                       LocalMutex *fbLocalMutex, LogWriter *log);
   virtual ~StandardScreenDriver();
 
   // Starts screen update detection if it not started yet.

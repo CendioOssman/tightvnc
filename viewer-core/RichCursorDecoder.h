@@ -32,7 +32,7 @@
 class RichCursorDecoder : public Decoder
 {
 public:
-  RichCursorDecoder();
+  RichCursorDecoder(LogWriter *logWriter);
   ~RichCursorDecoder();
 
   void decode(RfbInputGate *input,

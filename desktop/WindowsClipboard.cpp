@@ -23,15 +23,15 @@
 //
 
 #include "WindowsClipboard.h"
-#include "log-server/Log.h"
 #include "tvnserver-app/NamingDefs.h"
 
 const HINSTANCE WindowsClipboard::m_hinst = GetModuleHandle(0);
 
-WindowsClipboard::WindowsClipboard(ClipboardListener *clipboardListener)
+WindowsClipboard::WindowsClipboard(ClipboardListener *clipboardListener, LogWriter *log)
 : MessageWindow(m_hinst, ClipboardNames::CLIPBOARD_WIN_CLASS_NAME),
   m_hwndNextViewer(0),
-  m_clipboardListener(clipboardListener)
+  m_clipboardListener(clipboardListener),
+  m_log(log)
 {
   resume();
 }
@@ -156,7 +156,7 @@ void WindowsClipboard::onTerminate()
 
 void WindowsClipboard::execute()
 {
-  Log::info(_T("clipboard thread id = %d"), getThreadId());
+  m_log->info(_T("clipboard thread id = %d"), getThreadId());
 
   if (!createWindow()) {
     return;

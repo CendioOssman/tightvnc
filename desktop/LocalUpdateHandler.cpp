@@ -28,11 +28,11 @@
 #include "HooksUpdateDetector.h"
 #include "MouseShapeDetector.h"
 #include "server-config-lib/Configurator.h"
-#include "log-server/Log.h"
 #include "gui/WindowFinder.h"
 #include "ScreenDriverFactory.h"
 
-LocalUpdateHandler::LocalUpdateHandler(UpdateListener *externalUpdateListener)
+LocalUpdateHandler::LocalUpdateHandler(UpdateListener *externalUpdateListener,
+                                       LogWriter *log)
 : m_externalUpdateListener(externalUpdateListener),
   m_fullUpdateRequested(false)
 {
@@ -41,16 +41,17 @@ LocalUpdateHandler::LocalUpdateHandler(UpdateListener *externalUpdateListener)
   m_screenDriver = ScreenDriverFactory::createScreenDriver(m_updateKeeper,
                                                            this,
                                                            &m_backupFrameBuffer,
-                                                           &m_fbLocMut);
+                                                           &m_fbLocMut, log);
   m_updateKeeper->setBorderRect(&m_screenDriver->getScreenDimension().getRect());
 
-  m_mouseDetector = new MouseDetector(m_updateKeeper, this);
+  m_mouseDetector = new MouseDetector(m_updateKeeper, this, log);
   m_mouseShapeDetector = new MouseShapeDetector(m_updateKeeper, this,
                                                 &m_mouseGrabber,
-                                                &m_mouseGrabLocMut);
+                                                &m_mouseGrabLocMut,
+                                                log);
   m_updateFilter = new UpdateFilter(m_screenDriver,
                                     &m_backupFrameBuffer,
-                                    &m_fbLocMut);
+                                    &m_fbLocMut, log);
 
   executeDetectors();
 

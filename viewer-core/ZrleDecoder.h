@@ -32,7 +32,7 @@
 class ZrleDecoder : public Decoder
 {
 public:
-  ZrleDecoder();
+  ZrleDecoder(LogWriter *logWriter);
   virtual ~ZrleDecoder();
 
   void decode(RfbInputGate *input,

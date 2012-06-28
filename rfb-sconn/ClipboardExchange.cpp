@@ -24,17 +24,19 @@
 
 #include "ClipboardExchange.h"
 #include "rfb/MsgDefs.h"
-#include "log-server/Log.h"
 #include "util/AnsiStringStorage.h"
+#include "thread/AutoLock.h"
 
 ClipboardExchange::ClipboardExchange(RfbCodeRegistrator *codeRegtor,
                                      DesktopInterface *desktop,
                                      RfbOutputGate *output,
-                                     bool viewOnly)
+                                     bool viewOnly,
+                                     LogWriter *log)
 : m_desktop(desktop),
   m_output(output),
   m_viewOnly(viewOnly),
-  m_hasNewClip(false)
+  m_hasNewClip(false),
+  m_log(log)
 {
   // Request code
   codeRegtor->regCode(ClientMsgDefs::CLIENT_CUT_TEXT, this);
@@ -116,7 +118,7 @@ void ClipboardExchange::execute()
 
         m_output->flush();
       } catch (Exception &e) {
-        Log::error(_T("The clipboard thread force to terminate because")
+        m_log->error(_T("The clipboard thread force to terminate because")
                    _T(" it caught the error: %s"), e.getMessage());
         terminate();
       }

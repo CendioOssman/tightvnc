@@ -1,4 +1,4 @@
-// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -28,18 +28,38 @@
 #include "Logger.h"
 #include "util/CharDefs.h"
 
+// This class is a high level wrap for the Logger class. It helps write log in different
+// log levels by the different functions.
 class LogWriter
 {
 public:
+  // The logger argument is a pointer to a Logger object that implements log writing.
+  // It can be zero, in this case no log is writing.
   LogWriter(Logger *logger);
   virtual ~LogWriter();
 
+  // Write most important log messages such as code internal errors
+  // (what shouldn't have happened but it did).
   void interror(const TCHAR *fmt, ...);
+
+  // Write other important log messages that do not give continue work normally, such
+  // as connection errors and other.
   void error(const TCHAR *fmt, ...);
+
+  // Write logs with the warning level that less that error level.
   void warning(const TCHAR *fmt, ...);
+
+  // Write logs with neutral log levels.
   void message(const TCHAR *fmt, ...);
+
+  // Write logs with info level which less than the neutral "message" level.
   void info(const TCHAR *fmt, ...);
+
+  // Write logs with detailed level when need to get more details.
   void detail(const TCHAR *fmt, ...);
+
+  // Write logs only for debug purposes, it most of detailed logs. Should to be used
+  // to write log messages which helps to track work of a code as detailed as possible.
   void debug(const TCHAR *fmt, ...);
 
 protected:

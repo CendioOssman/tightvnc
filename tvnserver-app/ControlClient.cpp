@@ -34,7 +34,6 @@
 #include "server-config-lib/Configurator.h"
 
 #include "util/VncPassCrypt.h"
-#include "log-server/Log.h"
 
 #include "rfb/HostPath.h"
 
@@ -61,11 +60,12 @@ const UINT32 ControlClient::REQUIRES_AUTH[] = { ControlProto::ADD_CLIENT_MSG_ID,
 ControlClient::ControlClient(Transport *transport,
                              RfbClientManager *rfbClientManager,
                              ControlAppAuthenticator *authenticator,
-                             HANDLE pipeHandle)
+                             HANDLE pipeHandle, LogWriter *log)
 : m_transport(transport), m_rfbClientManager(rfbClientManager),
   m_authenticator(authenticator),
   m_tcpDispId(0),
-  m_pipeHandle(pipeHandle)
+  m_pipeHandle(pipeHandle),
+  m_log(log)
 {
   m_stream = m_transport->getIOStream();
 
@@ -95,7 +95,7 @@ void ControlClient::execute()
       UINT32 messageId = m_gate->readUInt32();
       UINT32 messageSize = m_gate->readUInt32();
 
-      Log::detail(_T("Recieved control message ID %u, size %u"),
+      m_log->detail(_T("Recieved control message ID %u, size %u"),
                   (unsigned int)messageId, (unsigned int)messageSize);
 
       bool requiresControlAuth = false;
@@ -113,7 +113,7 @@ void ControlClient::execute()
       try {
         // Message requires control auth: skip message body and sent reply.
         if (requiresControlAuth && !m_authPassed) {
-          Log::detail(_T("Message requires control authentication"));
+          m_log->detail(_T("Message requires control authentication"));
 
           m_gate->skipBytes(messageSize);
           m_gate->writeUInt32(ControlProto::REPLY_AUTH_NEEDED);
@@ -123,87 +123,87 @@ void ControlClient::execute()
 
         switch (messageId) {
         case ControlProto::AUTH_MSG_ID:
-          Log::detail(_T("Control authentication requested"));
+          m_log->detail(_T("Control authentication requested"));
           authMsgRcdv();
           break;
         case ControlProto::RELOAD_CONFIG_MSG_ID:
-          Log::detail(_T("Command requested: Reload configuration"));
+          m_log->detail(_T("Command requested: Reload configuration"));
           reloadConfigMsgRcvd();
           break;
         case ControlProto::DISCONNECT_ALL_CLIENTS_MSG_ID:
-          Log::detail(_T("Command requested: Disconnect all clients command requested"));
+          m_log->detail(_T("Command requested: Disconnect all clients command requested"));
           disconnectAllMsgRcvd();
           break;
         case ControlProto::SHUTDOWN_SERVER_MSG_ID:
-          Log::detail(_T("Command requested: Shutdown command requested"));
+          m_log->detail(_T("Command requested: Shutdown command requested"));
           shutdownMsgRcvd();
           break;
         case ControlProto::ADD_CLIENT_MSG_ID:
-          Log::detail(_T("Command requested: Attach listening viewer"));
+          m_log->detail(_T("Command requested: Attach listening viewer"));
           addClientMsgRcvd();
           break;
         case ControlProto::CONNECT_TO_TCPDISP_MSG_ID:
-          Log::message(_T("Connect to a tcp dispatcher command requested"));
+          m_log->message(_T("Connect to a tcp dispatcher command requested"));
           connectToTcpDispatcher();
           break;
         case ControlProto::GET_SERVER_INFO_MSG_ID:
-          Log::detail(_T("Control client requests server info"));
+          m_log->detail(_T("Control client requests server info"));
           getServerInfoMsgRcvd();
           break;
         case ControlProto::GET_CLIENT_LIST_MSG_ID:
-          Log::detail(_T("Control client requests client list"));
+          m_log->detail(_T("Control client requests client list"));
           getClientsListMsgRcvd();
           break;
         case ControlProto::SET_CONFIG_MSG_ID:
-          Log::detail(_T("Control client sends new server config"));
+          m_log->detail(_T("Control client sends new server config"));
           setServerConfigMsgRcvd();
           break;
         case ControlProto::GET_CONFIG_MSG_ID:
-          Log::detail(_T("Control client requests server config"));
+          m_log->detail(_T("Control client requests server config"));
           getServerConfigMsgRcvd();
           break;
         case ControlProto::GET_SHOW_TRAY_ICON_FLAG:
-          Log::detail(_T("Control client requests tray icon visibility flag"));
+          m_log->detail(_T("Control client requests tray icon visibility flag"));
           getShowTrayIconFlagMsgRcvd();
           break;
         case ControlProto::UPDATE_TVNCONTROL_PROCESS_ID_MSG_ID:
-          Log::detail(_T("Control client sends process ID"));
+          m_log->detail(_T("Control client sends process ID"));
           updateTvnControlProcessIdMsgRcvd();
           break;
         case ControlProto::SHARE_PRIMARY_MSG_ID:
-          Log::message(_T("Share primary message recieved"));
+          m_log->message(_T("Share primary message recieved"));
           sharePrimaryIdMsgRcvd();
           break;
         case ControlProto::SHARE_DISPLAY_MSG_ID:
-          Log::message(_T("Share display message recieved"));
+          m_log->message(_T("Share display message recieved"));
           shareDisplayIdMsgRcvd();
           break;
         case ControlProto::SHARE_WINDOW_MSG_ID:
-          Log::message(_T("Share window message recieved"));
+          m_log->message(_T("Share window message recieved"));
           shareWindowIdMsgRcvd();
           break;
         case ControlProto::SHARE_RECT_MSG_ID:
-          Log::message(_T("Share rect message recieved"));
+          m_log->message(_T("Share rect message recieved"));
           shareRectIdMsgRcvd();
           break;
         case ControlProto::SHARE_FULL_MSG_ID:
-          Log::message(_T("Share full message recieved"));
+          m_log->message(_T("Share full message recieved"));
           shareFullIdMsgRcvd();
           break;
         default:
           m_gate->skipBytes(messageSize);
-          Log::warning(_T("Received unsupported message from control client"));
+          m_log->warning(_T("Received unsupported message from control client"));
           throw ControlException(_T("Unknown command"));
         } // switch (messageId).
       } catch (ControlException &controlEx) {
-        Log::error(_T("Exception while processing control client's request: \"%s\""),
+        m_log->error(_T("Exception while processing control client's request: \"%s\""),
                    controlEx.getMessage());
 
         sendError(controlEx.getMessage());
       }
     } // while
   } catch (Exception &ex) {
-    Log::error(_T("Exception in control client thread: \"%s\""), ex.getMessage());
+    m_log->error(_T("Exception in control client thread: \"%s\""), ex.getMessage());
   }
 }
 
@@ -361,7 +361,7 @@ void ControlClient::addClientMsgRcvd()
   OutgoingRfbConnectionThread *newConnectionThread =
                                new OutgoingRfbConnectionThread(host.getString(),
                                                                hp.getVncPort(), viewOnly,
-                                                               m_rfbClientManager);
+                                                               m_rfbClientManager, m_log);
 
   newConnectionThread->resume();
 
@@ -407,7 +407,7 @@ void ControlClient::connectToTcpDispatcher()
                                      connectionId,
                                      &ansiKeyword,
                                      m_rfbClientManager,
-                                     this);
+                                     this, m_log);
 
   m_connectingSocketThreadCollector.addThread(newConnectionThread);
 }
@@ -437,7 +437,7 @@ void ControlClient::updateTvnControlProcessIdMsgRcvd()
   try {
     WTS::duplicatePipeClientToken(m_pipeHandle);
   } catch (Exception &e) {
-    Log::error(_T("Can't update the control client impersonation token: %s"),
+    m_log->error(_T("Can't update the control client impersonation token: %s"),
                e.getMessage());
   }
   m_gate->writeUInt32(ControlProto::REPLY_OK);

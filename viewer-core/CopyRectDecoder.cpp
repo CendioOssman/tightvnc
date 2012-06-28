@@ -24,7 +24,8 @@
 
 #include "CopyRectDecoder.h"
 
-CopyRectDecoder::CopyRectDecoder()
+CopyRectDecoder::CopyRectDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

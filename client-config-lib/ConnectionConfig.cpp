@@ -46,7 +46,12 @@ ConnectionConfig::~ConnectionConfig()
 {
 }
 
-ConnectionConfig& ConnectionConfig::operator=(ConnectionConfig& other)
+ConnectionConfig::ConnectionConfig(const ConnectionConfig &connectionConfig)
+{
+  *this = connectionConfig;
+}
+
+ConnectionConfig& ConnectionConfig::operator=(const ConnectionConfig& other)
 {
   bool allowedCopyRect;
   unsigned char preferredEncoding;

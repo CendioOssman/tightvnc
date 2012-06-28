@@ -24,7 +24,8 @@
 
 #include "HexTileDecoder.h"
 
-HexTileDecoder::HexTileDecoder()
+HexTileDecoder::HexTileDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

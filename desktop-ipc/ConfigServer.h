@@ -32,7 +32,7 @@
 class ConfigServer : public DesktopServerProto, public ClientListener
 {
 public:
-  ConfigServer(DesktopSrvDispatcher *dispatcher);
+  ConfigServer(DesktopSrvDispatcher *dispatcher, LogWriter *log);
   virtual ~ConfigServer();
 
 protected:

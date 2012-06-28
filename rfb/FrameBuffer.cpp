@@ -177,8 +177,8 @@ template<class PIXEL_T> bool FrameBuffer::overlayT(const Rect *dstRect,
       unsigned char curByte = andMask[iRow * bytesPerRow + iCol / 8];
       bool andBit = (curByte & 128 >> iCol % 8) != 0;
       if (andBit) {
-        int iDstRow = dstClippedRect.top + iRow - srcY;
-        int iDstCol = dstClippedRect.left + iCol - srcX;
+        int iDstRow = dstClippedRect.top + iRow - srcY - srcClippedRect.top;
+        int iDstCol = dstClippedRect.left + iCol - srcX - srcClippedRect.left;
         dstPixels[iDstRow * dstWidth + iDstCol] = srcPixels[iRow * srcWidth + iCol];
       }
     }

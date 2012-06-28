@@ -67,11 +67,13 @@ public:
   // filename format, see file transfer protocol extension for more information).
   //
 
-  UploadOperation(FileInfo fileToUpload,
+  UploadOperation(LogWriter *logWriter,
+                  FileInfo fileToUpload,
                   const TCHAR *pathToSourceRoot,
                   const TCHAR *pathToTargetRoot);
 
-  UploadOperation(const FileInfo *filesToUpload,
+  UploadOperation(LogWriter *logWriter,
+                  const FileInfo *filesToUpload,
                   size_t filesCount,
                   const TCHAR *pathToSourceRoot,
                   const TCHAR *pathToTargetRoot);

@@ -27,6 +27,7 @@
 
 #include "util/CommonHeader.h"
 #include "network/TcpServer.h"
+#include "log-writer/LogWriter.h"
 
 /**
  * Simple tcp server that accepts connections and give management over
@@ -44,7 +45,8 @@ public:
    */
   HttpServer(const TCHAR *bindHost,
              unsigned short bindPort,
-             bool lockAddr) throw(Exception);
+             bool lockAddr,
+             LogWriter *log) throw(Exception);
   /**
    * Stops http server thread and deletes http server.
    */
@@ -56,6 +58,9 @@ protected:
    * Give management over incoming connection to new HttpClientThread instance.
    */
   virtual void onAcceptConnection(SocketIPv4 *socket);
+
+private:
+  LogWriter *m_log;
 };
 
 #endif

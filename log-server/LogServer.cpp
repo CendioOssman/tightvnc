@@ -28,7 +28,9 @@
 LogServer::LogServer(const TCHAR *publicPipeName)
 : m_listenLogServer(0),
   m_publicPipeName(publicPipeName),
-  m_logLevel(0)
+  m_logLevel(0),
+  m_headerLineCount(0),
+  m_totalLogLines(0)
 {
 }
 
@@ -58,8 +60,9 @@ LogServer::~LogServer()
 }
 
 void LogServer::start(const TCHAR *logDir,
-                      unsigned char logLevel)
+                      unsigned char logLevel, size_t headerLineCount)
 {
+  m_headerLineCount = headerLineCount;
   m_logDir.setString(logDir);
   m_logLevel = logLevel;
   m_listenLogServer = new ListenLogServer(m_publicPipeName.getString(), this);
@@ -85,6 +88,14 @@ void LogServer::changeLogProps(const TCHAR *newLogDir, unsigned char newLevel)
   for (ConnListIter iter = m_notAuthConnList.begin();
        iter != m_notAuthConnList.end(); iter++) {
     (*iter)->changeLogLevel(m_logLevel);
+  }
+}
+
+void LogServer::storeHeader()
+{
+  AutoLock al(&m_logPropsMutex);
+  if (m_fileAccountList.size() >= 1) {
+    m_fileAccountList[0]->storeHeader();
   }
 }
 
@@ -156,6 +167,11 @@ void LogServer::onLog(FileAccountHandle handle,
     throw Exception(_T("Unhandled log message"));
   }
   (*iter).second->print(processId, threadId, dt, level, message);
+
+  m_totalLogLines++;
+  if (m_totalLogLines == m_headerLineCount) {
+    storeHeader();
+  }
 }
 
 void LogServer::onAnErrorFromLogConn(const TCHAR *message)
@@ -172,7 +188,9 @@ FileAccountHandle LogServer::addConnection(const TCHAR *fileName)
     }
   }
   size_t count = m_fileAccountList.size();
+  bool logHeadEnabled = count == 0;
   m_fileAccountList[count] = new FileAccount(m_logDir.getString(),
-                                             fileName, m_logLevel);
+                                             fileName, m_logLevel,
+                                             logHeadEnabled);
   return count;
 }

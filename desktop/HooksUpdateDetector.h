@@ -31,12 +31,13 @@
 #include "gui/MessageWindow.h"
 #include "HookUpdateTimer.h"
 #include "win-system/Process.h"
+#include "log-writer/LogWriter.h"
 
 class HooksUpdateDetector : public UpdateDetector
 {
 public:
   HooksUpdateDetector(UpdateKeeper *updateKeeper,
-                      UpdateListener *updateListener);
+                      UpdateListener *updateListener, LogWriter *log);
   virtual ~HooksUpdateDetector();
 
 protected:
@@ -57,6 +58,8 @@ private:
   void broadcastMessage(UINT message);
 
   static const TCHAR HOOK_LOADER_NAME[];
+
+  LogWriter *m_log;
 };
 
 #endif // __HOOKSUPDATEDETECTOR_H__

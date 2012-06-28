@@ -25,7 +25,6 @@
 #ifndef _AUTH_HANDLER_H_
 #define _AUTH_HANDLER_H_
 
-#include "log-server/Log.h"
 #include "network/RfbInputGate.h"
 #include "network/RfbOutputGate.h"
 #include "rfb/AuthDefs.h"

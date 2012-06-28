@@ -91,7 +91,7 @@ void UnicodeStringStorage::fromStringStorage(const StringStorage *src)
   MultiByteToWideChar(CP_ACP, 0, src->getString(),
                       constrCharCount, // Size in bytes
                       &m_buffer.front(),
-                      m_buffer.size() // Size in WCHAR
+                      static_cast<int>(m_buffer.size()) // Size in WCHAR
                       );
 #else
   setString(src->getString());

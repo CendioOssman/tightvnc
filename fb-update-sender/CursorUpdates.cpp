@@ -23,11 +23,12 @@
 //
 
 #include "CursorUpdates.h"
-#include "log-server/Log.h"
+#include "thread/AutoLock.h"
 
-CursorUpdates::CursorUpdates()
+CursorUpdates::CursorUpdates(LogWriter *log)
 : m_blockCurPosTime(0),
-  m_isDrawCursorMethod(false)
+  m_isDrawCursorMethod(false),
+  m_log(log)
 {
 }
 
@@ -51,7 +52,7 @@ void CursorUpdates::update(const EncodeOptions *encodeOptions,
   // but the updCont->cursorPosChanged flag can be raised only cursor pos
   // is not blocked.
   if (posChanged) {
-    Log::debug(_T("Checking cursor position"));
+    m_log->debug(_T("Checking cursor position"));
     bool cursorPosBlockingIsIgnored = !richEnabled;
     posChanged = checkCursorPos(updCont, viewPort, cursorPosBlockingIsIgnored);
   }
@@ -91,18 +92,18 @@ void CursorUpdates::update(const EncodeOptions *encodeOptions,
   }
 
   if (!richEnabled || !posEnabled) {
-    Log::debug(_T("Clearing cursorPosChanged")
+    m_log->debug(_T("Clearing cursorPosChanged")
                _T(" (RichCursor or PointerPos are not requested)"));
     updCont->cursorPosChanged = false;
   } else if (fullRegReq) {
-    Log::debug(_T("Raising cursorPosChanged (full region requested)"));
+    m_log->debug(_T("Raising cursorPosChanged (full region requested)"));
     updCont->cursorPosChanged = true;
   }
   if (!richEnabled) {
-    Log::debug(_T("Clearing cursorShapeChanged (RichCursor disabled)"));
+    m_log->debug(_T("Clearing cursorShapeChanged (RichCursor disabled)"));
     updCont->cursorShapeChanged = false;
   } else if (fullRegReq) {
-    Log::debug(_T("Raising cursorShapeChanged (RichCursor enabled")
+    m_log->debug(_T("Raising cursorShapeChanged (RichCursor enabled")
                _T(" and full region requested)"));
     updCont->cursorShapeChanged = true;
   }
@@ -143,12 +144,9 @@ void CursorUpdates::drawCursor(UpdateContainer *updCont, FrameBuffer *fb)
   // Draw the cursor shape on the frame buffer
   rect.setRect(&m_cursorShape.getDimension().getRect());
   rect.setLocation(m_backgroundPos.x, m_backgroundPos.y);
-  int srcX = rect.left < 0 ? -rect.left : 0;
-  int srcY = rect.top < 0 ? -rect.top : 0;
-  rect.move(srcX, srcY);
 
   fb->overlay(&rect,
-              m_cursorShape.getPixels(), srcX, srcY,
+              m_cursorShape.getPixels(), rect.left, rect.top,
               m_cursorShape.getMask());
 }
 

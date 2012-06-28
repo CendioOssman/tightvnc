@@ -29,6 +29,7 @@
 #include "thread/LocalMutex.h"
 #include "DynamicLibrary.h"
 #include "SystemException.h"
+#include "log-writer/LogWriter.h"
 
 typedef DWORD (WINAPI *pWTSGetActiveConsoleSessionId)(void);
 typedef BOOL (WINAPI *pWTSQueryUserToken)(ULONG SessionId, PHANDLE phToken);
@@ -46,7 +47,7 @@ public:
    * @return active console session id if WTS is avaliable or 0 if 
    * WinAPI WTSGetActiveConsoleSessionId function not avaliable.
    */
-  static DWORD getActiveConsoleSessionId();
+  static DWORD getActiveConsoleSessionId(LogWriter *log);
 
   /**
    * Queries user token in active console session.
@@ -57,7 +58,7 @@ public:
    * process id will be used to get user token (this id can be set by using of
    * defineConsoleUserProcessId() method).
    */
-  static void queryConsoleUserToken(HANDLE *token) throw(SystemException);
+  static void queryConsoleUserToken(HANDLE *token, LogWriter *log) throw(SystemException);
 
   /**
    * Defines global (for WTS class) user process that will be used
@@ -81,7 +82,7 @@ private:
   /**
    * Initializes WTS functions.
    */
-  static void initialize();
+  static void initialize(LogWriter *log);
 
   static DynamicLibrary *m_kernel32Library;
   static DynamicLibrary *m_wtsapi32Library;

@@ -23,162 +23,280 @@
 //
 
 #include "TvnViewer.h"
-#include "LoginDialog.h"
 #include "network/socket/WindowsSocket.h"
-#include "AboutDialog.h"
-#include "ConfigurationDialog.h"
-#include "NamingDefs.h"
-#include "OptionsDialog.h"
+#include "util/ResourceLoader.h"
 #include "resource.h"
 
-TvnViewer::TvnViewer(ConnectionData *condata, 
-                     ConnectionConfig *conConf)
-: m_conListener(0),
-  m_condata(condata),
-  m_conConf(conConf),
+TvnViewer::TvnViewer(HINSTANCE appInstance, const TCHAR *windowClassName,
+                     const TCHAR *viewerWindowClassName)
+: WindowsApplication(appInstance, windowClassName),
+  m_viewerWindowClassName(viewerWindowClassName),
+  m_conListener(0),
+  m_hAccelTable(0),
+  m_logWriter(ViewerConfig::getInstance()->getLogger()),
   m_isListening(false)
 {
-  Log::info(_T("Init WinSock 2.1"));
+  m_logWriter.info(_T("Init WinSock 2.1"));
   WindowsSocket::startup(2, 1);
-  StringStorage str(WindowNames::TVN_WINDOW_CLASS_NAME);
-  m_regClass.regClass(&str);
+  registerViewerWindowClass();
+
+  // working with accelerator
+  ResourceLoader *rLoader = ResourceLoader::getInstance();
+  m_hAccelTable = rLoader->loadAccelerator(IDR_ACCEL_APP_KEYS);
+
+  m_trayIcon = new ControlTrayIcon(this);
+  m_loginDialog = new LoginDialog(this);
+  m_instances = new ViewerCollector(this);
 }
 
 TvnViewer::~TvnViewer()
 {
-  Log::info(_T("Thread collector: destroy all thread"));
-  m_threadCollector.destroyAllThreads();
+  m_logWriter.info(_T("Viewer collector: destroy all instances"));
+  m_instances->destroyAllInstances();
 
-  for (size_t i = 0; i < m_conDatas.size(); i++) {
-    delete m_conDatas[i];
-  }
+  delete m_instances;
+  delete m_loginDialog;
+  delete m_trayIcon;
 
-  Log::info(_T("Shutdown WinSock"));
+  unregisterViewerWindowClass();
+
+  m_logWriter.info(_T("Shutdown WinSock"));
   WindowsSocket::cleanup();
 }
 
-int TvnViewer::loginDialog()
+void TvnViewer::startListening(const ConnectionConfig *conConf, const int listeningPort)
 {
-  LoginDialog dialog;
-
-  dialog.setListening(m_condata->isListening());
-  dialog.loadIcon(IDI_APPICON);  
-  dialog.setConConf(m_conConf);
-  int res = dialog.showModal();
-
-  m_fullHost = dialog.getServerHost();
-
-  if (res == LoginDialog::LISTENING_MODE) {
-    m_condata->setListening();
+  if (m_isListening) {
+    _ASSERT(true);
+    return;
   }
-  return res;
-}
-
-void TvnViewer::listeningMode()
-{
   m_isListening = true;
-  ViewerConfig *config = ViewerConfig::getInstance();
 
   try {
-    ConnectionListener conListener(m_condata, m_conConf, config->getListenPort());
-    showTrayIcon();
-    runTrayIcon();
+    m_conListener = new ConnectionListener(this, listeningPort);
+    m_trayIcon->showIcon();
   } catch (Exception &exception) {
+    m_isListening = false;
     MessageBox(0, exception.getMessage(), _T("Application Error"), MB_OK | MB_ICONERROR);
   }
 }
 
-void TvnViewer::runInstance(bool isBlocked)
+void TvnViewer::stopListening()
+{
+  if (m_isListening) {
+    if (m_conListener != 0) {
+      delete m_conListener;
+      m_conListener = 0;
+    }
+    m_trayIcon->hide();
+    m_isListening = false;
+  }
+}
+
+void TvnViewer::addInstance(ViewerInstance *viewerInstance)
+{
+  m_instances->addInstance(viewerInstance);
+}
+
+void TvnViewer::runInstance(const StringStorage *hostName, const ConnectionConfig *config)
 {
   ConnectionData *conData = new ConnectionData;
+  conData->setHost(hostName);
+  runInstance(conData, config);
+}
 
-  conData->setHost(&m_fullHost);
-  ViewerInstance *viewerInst = new ViewerInstance(conData,
-                                                  m_conConf);
-  viewerInst->start(!isBlocked);
-  m_threadCollector.addThread(viewerInst);
-  if (!isBlocked) {
-    m_conDatas.push_back(conData);
+void TvnViewer::runInstance(ConnectionData *conData, const ConnectionConfig *config)
+{
+  ViewerInstance *viewerInst = new ViewerInstance(this, conData, config);
+  viewerInst->start();
+
+  addInstance(viewerInst);
+}
+
+bool TvnViewer::notConnected() const
+{
+  return m_instances->empty();
+}
+
+bool TvnViewer::isVisibleLoginDialog() const
+{
+  return !!m_loginDialog->getControl()->getWindow();
+}
+
+bool TvnViewer::isListening() const
+{
+  return m_isListening;
+}
+
+void TvnViewer::newConnection(const StringStorage *hostName, const ConnectionConfig *config)
+{
+  ConnectionData *conData = new ConnectionData;
+  conData->setHost(hostName);
+  runInstance(conData, config);
+}
+
+void TvnViewer::newConnection(const ConnectionData *conData, const ConnectionConfig *config)
+{
+  ConnectionData *copyConData = new ConnectionData;
+  if (!conData->isEmpty()) {
+    copyConData->setHost(&conData->getHost());
+  }
+  copyConData->setPlainPassword(conData->getDefaultPassword());
+  runInstance(copyConData, config);
+}
+
+void TvnViewer::showLoginDialog()
+{
+  m_loginDialog->setListening(m_isListening);
+  m_loginDialog->loadIcon(IDI_APPICON);
+  m_loginDialog->show();
+  addModelessDialog(m_loginDialog->getControl()->getWindow());
+}
+
+void TvnViewer::createWindow(const TCHAR *className)
+{
+  WindowsApplication::createWindow(className);
+  SetWindowLongPtr(m_mainWindow, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+}
+
+void TvnViewer::registerWindowClass(WNDCLASS *wndClass)
+{
+  memset(wndClass, 0, sizeof(WNDCLASS));
+
+  wndClass->lpfnWndProc = wndProc;
+  wndClass->hInstance = m_appInstance;
+  wndClass->lpszClassName = m_windowClassName.getString();
+
+  RegisterClass(wndClass);
+}
+
+void TvnViewer::registerViewerWindowClass()
+{
+  memset(&m_viewerWndClass, 0, sizeof(WNDCLASS));
+
+  m_viewerWndClass.lpfnWndProc   = wndProcViewer;
+  m_viewerWndClass.hInstance     = m_appInstance;
+  m_viewerWndClass.lpszClassName = m_viewerWindowClassName.getString();
+  m_viewerWndClass.style         = CS_HREDRAW | CS_VREDRAW;
+  m_viewerWndClass.hbrBackground = GetSysColorBrush(COLOR_WINDOW);
+
+  RegisterClass(&m_viewerWndClass);
+}
+
+void TvnViewer::unregisterViewerWindowClass()
+{
+  UnregisterClass(m_viewerWndClass.lpszClassName, GetModuleHandle(0));
+}
+
+LRESULT CALLBACK TvnViewer::wndProcViewer(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  BaseWindow *_this = 0;
+
+  if (message == WM_CREATE) {
+    CREATESTRUCT * createStruct = reinterpret_cast<CREATESTRUCT *>(lParam);
+    BaseWindow *newBaseWindow = reinterpret_cast<BaseWindow *>(createStruct->lpCreateParams);
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(_this));
+    newBaseWindow->setHWnd(hWnd);
+    _this = newBaseWindow;
   } else {
-    delete conData;
+    _this = reinterpret_cast<BaseWindow *>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
   }
-}
-
-int TvnViewer::run(bool isBlocked)
-{
-  bool modeIsSelected = false;
-
-  if (!m_isListening) {
-    if (m_condata->isListening()) {
-      listeningMode();
-      modeIsSelected = true;
+  if (_this != 0) {
+    if (_this->wndProc(message, wParam, lParam)) {
+      return 0;
     }
   }
-
-  if (!modeIsSelected && m_condata->isUsed()) {
-    ViewerInstance viewerInst(m_condata, m_conConf);
-    viewerInst.start(false);
-    modeIsSelected = true;
-  }
-
-  if (!modeIsSelected) {
-    int resLogin = loginDialog();
-
-    switch (resLogin) {
-    case LoginDialog::CONNECTION_MODE:
-      runInstance(isBlocked);
-      break;
-    case LoginDialog::LISTENING_MODE:
-      if (!m_isListening) {
-        listeningMode();
-      }
-      break;
-    case LoginDialog::CANCEL_MODE:
-      break;
-    default:
-      _ASSERT(true);
-    }
-  }
-  return 0;
+  return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-void TvnViewer::onNewConnection()
-{
-  run(false);
-}
-
-void TvnViewer::onDefaultConnection()
+void TvnViewer::showListeningOptions()
 {
   ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
                           _T(".listen"));
-  OptionsDialog dialog;
+  ConnectionConfig conConfig;
+  conConfig.loadFromStorage(&ccsm);
 
-  dialog.setConnectionConfig(m_conConf);
+  OptionsDialog dialog;
+  dialog.setConnectionConfig(&conConfig);
   if (dialog.showModal() == 1) {
-    m_conConf->saveToStorage(&ccsm);
+    conConfig.saveToStorage(&ccsm);
   }
 }
 
-void TvnViewer::onConfiguration()
+void TvnViewer::showConfiguration()
 {
-  ConfigurationDialog dialog;
-
-  dialog.showModal();
+  m_configurationDialog.show();
+  addModelessDialog(m_configurationDialog.getControl()->getWindow());
 }
 
-void TvnViewer::onAboutViewer()
+void TvnViewer::showAboutViewer()
 {
-  AboutDialog dlg;
-
-  dlg.showModal();
+  m_aboutDialog.show();
+  addModelessDialog(m_aboutDialog.getControl()->getWindow());
 }
 
-void TvnViewer::onCloseViewer()
+int TvnViewer::processMessages()
 {
-  PostQuitMessage(0);
+  MSG msg;
+  BOOL ret;
+  while ((ret = GetMessage(&msg, NULL, 0, 0)) != 0) {
+    if (ret < 0) {
+      return 1;
+    }
+    if (m_hAccelTable && ret != 0) {
+      if (TranslateAccelerator(GetActiveWindow(), m_hAccelTable, &msg)) {
+        continue;
+      }
+    }
+
+    if (!processDialogMessage(&msg)) {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+  }
+
+  return (int)msg.wParam;
 }
 
-void TvnViewer::onShowMainWindow()
+void TvnViewer::newListeningConnection()
 {
-  run(false);
+  ConnectionData connectionData;
+
+  ConnectionConfig connectionConfig;
+  ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH, _T(".listen"));
+  connectionConfig.loadFromStorage(&ccsm);
+
+  if (m_conListener != 0) {
+    SocketIPv4 *socket = m_conListener->getNewConnection();
+    while (socket != 0) {
+      ViewerInstance *viewerInst = new ViewerInstance(this,
+                                                      &connectionData,
+                                                      &connectionConfig,
+                                                      socket);
+      viewerInst->start();
+      addInstance(viewerInst);
+
+      socket = m_conListener->getNewConnection();
+    }
+  }
+}
+
+LRESULT CALLBACK TvnViewer::wndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+  if (msg >= WM_USER) {
+    TvnViewer *_this = reinterpret_cast<TvnViewer *>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    if (_this != 0) {
+      switch (msg) {
+      case WM_USER_NEW_LISTENING:
+        _this->newListeningConnection();
+        break;
+      case WM_USER_NEW_CONNECTION:
+        _this->showLoginDialog();
+        break;
+      }
+    }
+    return true;
+  } else {
+    return WindowsApplication::wndProc(hWnd, msg, wparam, lparam);
+  }
 }

@@ -28,36 +28,31 @@
 
 UINT ControlTrayIcon::WM_USER_TASKBAR;
 
-ControlTrayIcon::ControlTrayIcon()
-:  m_inWindowProc(false),
-   m_notifyIcon(false)
+ControlTrayIcon::ControlTrayIcon(TvnViewer *viewerApplication)
+: NotifyIcon(false),
+  m_application(viewerApplication),
+  m_inWindowProc(false),
+  m_icon(IDI_APPICON)
 {
   ResourceStrings resStr;
   m_menu.createPopupMenu();
-  m_menu.appendMenu(resStr.getStrRes(IDS_NEW_CONN), IDS_NEW_CONN);
-  m_menu.appendMenu(resStr.getStrRes(IDS_DEF_CONN), IDS_DEF_CONN);
+  m_menu.appendMenu(resStr.getStrRes(IDS_TB_NEWCONNECTION), IDS_NEW_CONN);
   m_menu.appendSeparator();
+  m_menu.appendMenu(resStr.getStrRes(IDS_LISTENING_OPTIONS), IDS_LISTENING_OPTIONS);
   m_menu.appendMenu(resStr.getStrRes(IDS_CONFIG), IDS_CONFIG);
   m_menu.appendSeparator();
   m_menu.appendMenu(resStr.getStrRes(IDS_ABOUT_VIEWER), IDS_ABOUT_VIEWER);
   m_menu.appendSeparator();
   m_menu.appendMenu(resStr.getStrRes(IDS_CLOSE), IDS_CLOSE);
   m_menu.setDefaultItem(IDS_NEW_CONN);
-  m_notifyIcon.setWindowProcHolder(this);
+
+  setWindowProcHolder(this);
+
   WM_USER_TASKBAR = RegisterWindowMessage(_T("TaskbarCreated"));
 }
 
-void ControlTrayIcon::showTrayIcon()
+ControlTrayIcon::~ControlTrayIcon()
 {
-  Icon icon(IDI_APPICON);
-
-  m_notifyIcon.show();
-  m_notifyIcon.setIcon(&icon);
-}
-
-void ControlTrayIcon::hideTrayIcon()
-{
-  m_notifyIcon.hide();
 }
 
 LRESULT ControlTrayIcon::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, bool *useDefWindowProc)
@@ -84,8 +79,10 @@ LRESULT ControlTrayIcon::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     break;
   default:
     if (uMsg == WM_USER_TASKBAR) {
-      hideTrayIcon();
-      showTrayIcon();
+      if (isVisible()) {
+        hide();
+        show();
+      }
       break;
     }
     *useDefWindowProc = true;
@@ -93,6 +90,12 @@ LRESULT ControlTrayIcon::windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
   m_inWindowProc = false;
   return 0;
+}
+
+void ControlTrayIcon::showIcon()
+{
+  show();
+  setIcon(&m_icon);
 }
 
 void ControlTrayIcon::onRightButtonUp()
@@ -103,7 +106,7 @@ void ControlTrayIcon::onRightButtonUp()
     pos.x = pos.y = 0;
   }
 
-  HWND notifyWnd = m_notifyIcon.getWindow();
+  HWND notifyWnd = getWindow();
   SetForegroundWindow(notifyWnd);
 
   int action = TrackPopupMenu(m_menu.getMenu(),
@@ -111,21 +114,23 @@ void ControlTrayIcon::onRightButtonUp()
                               pos.x, pos.y, 0, notifyWnd, NULL);
 
   switch (action) {
-    case IDS_NEW_CONN:
-      onNewConnection();
-      break;
-    case IDS_DEF_CONN:
-      onDefaultConnection();
-      break;
-    case IDS_CONFIG:
-      onConfiguration();
-      break;
-    case IDS_ABOUT_VIEWER:
-      onAboutViewer();
-      break;
-    case IDS_CLOSE:
-      onCloseViewer();
-      break;
+  case IDS_NEW_CONN:
+    onNewConnection();
+    break;
+  case IDS_LISTENING_OPTIONS:
+    onListeningOptions();
+    break;
+  case IDS_CONFIG:
+    onConfiguration();
+    break;
+  case IDS_ABOUT_VIEWER:
+    onAboutViewer();
+    break;
+  case IDS_CLOSE:
+    onCloseViewer();
+    break;
+  default:
+    _ASSERT(true);
   }
 }
 
@@ -134,11 +139,35 @@ void ControlTrayIcon::onLeftButtonDown()
   onShowMainWindow();
 }
 
-void ControlTrayIcon::runTrayIcon()
+void ControlTrayIcon::onShowMainWindow()
 {
-  BaseWindow wndTrayIcon;
+  onNewConnection();
+}
 
-  HWND notifyWnd = m_notifyIcon.getWindow();
-  wndTrayIcon.setHWnd(notifyWnd);
-  wndTrayIcon.run(false);
+void ControlTrayIcon::onNewConnection()
+{
+  m_application->showLoginDialog();
+}
+
+void ControlTrayIcon::onListeningOptions()
+{
+  m_application->showListeningOptions();
+}
+
+void ControlTrayIcon::onConfiguration()
+{
+  m_application->showConfiguration();
+}
+
+void ControlTrayIcon::onAboutViewer()
+{
+  m_application->showAboutViewer();
+}
+
+void ControlTrayIcon::onCloseViewer()
+{
+  m_application->stopListening();
+  if (m_application->notConnected() && !m_application->isVisibleLoginDialog()) {
+    PostQuitMessage(0);
+  }
 }

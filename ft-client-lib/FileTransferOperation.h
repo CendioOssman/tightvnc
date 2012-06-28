@@ -31,7 +31,7 @@
 #include "FileTransferReplyBuffer.h"
 #include "FileInfoList.h"
 
-#include "log-server/Log.h"
+#include "log-writer/LogWriter.h"
 #include "util/ListenerContainer.h"
 
 class OperationEventListener;
@@ -48,7 +48,7 @@ class FileTransferOperation : public FileTransferEventAdapter,
                               public ListenerContainer<OperationEventListener *>
 {
 public:
-  FileTransferOperation();
+  FileTransferOperation(LogWriter *logWriter);
   virtual ~FileTransferOperation();
 
   //
@@ -130,6 +130,8 @@ protected:
   void getRemotePath(FileInfoList *currentFile, const TCHAR *remoteFolder, StringStorage *out);
 
 protected:
+  LogWriter *m_logWriter;
+
   FileTransferRequestSender *m_sender;
   FileTransferReplyBuffer *m_replyBuffer;
 

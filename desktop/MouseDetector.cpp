@@ -23,13 +23,14 @@
 //
 
 #include "MouseDetector.h"
-#include "log-server/Log.h"
 
 const int MOUSE_SLEEP_TIME = 10;
 
 MouseDetector::MouseDetector(UpdateKeeper *updateKeeper,
-                             UpdateListener *updateListener)
-: UpdateDetector(updateKeeper, updateListener)
+                             UpdateListener *updateListener,
+                             LogWriter *log)
+: UpdateDetector(updateKeeper, updateListener),
+  m_log(log)
 {
 }
 
@@ -56,7 +57,7 @@ Point MouseDetector::getCursorPos() const
 
 void MouseDetector::execute()
 {
-  Log::info(_T("mouse detector thread id = %d"), getThreadId());
+  m_log->info(_T("mouse detector thread id = %d"), getThreadId());
 
   Point curPoint;
 

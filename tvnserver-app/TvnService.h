@@ -27,7 +27,8 @@
 
 #include "TvnServer.h"
 #include "TvnServerListener.h"
-
+#include "log-server/LogServer.h"
+#include "log-server/ClientLogger.h"
 #include "win-system/Service.h"
 
 #include "thread/Thread.h"
@@ -43,7 +44,8 @@
  * Also contains body of tvnservice.
  */
 class TvnService : public Service,
-                   public TvnServerListener
+                   public TvnServerListener,
+                   private LogInitListener
 {
 public:
   /**
@@ -126,6 +128,12 @@ protected:
    */
   static bool getBinPath(StringStorage *binPath);
 
+  // This is a callback function that calls when the log can be initialized.
+  virtual void onLogInit(const TCHAR *logDir, const TCHAR *fileName, unsigned char logLevel);
+
+  // This is a callback function that calls when log properties have changed.
+  virtual void onChangeLogProps(const TCHAR *newLogDir, unsigned char newLevel);
+
 protected:
   /**
    * Shutdown service event.
@@ -135,6 +143,9 @@ protected:
    * TightVNC server.
    */
   TvnServer *m_tvnServer;
+
+  LogServer m_logServer;
+  ClientLogger m_clientLogger;
 
   WinServiceEvents *m_winServiceEvents;
   NewConnectionEvents *m_newConnectionEvents;

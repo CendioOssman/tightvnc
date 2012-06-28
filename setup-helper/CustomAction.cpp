@@ -23,7 +23,16 @@
 //
 
 #include "win-system/RegistryKey.h"
+#include "MsiProperties.h"
+#include "util/AnsiStringStorage.h"
+#include "util/VncPassCrypt.h"
+#include "server-config-lib/Configurator.h"
+#include "config-lib/RegistrySettingsManager.h"
+#include "tvnserver-app/NamingDefs.h"
+
 #include <msiquery.h>
+#include <shlwapi.h>
+//#include <wcautil.h>
 
 const TCHAR SAS_REG_ENTRY[] = _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System");
 const TCHAR SAS_REG_KEY[] = _T("SoftwareSASGeneration");
@@ -42,6 +51,86 @@ void allowSas()
 UINT __stdcall AllowSas(MSIHANDLE hInstall)
 {
   allowSas();
+  return ERROR_SUCCESS;
+}
+
+// FIXME: Code duplication: see the ControlApplication class.
+void getCryptedPassword(UINT8 cryptedPass[8], const StringStorage *plainPass)
+{
+  // Get a copy of the password truncated at 8 characters.
+  StringStorage copyOfPlainPass;
+  plainPass->getSubstring(&copyOfPlainPass, 0, 7);
+  // Convert from TCHAR[] to char[].
+  // FIXME: Check exception catching.
+  AnsiStringStorage ansiPass(&copyOfPlainPass);
+
+  // Convert to a byte array.
+  UINT8 byteArray[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  memcpy(byteArray, ansiPass.getString(), ansiPass.getLength());
+
+  // Encrypt with a fixed key.
+  VncPassCrypt::getEncryptedPass(cryptedPass, byteArray);
+}
+
+void writePasswordToRegistry(MSIHANDLE hInstall,
+                             const TCHAR *registryPath,
+                             const TCHAR *entryName)
+{
+  MsiProperties msiProp(hInstall);
+  try {
+    StringStorage plainPass;
+    msiProp.getString(_T("CustomActionData"), &plainPass);
+
+    UINT8 cryptedPass[8];
+    getCryptedPassword(cryptedPass, &plainPass);
+
+    RegistrySecurityAttributes registrySA;
+    SECURITY_ATTRIBUTES *sa = 0;
+    sa = registrySA.getServiceSA();
+    HKEY rootKey = HKEY_LOCAL_MACHINE;
+    RegistrySettingsManager sm(rootKey, registryPath, sa);
+
+    if (!sm.setBinaryData(entryName, &cryptedPass[0], 8)) {
+      throw Exception(_T("Can't write to the registry."));
+    }
+
+  } catch (Exception &e) {
+    AnsiStringStorage ansiStr(&StringStorage(e.getMessage()));
+    //WcaLog(LOGMSG_STANDARD, ansiStr.getString());
+  }
+}
+
+
+UINT __stdcall SetRfbPassword(MSIHANDLE hInstall)
+{
+  try {
+    writePasswordToRegistry(hInstall,
+                            RegistryPaths::SERVER_PATH, _T("Password"));
+  } catch (...) {
+    return ERROR_INSTALL_FAILURE;
+  }
+  return ERROR_SUCCESS;
+}
+
+UINT __stdcall SetViewOnlyPassword(MSIHANDLE hInstall)
+{
+  try {
+    writePasswordToRegistry(hInstall,
+                            RegistryPaths::SERVER_PATH, _T("PasswordViewOnly"));
+  } catch (...) {
+    return ERROR_INSTALL_FAILURE;
+  }
+  return ERROR_SUCCESS;
+}
+
+UINT __stdcall SetControlPassword(MSIHANDLE hInstall)
+{
+  try {
+    writePasswordToRegistry(hInstall,
+                            RegistryPaths::SERVER_PATH, _T("ControlPassword"));
+  } catch (...) {
+    return ERROR_INSTALL_FAILURE;
+  }
   return ERROR_SUCCESS;
 }
 

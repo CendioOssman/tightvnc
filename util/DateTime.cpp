@@ -30,6 +30,10 @@ DateTime::DateTime()
 : m_timeValue(0)
 {
 }
+DateTime::DateTime(const DateTime &dt)
+: m_timeValue(dt.m_timeValue)
+{
+}
 
 DateTime::DateTime(UINT64 timeValue)
 : m_timeValue(timeValue)

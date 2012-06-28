@@ -30,12 +30,14 @@
 #include "util/Keymap.h"
 #include "win-system/InputInjector.h"
 #include "win-system/WindowsDisplays.h"
+#include "log-writer/LogWriter.h"
 
 class WindowsUserInput : public UserInput
 {
 public:
   WindowsUserInput(ClipboardListener *clipboardListener,
-                   bool ctrlAltDelEnabled);
+                   bool ctrlAltDelEnabled,
+                   LogWriter *log);
   virtual ~WindowsUserInput(void);
 
   virtual void setNewClipboard(const StringStorage *newClipboard);
@@ -60,6 +62,8 @@ protected:
   InputInjector m_inputInjector;
 
   UINT8 m_prevKeyFlag;
+
+  LogWriter *m_log;
 };
 
 #endif // __WINDOWSUSERINPUT_H__

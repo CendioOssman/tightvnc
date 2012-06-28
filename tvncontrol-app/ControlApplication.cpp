@@ -73,7 +73,8 @@ ControlApplication::ControlApplication(HINSTANCE hinst,
    m_transport(0),
    m_trayIcon(0),
    m_slaveModeEnabled(false),
-   m_configurator(false)
+   m_configurator(false),
+   m_log(0)
 {
   m_commandLine.setString(commandLine);
 
@@ -249,7 +250,7 @@ void ControlApplication::connect(bool controlService, bool slave)
 {
   // Determine the name of pipe to connect to.
   StringStorage pipeName;
-  ControlPipeName::createPipeName(controlService, &pipeName);
+  ControlPipeName::createPipeName(controlService, &pipeName, &m_log);
 
   int numTriesRemaining = slave ? 10 : 1;
   int msDelayBetweenTries = 2000;
@@ -501,6 +502,6 @@ void ControlApplication::reloadConfig()
   Environment::getCurrentModulePath(&pathToBinary);
   try {
     Shell::runAsAdmin(pathToBinary.getString(), _T("-controlservice -reload"));
-  } catch (SystemException &sysEx) {
+  } catch (SystemException &) {
   }
 }

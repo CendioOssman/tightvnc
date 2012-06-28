@@ -32,6 +32,8 @@
 #include "thread/LocalMutex.h"
 #include "win-system/WindowsEvent.h"
 #include "desktop/DesktopInterface.h"
+#include "log-writer/LogWriter.h"
+
 // Listener interfaces
 #include "RfbClientManager.h"
 #include "RfbClientManagerEventListener.h"
@@ -69,7 +71,8 @@ class RfbClientManager: public ClientTerminationListener,
 public:
   // FIXME: parameter is not used.
   RfbClientManager(const TCHAR *serverName,
-                   NewConnectionEvents *newConnectionEvents);
+                   NewConnectionEvents *newConnectionEvents,
+                   LogWriter *log);
   virtual ~RfbClientManager();
 
   // Adds rfb clients info to specified rfb client info list.
@@ -147,6 +150,8 @@ private:
   unsigned int m_nextClientId;
 
   NewConnectionEvents *m_newConnectionEvents;
+
+  LogWriter *m_log;
 };
 
 #endif // __RFBCLIENTMANAGER_H__

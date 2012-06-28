@@ -26,6 +26,7 @@
 #define _ENVIRONMENT_H_
 
 #include "util/StringStorage.h"
+#include "log-writer/LogWriter.h"
 
 #include <winnt.h>
 
@@ -74,7 +75,7 @@ public:
   static bool getCurrentModuleFolderPath(StringStorage *out);
 
   // Returns user name of the current desktop
-  static bool getCurrentUserName(StringStorage *out);
+  static bool getCurrentUserName(StringStorage *out, LogWriter *log);
 
   // Fills "out" by computer name string.
   // Returns true if success.
@@ -82,10 +83,10 @@ public:
 
   // Restores the desktop wallpaper.
   // @throws SystemException on a fail.
-  static void restoreWallpaper();
+  static void restoreWallpaper(LogWriter *log);
   // Hides the desktop wallpaper.
   // @throws SystemException on a fail.
-  static void disableWallpaper();
+  static void disableWallpaper(LogWriter *log);
 
   // Returns true if run under a windows NT family
   static bool isWinNTFamily();
@@ -99,13 +100,13 @@ public:
   static bool isVistaOrLater();
 
   // Simulates the "ctrl + alt + del" combination under WindowsXP.
-  static void simulateCtrlAltDel();
+  static void simulateCtrlAltDel(LogWriter *log);
 
   // Simulates the "ctrl + alt + del" combination by using the "SAS" lib.
-  static void simulateCtrlAltDelUnderVista();
+  static void simulateCtrlAltDelUnderVista(LogWriter *log);
 
   // Returns true if the Aero is On.
-  static bool isAeroOn();
+  static bool isAeroOn(LogWriter *log);
 
 private:
   static void init();

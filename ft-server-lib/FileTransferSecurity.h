@@ -27,6 +27,7 @@
 
 #include "util/Exception.h"
 #include "util/Singleton.h"
+#include "log-writer/LogWriter.h"
 
 #include "win-system/Impersonator.h"
 
@@ -35,7 +36,7 @@
 class FileTransferSecurity : private Impersonator
 {
 public:
-  FileTransferSecurity(DesktopInterface *desktop);
+  FileTransferSecurity(DesktopInterface *desktop, LogWriter *log);
   virtual ~FileTransferSecurity();
 
   // Sets access rights for calling process for execution
@@ -53,6 +54,8 @@ protected:
   bool m_hasAccess;
 
   DesktopInterface *m_desktop;
+
+  LogWriter *m_log;
 };
 
 #endif

@@ -28,6 +28,7 @@
 #include "util/StringStorage.h"
 #include "thread/Thread.h"
 #include "RfbClientManager.h"
+#include "log-writer/LogWriter.h"
 
 /**
 Thread that makes attempt to connect to listening rfb client in separate thread.
@@ -46,7 +47,7 @@ public:
   @param clientManager rfb client manager.
   */
   OutgoingRfbConnectionThread(const TCHAR *connectHost, unsigned int connectPort,
-                              bool viewOnly, RfbClientManager *clientManager);
+                              bool viewOnly, RfbClientManager *clientManager, LogWriter *log);
   virtual ~OutgoingRfbConnectionThread();
 
 protected:
@@ -57,6 +58,7 @@ private:
   unsigned int m_connectPort;
   bool m_viewOnly;
   RfbClientManager *m_clientManager;
+  LogWriter *m_log;
 };
 
 #endif

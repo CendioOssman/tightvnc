@@ -30,11 +30,13 @@
 #include "util/DateTime.h"
 #include "MouseDetector.h"
 #include "ScreenDriver.h"
+#include "log-writer/LogWriter.h"
 
 class LocalUpdateHandler : public UpdateHandler, public UpdateListener
 {
 public:
-  LocalUpdateHandler(UpdateListener *externalUpdateListener);
+  LocalUpdateHandler(UpdateListener *externalUpdateListener,
+                     LogWriter *log);
   virtual ~LocalUpdateHandler();
 
   virtual void extract(UpdateContainer *updateContainer);

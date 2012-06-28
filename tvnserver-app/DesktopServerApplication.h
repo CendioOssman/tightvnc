@@ -36,7 +36,8 @@
 #include "desktop-ipc/GateKickHandler.h"
 #include "SessionChangesWatcher.h"
 #include "win-system/LocalWindowsApplication.h"
-#include "log-server/LogClientInstance.h"
+#include "log-server/ClientLogger.h"
+#include "log-writer/LogWriter.h"
 #include "server-config-lib/ConfigReloadListener.h"
 #include "util/CommandLineArgs.h"
 
@@ -73,7 +74,8 @@ private:
   void freeResources();
 
   Configurator m_configurator;
-  LogClientInstance m_log;
+  ClientLogger m_clientLogger;
+  LogWriter m_log;
 
   // Transport
   AnonymousPipe *m_clToSrvChan;

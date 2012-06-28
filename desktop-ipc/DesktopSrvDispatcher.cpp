@@ -25,12 +25,13 @@
 #include "DesktopSrvDispatcher.h"
 #include "ReconnectException.h"
 #include "util/CommonHeader.h"
-#include "log-server/Log.h"
 
 DesktopSrvDispatcher::DesktopSrvDispatcher(BlockingGate *gate,
-                               AnEventListener *extErrorListener)
+                                           AnEventListener *extErrorListener,
+                                           LogWriter *log)
 : m_gate(gate),
-  m_extErrorListener(extErrorListener)
+  m_extErrorListener(extErrorListener),
+  m_log(log)
 {
 }
 
@@ -67,15 +68,15 @@ void DesktopSrvDispatcher::execute()
       }
       (*iter).second->onRequest(code, m_gate);
     } catch (ReconnectException &) {
-      Log::message(_T("The DesktopServerApplication dispatcher has been reconnected"));
+      m_log->message(_T("The DesktopServerApplication dispatcher has been reconnected"));
     } catch (Exception &e) {
-      Log::error(_T("The DesktopServerApplication dispatcher has ")
+      m_log->error(_T("The DesktopServerApplication dispatcher has ")
                  _T("failed with error: %s"), e.getMessage());
       notifyOnError();
       terminate();
     }
   }
-  Log::message(_T("The DesktopServerApplication dispatcher has been stopped"));
+  m_log->message(_T("The DesktopServerApplication dispatcher has been stopped"));
 }
 
 void DesktopSrvDispatcher::registerNewHandle(UINT8 code, ClientListener *listener)

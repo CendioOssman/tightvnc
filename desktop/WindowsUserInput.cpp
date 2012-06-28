@@ -26,16 +26,17 @@
 #include "thread/DesktopSelector.h"
 #include "win-system/Environment.h"
 #include "win-system/Keyboard.h"
-#include "log-server/Log.h"
 #include "gui/WindowFinder.h"
 #include "util/BrokenHandleException.h"
 
 WindowsUserInput::WindowsUserInput(ClipboardListener *clipboardListener,
-                                   bool ctrlAltDelEnabled)
+                                   bool ctrlAltDelEnabled,
+                                   LogWriter *log)
 : m_prevKeyFlag(0),
-  m_inputInjector(ctrlAltDelEnabled)
+  m_inputInjector(ctrlAltDelEnabled, log),
+  m_log(log)
 {
-  m_clipboard = new WindowsClipboard(clipboardListener);
+  m_clipboard = new WindowsClipboard(clipboardListener, m_log);
 }
 
 WindowsUserInput::~WindowsUserInput(void)
@@ -139,7 +140,7 @@ void WindowsUserInput::setNewClipboard(const StringStorage *newClipboard)
 void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
 {
   try {
-    Log::info(_T("Received the %#4.4x keysym, down = %d"), keySym, (int)down);
+    m_log->info(_T("Received the %#4.4x keysym, down = %d"), keySym, (int)down);
     // Generate single key event.
     BYTE vkCode;
     WCHAR ch;
@@ -156,7 +157,7 @@ void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
       throw Exception(message.getString());
     }
   } catch (Exception &someEx) {
-    Log::error(_T("Exception while processing key event: %s"), someEx.getMessage());
+    m_log->error(_T("Exception while processing key event: %s"), someEx.getMessage());
   }
 }
 
@@ -164,7 +165,7 @@ void WindowsUserInput::getCurrentUserInfo(StringStorage *desktopName,
                                           StringStorage *userName)
 {
   DesktopSelector::getCurrentDesktopName(desktopName); // FIXME: Check return value.
-  Environment::getCurrentUserName(userName); // FIXME: Check return value.
+  Environment::getCurrentUserName(userName, m_log); // FIXME: Check return value.
 }
 
 void WindowsUserInput::getPrimaryDisplayCoords(Rect *rect)

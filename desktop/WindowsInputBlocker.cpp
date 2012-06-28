@@ -23,8 +23,8 @@
 //
 
 #include "WindowsInputBlocker.h"
-#include "log-server/Log.h"
 #include "util/Exception.h"
+#include "thread/AutoLock.h"
 
 LocalMutex WindowsInputBlocker::m_instanceMutex;
 HHOOK WindowsInputBlocker::m_hKeyboardHook = 0;
@@ -38,11 +38,12 @@ LocalMutex WindowsInputBlocker::m_lastInputTimeMutex;
 
 WindowsInputBlocker *WindowsInputBlocker::m_instance = 0;
 
-WindowsInputBlocker::WindowsInputBlocker()
+WindowsInputBlocker::WindowsInputBlocker(LogWriter *log)
 : m_isKeyboardBlocking(false),
   m_isMouseBlocking(false),
   m_isSoftKeyboardBlocking(false),
-  m_isSoftMouseBlocking(false)
+  m_isSoftMouseBlocking(false),
+  m_log(log)
 {
   {
     AutoLock al(&m_instanceMutex);
@@ -251,7 +252,7 @@ void WindowsInputBlocker::onTerminate()
 
 void WindowsInputBlocker::execute()
 {
-  Log::info(_T("input blocker thread id = %d"), getThreadId());
+  m_log->info(_T("input blocker thread id = %d"), getThreadId());
 
   MSG msg;
   try {
@@ -305,7 +306,7 @@ void WindowsInputBlocker::execute()
       }
     }
   } catch (Exception &e) {
-    Log::error(_T("The WindowsInputBlocker thread failed with error: %s"),
+    m_log->error(_T("The WindowsInputBlocker thread failed with error: %s"),
                e.getMessage());
   }
 

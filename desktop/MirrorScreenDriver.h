@@ -39,7 +39,8 @@ class MirrorScreenDriver : public ScreenDriver,
 public:
   MirrorScreenDriver(UpdateKeeper *updateKeeper,
                      UpdateListener *updateListener,
-                     LocalMutex *fbLocalMutex);
+                     LocalMutex *fbLocalMutex,
+                     LogWriter *log);
   virtual ~MirrorScreenDriver();
 
   // Starts screen update detection if it not started yet.
@@ -73,6 +74,8 @@ private:
   LocalMutex *m_fbMutex;
 
   WindowsEvent m_updateTimeout;
+
+  LogWriter *m_log;
 };
 
 #endif // __MIRRORSCREENDRIVER_H__

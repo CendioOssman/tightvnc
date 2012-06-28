@@ -22,12 +22,12 @@
 //-------------------------------------------------------------------------
 //
 
-#include "log-server/Log.h"
 #include "thread/AutoLock.h"
 
 #include "TcpConnection.h"
 
-TcpConnection::TcpConnection()
+TcpConnection::TcpConnection(LogWriter *logWriter)
+: m_logWriter(logWriter)
 {
   m_port = 0;
   m_socket = 0;
@@ -93,7 +93,7 @@ void TcpConnection::connect()
     // need create to socket
     if (m_socket == 0) {
       if (!m_host.isEmpty() && m_port != 0) {
-        Log::detail(_T("Connecting to the host \"%s:%hd\"..."), m_host.getString(), m_port);
+        m_logWriter->detail(_T("Connecting to the host \"%s:%hd\"..."), m_host.getString(), m_port);
         m_socket = new SocketIPv4;
         m_socket->connect(SocketAddressIPv4(m_host.getString(), m_port));
         m_socket->enableNaggleAlgorithm(false);
@@ -102,7 +102,7 @@ void TcpConnection::connect()
       }
     }
 
-    Log::detail(_T("Initialization of socket stream and input/output gates..."));
+    m_logWriter->detail(_T("Initialization of socket stream and input/output gates..."));
     m_socketStream = new SocketStream(m_socket);
 
     m_input = new RfbInputGate(m_socketStream);

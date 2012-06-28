@@ -26,6 +26,7 @@
 #define __AUTOIMPERSONATOR_H__
 
 #include "Impersonator.h"
+#include "log-writer/LogWriter.h"
 
 // This class automaticly impesonates at the constructor and
 // revertes at the destructor.
@@ -33,10 +34,11 @@
 class AutoImpersonator
 {
 public:
-  AutoImpersonator(Impersonator *imp);
+  AutoImpersonator(Impersonator *imp, LogWriter *log);
   virtual ~AutoImpersonator();
 private:
   Impersonator *m_imp;
+  LogWriter *m_log;
 };
 
 #endif // __AUTOIMPERSONATOR_H__

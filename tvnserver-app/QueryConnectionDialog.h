@@ -51,7 +51,7 @@ protected:
   virtual BOOL onNotify(UINT controlID, LPARAM data);
   virtual BOOL onCommand(UINT controlID, UINT notificationID);
   virtual BOOL onDestroy();
-  virtual void onMessageRecieved(UINT uMsg, WPARAM wParam, LPARAM lParam);
+  virtual void onMessageReceived(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
   void initControls();
 

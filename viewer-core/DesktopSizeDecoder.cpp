@@ -24,7 +24,8 @@
 
 #include "DesktopSizeDecoder.h"
 
-DesktopSizeDecoder::DesktopSizeDecoder()
+DesktopSizeDecoder::DesktopSizeDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

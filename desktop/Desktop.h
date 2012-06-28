@@ -27,6 +27,7 @@
 
 #include "desktopinterface.h"
 #include "ClipboardListener.h"
+#include "log-writer/LogWriter.h"
 
 // External listeners
 #include "UpdateSendingListener.h"
@@ -39,7 +40,8 @@ class Desktop : public DesktopInterface
 public:
   Desktop(ClipboardListener *extClipListener,
           UpdateSendingListener *extUpdSendingListener,
-          AbnormDeskTermListener *extDeskTermListener);
+          AbnormDeskTermListener *extDeskTermListener,
+          LogWriter *log);
   virtual ~Desktop();
 
   // Puts a current desktop name from working session to the

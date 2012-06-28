@@ -24,7 +24,8 @@
 
 #include "RreDecoder.h"
 
-RreDecoder::RreDecoder()
+RreDecoder::RreDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

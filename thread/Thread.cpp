@@ -25,7 +25,6 @@
 #include "Thread.h"
 #include "AutoLock.h"
 #include "util/Exception.h"
-#include "log-server/Log.h"
 
 Thread::Thread()
 : m_terminated(false), m_active(false)
@@ -45,10 +44,12 @@ DWORD WINAPI Thread::threadProc(LPVOID pThread)
   try {
     _this->initByDerived();
     _this->execute();
-  } catch (Exception &e) {
-    Log::error(_T("Abnormal thread termination.")
+  } catch (Exception &) {
+    /*Log::error(_T("Abnormal thread termination.")
                _T(" ThreadId = %u, message = \"%s\" \n"),
                (unsigned int)_this->m_threadID, e.getMessage());
+
+    */
   }
   _this->m_active = false;
   return 0;

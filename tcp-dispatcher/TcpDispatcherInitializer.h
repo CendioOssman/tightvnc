@@ -29,6 +29,7 @@
 #include "io-lib/DataOutputStream.h"
 #include "io-lib/DataInputStream.h"
 #include "util/AnsiStringStorage.h"
+#include "log-writer/LogWriter.h"
 
 class InvalidTcpDispProtoType : public Exception
 {
@@ -39,7 +40,7 @@ public:
 class TcpDispatcherInitializer
 {
 public:
-  TcpDispatcherInitializer(Channel *channel);
+  TcpDispatcherInitializer(Channel *channel, LogWriter *log);
   // sendDispatcherName - a dispatcher name that will be sent
   // to the connected dispatcher. The sendDispatcherName string can be empty.
   // connectionType - false for server, true for viewer.
@@ -52,7 +53,8 @@ public:
                            const AnsiStringStorage *sendDispatcherName,
                            bool connectionType,
                            UINT32 connectionId,
-                           const AnsiStringStorage *keyword);
+                           const AnsiStringStorage *keyword,
+                           LogWriter *log);
   ~TcpDispatcherInitializer();
 
   // This function must be called if a TcpDispatcherInitializer object has been
@@ -98,6 +100,8 @@ private:
   bool m_connectionType;
   UINT32 m_connectionId;
   AnsiStringStorage m_keyword;
+
+  LogWriter *m_log;
 };
 
 #endif // _TCPDISPATCHERINITIALIZER_H_

@@ -23,16 +23,16 @@
 //
 
 #include "TcpDispatcherInitializer.h"
-#include "log-server/Log.h"
 
 InvalidTcpDispProtoType::InvalidTcpDispProtoType(const TCHAR *message)
 : Exception(message)
 {
 }
 
-TcpDispatcherInitializer::TcpDispatcherInitializer(Channel *channel)
+TcpDispatcherInitializer::TcpDispatcherInitializer(Channel *channel, LogWriter *log)
 : m_output(channel),
-  m_input(channel)
+  m_input(channel),
+  m_log(log)
 {
 }
 
@@ -40,7 +40,8 @@ TcpDispatcherInitializer::TcpDispatcherInitializer(Channel *channel,
                              const AnsiStringStorage *sendDispatcherName,
                              bool connectionType,
                              UINT32 connectionId,
-                             const AnsiStringStorage *keyword)
+                             const AnsiStringStorage *keyword,
+                             LogWriter *log)
 : m_output(channel),
   m_input(channel),
   m_sendDispatcherName(*sendDispatcherName),
@@ -123,11 +124,11 @@ void TcpDispatcherInitializer::sendConnectionType()
 void TcpDispatcherInitializer::negotiateConnectionId()
 {
   m_output.writeUInt32(m_connectionId);
-  Log::info(_T("sent connection id = %u"), m_connectionId);
+  m_log->info(_T("sent connection id = %u"), m_connectionId);
   if (m_connectionId == 0) {
     // Get connection Id
     m_connectionId = m_input.readUInt32();
-    Log::info(_T("Got connection id = %u"), m_connectionId);
+    m_log->info(_T("Got connection id = %u"), m_connectionId);
   }
 }
 

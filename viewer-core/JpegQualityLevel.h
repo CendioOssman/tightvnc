@@ -30,7 +30,7 @@
 class JpegQualityLevel : public Decoder
 {
 public:
-  JpegQualityLevel(int quality);
+  JpegQualityLevel(LogWriter *logWriter, int quality);
   virtual ~JpegQualityLevel();
 
   void decode(RfbInputGate *input,

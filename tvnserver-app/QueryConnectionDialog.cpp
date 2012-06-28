@@ -84,7 +84,7 @@ BOOL QueryConnectionDialog::onDestroy()
   return TRUE;
 }
 
-void QueryConnectionDialog::onMessageRecieved(UINT uMsg, WPARAM wParam, LPARAM lParam)
+void QueryConnectionDialog::onMessageReceived(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   if (uMsg == WM_TIMER) {
     onTimer();

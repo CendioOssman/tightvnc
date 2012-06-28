@@ -30,7 +30,7 @@
 class PointerPosDecoder : public Decoder
 {
 public:
-  PointerPosDecoder();
+  PointerPosDecoder(LogWriter *logWriter);
   ~PointerPosDecoder();
 
   void decode(RfbInputGate *input,

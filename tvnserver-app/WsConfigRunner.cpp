@@ -24,13 +24,13 @@
 
 #include "WsConfigRunner.h"
 #include "win-system/CurrentConsoleProcess.h"
-#include "log-server/Log.h"
 #include "win-system/Environment.h"
 #include "server-config-lib/Configurator.h"
 #include "tvncontrol-app/ControlCommandLine.h"
 
-WsConfigRunner::WsConfigRunner(bool serviceMode)
-: m_serviceMode(serviceMode)
+WsConfigRunner::WsConfigRunner(Logger *logger, bool serviceMode)
+: m_serviceMode(serviceMode),
+  m_log(logger)
 {
   resume();
 }
@@ -60,7 +60,7 @@ void WsConfigRunner::execute()
     process = new Process(pathToBin.getString(), args.getString());
     process->start();
   } catch (Exception &e) {
-    Log::error(_T("Cannot start the WsControl process (%s)"), e.getMessage());
+    m_log.error(_T("Cannot start the WsControl process (%s)"), e.getMessage());
   }
 
   if (process != 0) {

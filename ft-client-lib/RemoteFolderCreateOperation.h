@@ -34,8 +34,10 @@
 class RemoteFolderCreateOperation : public FileTransferOperation
 {
 public:
-  RemoteFolderCreateOperation(const TCHAR *pathToTargetFile);
-  RemoteFolderCreateOperation(FileInfo file, const TCHAR *pathToTargetRoot);
+  RemoteFolderCreateOperation(LogWriter *logWriter, const TCHAR *pathToTargetFile);
+  RemoteFolderCreateOperation(LogWriter *logWriter,
+                              FileInfo file,
+                              const TCHAR *pathToTargetRoot);
   virtual ~RemoteFolderCreateOperation();
 
   virtual void start() throw(IOException);

@@ -26,7 +26,7 @@
 #define _DEVICE_CONTEXT_H_
 
 #include "util/CommonHeader.h"
-#include "PaintWindow.h"
+#include "gui/PaintWindow.h"
 
 class DeviceContext
 {

@@ -30,6 +30,7 @@
 #include "rfb/FrameBuffer.h"
 #include "region/Rect.h"
 #include "win-system/WindowsEvent.h"
+#include "log-writer/LogWriter.h"
 
 #define DEFAULT_SLEEP_TIME 1000
 
@@ -40,7 +41,8 @@ public:
          UpdateListener *updateListener,
          ScreenGrabber *screenGrabber,
          FrameBuffer *backupFrameBuffer,
-         LocalMutex *frameBufferCriticalSection);
+         LocalMutex *frameBufferCriticalSection,
+         LogWriter *log);
 
   virtual ~Poller();
 
@@ -54,6 +56,8 @@ private:
   LocalMutex *m_fbMutex;
   Rect m_pollingRect;
   WindowsEvent m_intervalWaiter;
+
+  LogWriter *m_log;
 };
 
 #endif // __POLLER_H__

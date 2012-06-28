@@ -23,17 +23,18 @@
 //
 
 #include "MouseShapeDetector.h"
-#include "log-server/Log.h"
 
 const int SLEEP_TIME = 100;
 
 MouseShapeDetector::MouseShapeDetector(UpdateKeeper *updateKeeper,
                                        UpdateListener *updateListener,
                                        MouseGrabber *mouseGrabber,
-                                       LocalMutex *mouseGrabLocMut)
+                                       LocalMutex *mouseGrabLocMut,
+                                       LogWriter *log)
 : UpdateDetector(updateKeeper, updateListener),
   m_mouseGrabber(mouseGrabber),
-  m_mouseGrabLocMut(mouseGrabLocMut)
+  m_mouseGrabLocMut(mouseGrabLocMut),
+  m_log(log)
 {
 }
 
@@ -50,7 +51,7 @@ void MouseShapeDetector::onTerminate()
 
 void MouseShapeDetector::execute()
 {
-  Log::info(_T("mouse shape detector thread id = %d"), getThreadId());
+  m_log->info(_T("mouse shape detector thread id = %d"), getThreadId());
 
   while (!isTerminating()) {
     bool isCursorShapeChanged;

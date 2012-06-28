@@ -30,7 +30,7 @@
 class CopyRectDecoder : public Decoder
 {
 public:
-  CopyRectDecoder();
+  CopyRectDecoder(LogWriter *logWriter);
   ~CopyRectDecoder();
 
   void decode(RfbInputGate *input,

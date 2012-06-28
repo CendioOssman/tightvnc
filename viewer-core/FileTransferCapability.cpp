@@ -34,8 +34,9 @@
 #include "rfb/VendorDefs.h"
 
 
-FileTransferCapability::FileTransferCapability()
-: m_ftRequestSender(0),
+FileTransferCapability::FileTransferCapability(Logger *logger)
+: m_logWriter(logger),
+  m_ftRequestSender(0),
   m_ftReplyBuffer(0),
   m_ftMessageProcessor(0),
   m_ftCore(0)
@@ -85,12 +86,13 @@ void FileTransferCapability::bind(RfbInputGate *input, RfbOutputGate *output)
 {
   MsgCapability::bind(input, output);
 
-  m_ftRequestSender = new FileTransferRequestSender(m_output);
-  m_ftReplyBuffer = new FileTransferReplyBuffer(m_input);
+  m_ftRequestSender = new FileTransferRequestSender(&m_logWriter, m_output);
+  m_ftReplyBuffer = new FileTransferReplyBuffer(&m_logWriter, m_input);
   m_ftMessageProcessor = new FileTransferMessageProcessor;
   m_ftMessageProcessor->addListener(m_ftReplyBuffer);
 
-  m_ftCore = new FileTransferCore(m_ftRequestSender,
+  m_ftCore = new FileTransferCore(&m_logWriter,
+                                  m_ftRequestSender,
                                   m_ftReplyBuffer,
                                   m_ftMessageProcessor);
   m_ftCore->updateSupportedOperations(&m_clientMsgCaps, &m_serverMsgCaps);

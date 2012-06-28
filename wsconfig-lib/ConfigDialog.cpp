@@ -57,8 +57,7 @@ ConfigDialog::~ConfigDialog()
 // FIXME: Unimplemented
 void ConfigDialog::updateApplyButtonState()
 {
-  // Note: This function disabled because the dialog does not contain the option.
-  // m_ctrlApplyButton.setEnabled(true);
+  m_ctrlApplyButton.setEnabled(true);
 }
 
 void ConfigDialog::setConfigReloadCommand(Command *command)

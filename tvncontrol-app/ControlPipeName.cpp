@@ -29,7 +29,7 @@
 
 #include "win-system/WTS.h"
 
-void ControlPipeName::createPipeName(bool forService, StringStorage *pipeName)
+void ControlPipeName::createPipeName(bool forService, StringStorage *pipeName, LogWriter *log)
 {
   if (forService) {
     pipeName->setString(
@@ -37,6 +37,6 @@ void ControlPipeName::createPipeName(bool forService, StringStorage *pipeName)
   } else {
     pipeName->format(_T("%s_On_Session_%d"),
       ServerApplicationNames::FOR_APP_CONTROL_APP_SERVICE_PIPE_NAME,
-      WTS::getActiveConsoleSessionId());
+      WTS::getActiveConsoleSessionId(log));
   }
 }

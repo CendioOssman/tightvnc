@@ -29,12 +29,12 @@
 #include "network/RfbOutputGate.h"
 #include "io-lib/IOException.h"
 
-#include "log-server/Log.h"
+#include "log-writer/LogWriter.h"
 
 class FileTransferRequestSender
 {
 public:
-  FileTransferRequestSender(RfbOutputGate *outputStream);
+  FileTransferRequestSender(LogWriter *logWriter, RfbOutputGate *outputStream);
   ~FileTransferRequestSender();
 
   void sendCompressionSupportRequest() throw(IOException);
@@ -50,6 +50,7 @@ public:
   void sendFolderSizeRequest(const TCHAR *fullPath) throw(IOException);
 
 protected:
+  LogWriter *m_logWriter;
   RfbOutputGate *m_output;
 };
 

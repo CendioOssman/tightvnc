@@ -43,7 +43,8 @@ class GuiDesktop : public DesktopInterface,
 public:
   GuiDesktop(ClipboardListener *extClipListener,
              UpdateSendingListener *extUpdSendingListener,
-             AbnormDeskTermListener *extDeskTermListener);
+             AbnormDeskTermListener *extDeskTermListener,
+             LogWriter *log);
   virtual ~GuiDesktop();
 
   // Puts a current desktop name from working session to the
@@ -100,6 +101,8 @@ protected:
   UpdateSendingListener *m_extUpdSendingListener;
   AbnormDeskTermListener *m_extDeskTermListener;
   ClipboardListener *m_extClipListener;
+
+  LogWriter *m_log;
 };
 
 #endif // __GUIDESKTOP_H__

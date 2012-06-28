@@ -24,12 +24,17 @@
 
 #include "RemoteFolderCreateOperation.h"
 
-RemoteFolderCreateOperation::RemoteFolderCreateOperation(const TCHAR *pathToTargetFile)
+RemoteFolderCreateOperation::RemoteFolderCreateOperation(LogWriter *logWriter,
+                                                         const TCHAR *pathToTargetFile)
+: FileTransferOperation(logWriter)
 {
   m_pathToTargetFile.setString(pathToTargetFile);
 }
 
-RemoteFolderCreateOperation::RemoteFolderCreateOperation(FileInfo file, const TCHAR *pathToTargetRoot)
+RemoteFolderCreateOperation::RemoteFolderCreateOperation(LogWriter *logWriter,
+                                                         FileInfo file,
+                                                         const TCHAR *pathToTargetRoot)
+: FileTransferOperation(logWriter)
 {
   FileInfoList *list = new FileInfoList(file);
   getRemotePath(list, pathToTargetRoot, &m_pathToTargetFile);

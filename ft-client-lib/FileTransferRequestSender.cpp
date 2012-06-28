@@ -24,9 +24,12 @@
 
 #include "FileTransferRequestSender.h"
 #include "ft-common/FTMessage.h"
+#include "thread/AutoLock.h"
 
-FileTransferRequestSender::FileTransferRequestSender(RfbOutputGate *output)
-: m_output(output)
+FileTransferRequestSender::FileTransferRequestSender(LogWriter *logWriter,
+                                                     RfbOutputGate *output)
+: m_logWriter(logWriter),
+  m_output(output)
 {
 }
 
@@ -38,7 +41,7 @@ void FileTransferRequestSender::sendCompressionSupportRequest()
 {
   AutoLock al(m_output);
 
-  Log::info(_T("%s\n"), _T("Sending compresion support request"));
+  m_logWriter->info(_T("%s\n"), _T("Sending compresion support request"));
 
   m_output->writeUInt32(FTMessage::COMPRESSION_SUPPORT_REQUEST);
   m_output->flush();
@@ -52,11 +55,11 @@ void FileTransferRequestSender::sendFileListRequest(const TCHAR *fullPath,
   UINT32 messageId = FTMessage::FILE_LIST_REQUEST;
   UINT8 compressionLevel = useCompression ? (UINT8)1 : (UINT8)0;
 
-  Log::info(_T("Sending file list request with parameters:\n")
-            _T("\tpath = %s\n")
-            _T("\tuse compression = %d\n"),
-            fullPath,
-            useCompression ? 1 : 0);
+  m_logWriter->info(_T("Sending file list request with parameters:\n")
+                    _T("\tpath = %s\n")
+                    _T("\tuse compression = %d\n"),
+                    fullPath,
+                    useCompression ? 1 : 0);
 
   m_output->writeUInt32(messageId);
   m_output->writeUInt8(compressionLevel);
@@ -69,10 +72,10 @@ void FileTransferRequestSender::sendDownloadRequest(const TCHAR *fullPathName,
 {
   AutoLock al(m_output);
 
-  Log::info(_T("Sending download request with parameters:\n")
-            _T("\tpath = %s\n")
-            _T("\toffset = %ld\n"),
-            fullPathName, offset);
+  m_logWriter->info(_T("Sending download request with parameters:\n")
+                    _T("\tpath = %s\n")
+                    _T("\toffset = %ld\n"),
+                    fullPathName, offset);
 
   m_output->writeUInt32(FTMessage::DOWNLOAD_START_REQUEST);
   m_output->writeUTF8(fullPathName);
@@ -87,11 +90,11 @@ void FileTransferRequestSender::sendDownloadDataRequest(UINT32 size,
 
   UINT8 compressionLevel = useCompression ? (UINT8)1 : (UINT8)0;
 
-  Log::info(_T("Sending download data request with parameters:\n")
-            _T("\tsize = %d\n")
-            _T("\tuse compression = %d\n"),
-            size,
-            compressionLevel);
+  m_logWriter->info(_T("Sending download data request with parameters:\n")
+                    _T("\tsize = %d\n")
+                    _T("\tuse compression = %d\n"),
+                    size,
+                    compressionLevel);
 
   m_output->writeUInt32(FTMessage::DOWNLOAD_DATA_REQUEST);
   m_output->writeUInt8(compressionLevel);
@@ -103,8 +106,8 @@ void FileTransferRequestSender::sendRmFileRequest(const TCHAR *fullPathName)
 {
   AutoLock al(m_output);
 
-  Log::info(_T("Sending rm file request with parameters:\n\tpath = %s\n"),
-            fullPathName);
+  m_logWriter->info(_T("Sending rm file request with parameters:\n\tpath = %s\n"),
+                    fullPathName);
 
   m_output->writeUInt32(FTMessage::REMOVE_REQUEST);
   m_output->writeUTF8(fullPathName);
@@ -115,8 +118,8 @@ void FileTransferRequestSender::sendMkDirRequest(const TCHAR *fullPathName)
 {
   AutoLock al(m_output);
 
-  Log::info(_T("Sending mkdir request with parameters:\n\tpath = %s\n"),
-            fullPathName);
+  m_logWriter->info(_T("Sending mkdir request with parameters:\n\tpath = %s\n"),
+                    fullPathName);
 
   m_output->writeUInt32(FTMessage::MKDIR_REQUEST);
   m_output->writeUTF8(fullPathName);
@@ -128,11 +131,11 @@ void FileTransferRequestSender::sendMvFileRequest(const TCHAR *oldFileName,
 {
   AutoLock al(m_output);
 
-  Log::info(_T("Sending rename file request with parameters:\n")
-            _T("\t old path = %s\n")
-            _T("\t new path = %s\n"),
-            oldFileName,
-            newFileName);
+  m_logWriter->info(_T("Sending rename file request with parameters:\n")
+                    _T("\t old path = %s\n")
+                    _T("\t new path = %s\n"),
+                    oldFileName,
+                    newFileName);
 
   m_output->writeUInt32(FTMessage::RENAME_REQUEST);
   m_output->writeUTF8(oldFileName);
@@ -151,13 +154,13 @@ void FileTransferRequestSender::sendUploadRequest(const TCHAR *fullPathName,
     flags = 0x1;
   }
 
-  Log::info(_T("Sending upload request with parameters:\n")
-            _T("\tpath = %s\n")
-            _T("\toverwrite flag = %d\n")
-            _T("\toffset = %ld\n"),
-            fullPathName,
-            overwrite ? 1 : 0,
-            offset);
+  m_logWriter->info(_T("Sending upload request with parameters:\n")
+                    _T("\tpath = %s\n")
+                    _T("\toverwrite flag = %d\n")
+                    _T("\toffset = %ld\n"),
+                    fullPathName,
+                    overwrite ? 1 : 0,
+                    offset);
 
   m_output->writeUInt32(FTMessage::UPLOAD_START_REQUEST);
   m_output->writeUTF8(fullPathName);
@@ -185,11 +188,11 @@ void FileTransferRequestSender::sendUploadDataRequest(const char *buffer,
 
   UINT8 compressionLevel = useCompression ? (short)1 : (short)0;
 
-  Log::info(_T("Sending upload data request with parameters:\n")
-            _T("\tsize = %d\n")
-            _T("\tuse compression = %d\n"),
-            size,
-            compressionLevel);
+  m_logWriter->info(_T("Sending upload data request with parameters:\n")
+                    _T("\tsize = %d\n")
+                    _T("\tuse compression = %d\n"),
+                    size,
+                    compressionLevel);
 
   m_output->writeUInt8(compressionLevel);
   m_output->writeUInt32(size);
@@ -203,11 +206,11 @@ void FileTransferRequestSender::sendUploadEndRequest(UINT8 fileFlags,
 {
   AutoLock al(m_output);
 
-  Log::info(_T("Sending upload end request with parameters:\n")
-            _T("\tflags = %d\n")
-            _T("\tmodification time = %ld\n"),
-            fileFlags,
-            modificationTime);
+  m_logWriter->info(_T("Sending upload end request with parameters:\n")
+                    _T("\tflags = %d\n")
+                    _T("\tmodification time = %ld\n"),
+                    fileFlags,
+                    modificationTime);
 
   m_output->writeUInt32(FTMessage::UPLOAD_END_REQUEST);
   m_output->writeUInt16(fileFlags);
@@ -219,8 +222,8 @@ void FileTransferRequestSender::sendFolderSizeRequest(const TCHAR *fullPath)
 {
   AutoLock al(m_output);
 
-  Log::info(_T("Sending get folder size request with parameters:\n\tpath = %d\n"),
-            fullPath);
+  m_logWriter->info(_T("Sending get folder size request with parameters:\n\tpath = %d\n"),
+                    fullPath);
 
   m_output->writeUInt32(FTMessage::DIRSIZE_REQUEST);
   m_output->writeUTF8(fullPath);

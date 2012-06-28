@@ -36,7 +36,7 @@
 #include "rfb-sconn/RfbCodeRegistrator.h"
 #include "rfb-sconn/RfbDispatcherListener.h"
 #include "FileTransferSecurity.h"
-#include "log-server/Log.h"
+#include "log-writer/LogWriter.h"
 
 /**
  * Handler of file transfer plugin client to server messages.
@@ -58,6 +58,7 @@ public:
   FileTransferRequestHandler(RfbCodeRegistrator *registrator,
                              RfbOutputGate *output,
                              DesktopInterface *desktop,
+                             LogWriter *log,
                              bool enabled = true);
 
   /**
@@ -165,6 +166,8 @@ protected:
 
   // Determinates if file transfer is enabled.
   bool m_enabled;
+
+  LogWriter *m_log;
 };
 
 #endif

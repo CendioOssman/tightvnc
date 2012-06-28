@@ -23,18 +23,19 @@
 //
 
 #include "ConsolePoller.h"
-#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
 
 ConsolePoller::ConsolePoller(UpdateKeeper *updateKeeper,
                              UpdateListener *updateListener,
                              ScreenGrabber *screenGrabber,
                              FrameBuffer *backupFrameBuffer,
-                             LocalMutex *frameBufferMutex)
+                             LocalMutex *frameBufferMutex,
+                             LogWriter *log)
 : UpdateDetector(updateKeeper, updateListener),
-m_screenGrabber(screenGrabber),
-m_backupFrameBuffer(backupFrameBuffer),
-m_frameBufferMutex(frameBufferMutex)
+  m_screenGrabber(screenGrabber),
+  m_backupFrameBuffer(backupFrameBuffer),
+  m_frameBufferMutex(frameBufferMutex),
+  m_log(log)
 {
   m_pollingRect.setRect(0, 0, 16, 16);
 }
@@ -52,7 +53,7 @@ void ConsolePoller::onTerminate()
 
 void ConsolePoller::execute()
 {
-  Log::info(_T("console poller thread id = %d"), getThreadId());
+  m_log->info(_T("console poller thread id = %d"), getThreadId());
 
   Rect scanRect;
   Region region;

@@ -40,6 +40,8 @@ public:
    */
   DateTime();
 
+  DateTime(const DateTime &dt);
+
   /**
    * Creates DateTime object with specified time value.
    * @param timeValue count of milliseconds from unix epoch.

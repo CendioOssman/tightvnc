@@ -37,7 +37,7 @@
 
 #include "thread/ZombieKiller.h"
 #include "thread/LocalMutex.h"
-#include "LogManager.h"
+#include "log-writer/LogWriter.h"
 #include "util/Singleton.h"
 #include "util/ListenerContainer.h"
 #include "NewConnectionEvents.h"
@@ -45,6 +45,7 @@
 #include "server-config-lib/Configurator.h"
 
 #include "tvncontrol-app/TvnServerInfo.h"
+#include "LogInitListener.h"
 
 /**
  * TightVNC server singleton that includes serveral components:
@@ -80,7 +81,9 @@ public:
    * To know when need to shutdown TightVNC server you need to use addListener method.
    */
   TvnServer(bool runsInServiceContext,
-            NewConnectionEvents *newConnectionEvents);
+            NewConnectionEvents *newConnectionEvents,
+            LogInitListener *logInitListener,
+            Logger *logger);
   /**
    * Stops and destroys TightVNC server.
    * @remark don't generate shutdown signal(like shutdown() method does) for listeners.
@@ -145,11 +148,11 @@ protected:
   void stopControlServer();
   void stopMainRfbServer();
 
-  // Updates log directory path in the configuration.
-  // Call this function before log server creation.
-  void updateLogDirPath();
+  // Calls a callback function to change update log properties.
+  void changeLogProps();
 
 protected:
+  LogWriter m_log;
   ZombieKiller m_zombieKiller;
 
   Configurator m_config;
@@ -157,12 +160,6 @@ protected:
    * Shortcut to global server configuration.
    */
   ServerConfig *m_srvConfig;
-
-  // Start the log server scheme or simle FileLog depend on running as service
-  // or not.
-  // This declaration must be after than the ServerConfig declaration because
-  // LogManager uses it.
-  LogManager m_logManager;
 
   /**
    * Mutex for protecting servers.
@@ -203,6 +200,8 @@ protected:
    * used by different threads simultaneously.
    */
   ExtraRfbServers m_extraRfbServers;
+
+  LogInitListener *m_logInitListener;
 };
 
 #endif

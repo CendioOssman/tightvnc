@@ -26,6 +26,7 @@
 #define _CURRENT_CONSOLE_PROCESS_H_
 
 #include "win-system/Process.h"
+#include "log-writer/LogWriter.h"
 
 /**
  * Enables you to start and stop processes in interactive console session.
@@ -50,7 +51,7 @@ public:
    *
    * See description of Process constructor.
    */
-  CurrentConsoleProcess(const TCHAR *path = 0, const TCHAR *args = 0);
+  CurrentConsoleProcess(LogWriter *log, const TCHAR *path = 0, const TCHAR *args = 0);
   /**
    * Destoys instance of class.
    */
@@ -65,6 +66,9 @@ public:
    * it will try to start process for some times.
    */
   virtual void start() throw(SystemException);
+
+private:
+  LogWriter *m_log;
 };
 
 #endif

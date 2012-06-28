@@ -26,6 +26,7 @@
 #define _CONTROL_PIPE_NAME_H_
 
 #include "util/CommonHeader.h"
+#include "log-writer/LogWriter.h"
 
 /**
  * Used to create pipe name for control transport.
@@ -38,7 +39,7 @@ public:
    * @param forService flag determinating if we create pipe name for service or application.
    * @param pipeName [out] target pipe name.
    */
-  static void createPipeName(bool forService, StringStorage *pipeName);
+  static void createPipeName(bool forService, StringStorage *pipeName, LogWriter *log);
 
 private:
   /**

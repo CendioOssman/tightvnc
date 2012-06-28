@@ -23,16 +23,17 @@
 //
 
 #include "ReconnectingChannel.h"
-#include "log-server/Log.h"
 #include "util/DateTime.h"
 #include "desktop-ipc/ReconnectException.h"
+#include "thread/AutoLock.h"
 
-ReconnectingChannel::ReconnectingChannel(unsigned int timeOut)
+ReconnectingChannel::ReconnectingChannel(unsigned int timeOut, LogWriter *log)
 : m_timeOut(timeOut),
   m_isClosed(false),
   m_channel(0),
   m_oldChannel(0),
-  m_chanWasChanged(false)
+  m_chanWasChanged(false),
+  m_log(log)
 {
 }
 
@@ -116,7 +117,7 @@ size_t ReconnectingChannel::write(const void *buffer, size_t len)
     }
     return channel->write(buffer, len);
   } catch (Exception &e) {
-    Log::error(e.getMessage());
+    m_log->error(e.getMessage());
     waitForReconnect(_T("write"), channel);
   }
 
@@ -134,7 +135,7 @@ size_t ReconnectingChannel::read(void *buffer, size_t len)
     }
     return channel->read(buffer, len);
   } catch (Exception &e) {
-    Log::error(e.getMessage());
+    m_log->error(e.getMessage());
     waitForReconnect(_T("read"), channel);
   }
 
@@ -167,7 +168,7 @@ void ReconnectingChannel::waitForReconnect(const TCHAR *funName,
       success = true;
     }
   }
-  Log::info(_T("ReconnectingChannel was successfully reconnected."));
+  m_log->info(_T("ReconnectingChannel was successfully reconnected."));
   if (channel != 0) { // If this is not the first initialization
     StringStorage errMess;
     errMess.format(_T("Transport was reconnected in the")

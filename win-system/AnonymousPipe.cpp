@@ -24,12 +24,13 @@
 
 #include "AnonymousPipe.h"
 #include "win-system/Environment.h"
-#include "log-server/Log.h"
+#include "thread/AutoLock.h"
 
-AnonymousPipe::AnonymousPipe(HANDLE hWrite, HANDLE hRead)
+AnonymousPipe::AnonymousPipe(HANDLE hWrite, HANDLE hRead, LogWriter *log)
 : m_hWrite(hWrite),
   m_hRead(hRead),
-  m_neededToClose(true)
+  m_neededToClose(true),
+  m_log(log)
 {
 }
 
@@ -38,7 +39,7 @@ AnonymousPipe::~AnonymousPipe()
   try {
     close();
   } catch (Exception &e) {
-    Log::error(_T("The close() function failed at AnonymousPipe destructor: %s"),
+    m_log->error(_T("The close() function failed at AnonymousPipe destructor: %s"),
                e.getMessage());
   }
 }
@@ -56,7 +57,7 @@ void AnonymousPipe::close()
                              &wrErrText);
       wrSuc = false;
     }
-    Log::debug(_T("Closed m_hWrite(%p) AnonymousPipe handle"),
+    m_log->debug(_T("Closed m_hWrite(%p) AnonymousPipe handle"),
                m_hWrite);
   }
   m_hWrite = INVALID_HANDLE_VALUE;
@@ -66,7 +67,7 @@ void AnonymousPipe::close()
                              &wrErrText);
       rdSuc = false;
     }
-    Log::debug(_T("Closed m_hRead(%p) AnonymousPipe handle"),
+    m_log->debug(_T("Closed m_hRead(%p) AnonymousPipe handle"),
                m_hRead);
   }
   m_hRead = INVALID_HANDLE_VALUE;
@@ -83,7 +84,7 @@ size_t AnonymousPipe::read(void *buffer, size_t len) throw(IOException)
   try {
     return readByHandle(buffer, len, m_hRead);
   } catch (...) {
-    Log::error(_T("AnonymousPipe::read() failed (m_hRead = %p)"),
+    m_log->error(_T("AnonymousPipe::read() failed (m_hRead = %p)"),
                m_hRead);
     throw;
   }
@@ -94,7 +95,7 @@ size_t AnonymousPipe::write(const void *buffer, size_t len) throw(IOException)
   try {
     return writeByHandle(buffer, len, m_hWrite);
   } catch (...) {
-    Log::error(_T("AnonymousPipe::write() failed (m_hWrite = %p)"),
+    m_log->error(_T("AnonymousPipe::write() failed (m_hWrite = %p)"),
                m_hWrite);
     throw;
   }

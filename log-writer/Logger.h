@@ -27,9 +27,41 @@
 
 #include "util/CharDefs.h"
 
+//
+// The Logger class defines abstract low-level interface for logging
+// (recording various types of events in software components or applications).
+//
+// To develop an implementation (e.g. a logger which writes to a file, to the
+// console etc.), inherit from this class and override its print() function.
+// For example, see FileLogger which implements the Logger interface to log
+// into a file.
+//
+// Normally, this class and its subclasses should not be used directly. It's
+// recommended to use LogWriter which adds separate functions for different
+// log verbosity levels, and adds message formatting.
+//
+// When developing components and libraries that use logging but should stay
+// independent from the actual logging method, allow passing Logger* pointer
+// to your module and construct LogWriter wrapper around that Logger. That
+// allows your caller to pass any sub-class of the Logger to your component,
+// or operate without logging by passing a null pointer.
+//
 class Logger
 {
 public:
+  //
+  // Implementations of this abstract function should process a log event (for
+  // example, print it, send it somewhere, or record it in some type of
+  // storage).
+  //
+  // The line argument is the string to be logged.
+  //
+  // The logLevel argument defines significance of the event. Higher values of
+  // logLevel correspond to less important events. The recommended range for
+  // logLevel is 0..9. When this function is called, a Logger implementation
+  // should check logLevel and decide either to accept or to decline the log
+  // message.
+  //
   virtual void print(int logLevel, const TCHAR *line) = 0;
 };
 

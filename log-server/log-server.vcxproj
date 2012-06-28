@@ -248,37 +248,23 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClientLogger.cpp" />
     <ClCompile Include="ConnectionTimer.cpp" />
-    <ClCompile Include="CustomLog.cpp" />
-    <ClCompile Include="FileAccount.cpp" />
-    <ClCompile Include="FileLog.cpp" />
-    <ClCompile Include="FileLogInstance.cpp" />
     <ClCompile Include="ListenLogServer.cpp" />
-    <ClCompile Include="Log.cpp" />
-    <ClCompile Include="LogClient.cpp" />
-    <ClCompile Include="LogClientInstance.cpp" />
     <ClCompile Include="LogConn.cpp" />
-    <ClCompile Include="LogInstance.cpp" />
     <ClCompile Include="LogLevelSender.cpp" />
     <ClCompile Include="LogServer.cpp" />
     <ClCompile Include="SecurityPipeClient.cpp" />
     <ClCompile Include="SecurityPipeServer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ClientLogger.h" />
     <ClInclude Include="ConnectionListener.h" />
     <ClInclude Include="ConnectionTimer.h" />
-    <ClInclude Include="CustomLog.h" />
-    <ClInclude Include="FileAccount.h" />
-    <ClInclude Include="FileLog.h" />
     <ClInclude Include="FileLogDefs.h" />
-    <ClInclude Include="FileLogInstance.h" />
     <ClInclude Include="ListenLogServer.h" />
-    <ClInclude Include="Log.h" />
-    <ClInclude Include="LogClient.h" />
-    <ClInclude Include="LogClientInstance.h" />
     <ClInclude Include="LogConn.h" />
     <ClInclude Include="LogConnAuthListener.h" />
-    <ClInclude Include="LogInstance.h" />
     <ClInclude Include="LogLevelSender.h" />
     <ClInclude Include="LogListener.h" />
     <ClInclude Include="LogServer.h" />

@@ -27,7 +27,7 @@
 
 #include "ListenLogServer.h"
 #include "LogConn.h"
-#include "FileAccount.h"
+#include "log-writer/FileAccount.h"
 #include "util/Singleton.h"
 #include "LogConnAuthListener.h"
 #include "thread/ThreadCollector.h"
@@ -52,7 +52,7 @@ public:
   // before.
   // @throw Exception on an error.
   void start(const TCHAR *logDir,
-             unsigned char logLevel);
+             unsigned char logLevel, size_t headerLineCount);
 
   void changeLogProps(const TCHAR *newLogDir, unsigned char newLevel);
 
@@ -71,6 +71,9 @@ private:
 
   FileAccountHandle addConnection(const TCHAR *fileName);
 
+  // Stores all printed lines as a log header and stops it accumulation.
+  void storeHeader();
+
   StringStorage m_publicPipeName;
 
   StringStorage m_logDir;
@@ -83,6 +86,9 @@ private:
   ListenLogServer *m_listenLogServer;
 
   ThreadCollector m_threadCollector;
+
+  size_t m_headerLineCount;
+  size_t m_totalLogLines;
 };
 
 #endif // __LOGSERVER_H__

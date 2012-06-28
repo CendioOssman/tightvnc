@@ -24,8 +24,11 @@
 
 #include "RemoteFileListOperation.h"
 
-RemoteFileListOperation::RemoteFileListOperation(const TCHAR *remotePath)
-: m_isOk(false), m_isFinished(false)
+RemoteFileListOperation::RemoteFileListOperation(LogWriter *logWriter,
+                                                 const TCHAR *remotePath)
+: FileTransferOperation(logWriter),
+  m_isOk(false),
+  m_isFinished(false)
 {
   m_remotePath.setString(remotePath);
 }

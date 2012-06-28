@@ -40,6 +40,7 @@ TvnServerApplication::TvnServerApplication(HINSTANCE hInstance,
                                            const TCHAR *commandLine,
                                            NewConnectionEvents *newConnectionEvents)
 : WindowsApplication(hInstance, windowClassName),
+  m_fileLogger(true),
   m_tvnServer(0),
   m_commandLine(commandLine),
   m_newConnectionEvents(newConnectionEvents)
@@ -82,9 +83,9 @@ int TvnServerApplication::run()
 
   // Start TightVNC server and TightVNC control application.
   try {
-    m_tvnServer = new TvnServer(false, m_newConnectionEvents);
+    m_tvnServer = new TvnServer(false, m_newConnectionEvents, this, &m_fileLogger);
     m_tvnServer->addListener(this);
-    m_tvnControlRunner = new WsConfigRunner();
+    m_tvnControlRunner = new WsConfigRunner(&m_fileLogger);
 
     int exitCode = WindowsApplication::run();
 
@@ -107,4 +108,16 @@ int TvnServerApplication::run()
 void TvnServerApplication::onTvnServerShutdown()
 {
   WindowsApplication::shutdown();
+}
+
+void TvnServerApplication::onLogInit(const TCHAR *logDir, const TCHAR *fileName,
+                                     unsigned char logLevel)
+{
+  m_fileLogger.init(logDir, fileName, logLevel);
+  m_fileLogger.storeHeader();
+}
+
+void TvnServerApplication::onChangeLogProps(const TCHAR *newLogDir, unsigned char newLevel)
+{
+  m_fileLogger.changeLogProps(newLogDir, newLevel);
 }

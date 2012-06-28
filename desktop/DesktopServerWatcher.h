@@ -27,6 +27,7 @@
 
 #include "thread/Thread.h"
 #include "win-system/Process.h"
+#include "log-writer/LogWriter.h"
 #include "desktop-ipc/ReconnectionListener.h"
 #include "win-system/SharedMemory.h"
 
@@ -41,7 +42,7 @@
 class DesktopServerWatcher : public Thread
 {
 public:
-  DesktopServerWatcher(ReconnectionListener *recListener);
+  DesktopServerWatcher(ReconnectionListener *recListener, LogWriter *log);
   virtual ~DesktopServerWatcher();
 
 protected:
@@ -60,6 +61,8 @@ protected:
 
   SharedMemory *m_sharedMem;
   StringStorage m_shMemName;
+
+  LogWriter *m_log;
 };
 
 #endif // __DESKTOPSERVERWATCHER_H__

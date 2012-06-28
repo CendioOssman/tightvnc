@@ -27,6 +27,7 @@
 
 #include "StandardScreenDriver.h"
 #include "MirrorScreenDriver.h"
+#include "log-writer/LogWriter.h"
 
 class ScreenDriverFactory
 {
@@ -36,15 +37,18 @@ public:
   static ScreenDriver *createScreenDriver(UpdateKeeper *updateKeeper,
                                           UpdateListener *updateListener,
                                           FrameBuffer *fb,
-                                          LocalMutex *fbLocalMutex);
+                                          LocalMutex *fbLocalMutex,
+                                          LogWriter *log);
 private:
   static ScreenDriver *createStandardScreenDriver(UpdateKeeper *updateKeeper,
                                                   UpdateListener *updateListener,
                                                   FrameBuffer *fb,
-                                                  LocalMutex *fbLocalMutex);
+                                                  LocalMutex *fbLocalMutex,
+                                                  LogWriter *log);
   static ScreenDriver *createMirrorScreenDriver(UpdateKeeper *updateKeeper,
                                                 UpdateListener *updateListener,
-                                                LocalMutex *fbLocalMutex);
+                                                LocalMutex *fbLocalMutex,
+                                                LogWriter *log);
 
   static bool isMirrorDriverAllowed();
 };

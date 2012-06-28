@@ -25,7 +25,7 @@
 #include "Menu.h"
 
 Menu::Menu()
-: m_menu(0), 
+: m_menu(0),
   m_bCreated(false)
 {
 }
@@ -146,7 +146,7 @@ bool Menu::setMenuItem(UINT uItem, BOOL fByPosition, LPMENUITEMINFO lpmii)
 void Menu::termMenu()
 {
   if (m_menu && m_bCreated) {
-      DestroyMenu(m_menu);
+    DestroyMenu(m_menu);
   }
   m_menu = 0;
   m_bCreated = false;
@@ -155,7 +155,7 @@ void Menu::termMenu()
 Menu::~Menu()
 {
   if (m_menu && m_bCreated) {
-      DestroyMenu(m_menu);
+    DestroyMenu(m_menu);
   }
 }
 
@@ -163,8 +163,7 @@ int Menu::findMenuItem(UINT uID)
 {
   _ASSERT(m_menu != 0);
 
-  for (int i=0; i<getMenuItemCount(); i++)
-  {
+  for (int i = 0; i < getMenuItemCount(); i++) {
     if (GetMenuItemID(m_menu, i) == uID) {
       return i;
     }

@@ -27,6 +27,7 @@
 
 #include "ViewerInstance.h"
 #include "network/TcpServer.h"
+#include "thread/LocalMutex.h"
 
 class ConnectionListener : protected TcpServer
 {
@@ -34,20 +35,21 @@ public:
   static const TCHAR DEFAULT_HOST[];
   static const UINT16 DEFAULT_PORT = 5500;
 
-  ConnectionListener(ConnectionData *conData,
-                     ConnectionConfig *conConf,
-                     UINT16 port = DEFAULT_PORT);
+  // HWND mainWindow is handle of main window of program.
+  // this window received and processing messages "WM_USER_NEW_LISTENING"
+  ConnectionListener(WindowsApplication *application, UINT16 port = DEFAULT_PORT);
 
   virtual ~ConnectionListener();
+
+  // this method return pointer to new listening connection, if him is exist, and 0 if isn't
+  SocketIPv4 *getNewConnection();
 
 protected:
   void onAcceptConnection(SocketIPv4 *socket);
 
-  std::vector<ViewerInstance *> m_viewerInstances;
-
-  ConnectionData *m_conData;
-  ConnectionConfig *m_conConf;
-
+  WindowsApplication *m_application;
+  list<SocketIPv4 *> m_connections;
+  LocalMutex m_connectionsLock;
 };
 
 #endif

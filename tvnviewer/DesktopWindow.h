@@ -42,7 +42,7 @@ class DesktopWindow : public PaintWindow,
                       protected RfbKeySymListener 
 {
 public:
-  DesktopWindow(ConnectionConfig *conConf);
+  DesktopWindow(LogWriter *logWriter, ConnectionConfig *conConf);
   virtual ~DesktopWindow();
 
   void setClipboardData(const StringStorage *strText);
@@ -52,8 +52,10 @@ public:
   // or the number of bits per pixel
   void setNewFramebuffer(const FrameBuffer *framebuffer);
 
-  // set scale of image, can -1 = Auto, in per cent
+  // set scale of image, can -1 = Auto, in percent
   void setScale(int scale);
+  // it returns the image width and height considering scale
+  Rect getViewerGeometry();
   // it returns the image width, height and number of bits per pixel
   void getServerGeometry(int *width, int *height, int *pixelsize);
 
@@ -88,6 +90,8 @@ protected:
   void calculateWndSize(bool isChanged);
   void applyScrollbarChanges(bool isChanged, bool isVert, bool isHorz, int wndWidth, int wndHeight);
 
+  LogWriter *m_logWriter;
+
   // keyboard support
   std::auto_ptr<RfbKeySym> m_rfbKeySym;
 
@@ -104,7 +108,6 @@ protected:
   int m_fbWidth;
   int m_fbHeight;
   SolidBrush m_brush;
-  int m_scale;
 
   // frame buffer
   LocalMutex m_bufferLock;
@@ -126,7 +129,6 @@ private:
   void drawImage(const RECT *src, const RECT *dst);
   void repaint(const Rect *repaintRect);
   void calcClientArea();
-
 };
 
 #endif

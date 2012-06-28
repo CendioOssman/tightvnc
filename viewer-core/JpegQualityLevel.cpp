@@ -24,8 +24,9 @@
 
 #include "JpegQualityLevel.h"
 
-JpegQualityLevel::JpegQualityLevel(int quality)
-: m_quality(quality)
+JpegQualityLevel::JpegQualityLevel(LogWriter *logWriter, int quality)
+: Decoder(logWriter),
+  m_quality(quality)
 {
 }
 

@@ -22,7 +22,6 @@
 //-------------------------------------------------------------------------
 //
 
-#include "log-server/Log.h"
 #include "UpdateSender.h"
 #include "rfb/VendorDefs.h"
 #include "rfb/EncodingDefs.h"
@@ -34,7 +33,8 @@
 
 UpdateSender::UpdateSender(RfbCodeRegistrator *codeRegtor,
                            UpdateRequestListener *updReqListener,
-                           RfbOutputGate *output, int id)
+                           RfbOutputGate *output, int id,
+                           LogWriter *log)
 : m_updReqListener(updReqListener),
   m_busy(false),
   m_incrUpdIsReq(false),
@@ -43,7 +43,9 @@ UpdateSender::UpdateSender(RfbCodeRegistrator *codeRegtor,
   m_output(output),
   m_enbox(&m_pixelConverter, m_output),
   m_id(id),
-  m_videoFrozen(false)
+  m_videoFrozen(false),
+  m_log(log),
+  m_cursorUpdates(log)
 {
   // FIXME: argument must be defined
   m_updateKeeper = new UpdateKeeper(&Rect());
@@ -131,18 +133,18 @@ void UpdateSender::newUpdates(const UpdateContainer *updateContainer,
                               const CursorShape *cursorShape,
                               const Rect *viewPort)
 {
-  Log::debug(_T("New updates passed to client #%d"), m_id);
+  m_log->debug(_T("New updates passed to client #%d"), m_id);
   addUpdateContainer(updateContainer, frameBuffer, viewPort);
 
   m_cursorUpdates.updateCursorShape(cursorShape);
 
   AutoLock al(&m_reqRectLocMut);
   if (clientIsReady()) {
-    Log::debug(_T("Client #%d is ready for updates, waking up"), m_id);
+    m_log->debug(_T("Client #%d is ready for updates, waking up"), m_id);
     m_busy = true;
     m_newUpdatesEvent.notify();
   } else {
-    Log::debug(_T("Client #%d is not ready for updates, not waking"), m_id);
+    m_log->debug(_T("Client #%d is not ready for updates, not waking"), m_id);
   }
 }
 
@@ -333,7 +335,7 @@ void UpdateSender::sendPalette(PixelFormat *pf)
 
 void UpdateSender::sendUpdate()
 {
-  Log::debug(_T("Entered to the sendUpdate() function"));
+  m_log->debug(_T("Entered to the sendUpdate() function"));
 
   // Check requested regions and immediately return if the client did not
   // request anything.
@@ -343,13 +345,13 @@ void UpdateSender::sendUpdate()
   if (!extractReqRegions(&requestedIncrReg, &requestedFullReg,
                          &incrUpdIsReq, &fullUpdIsReq,
                          &reqTimePoint)) {
-    Log::debug(_T("No request, exiting from the sendUpdate()"));
+    m_log->debug(_T("No request, exiting from the sendUpdate()"));
     return;
   }
-  Log::debug(_T("A request has been made, continuing"));
-  Log::debug(_T("The incremental region has %d rectangles"),
+  m_log->debug(_T("A request has been made, continuing"));
+  m_log->debug(_T("The incremental region has %d rectangles"),
              (int)requestedIncrReg.getCount());
-  Log::debug(_T("The full region has %d rectangles"),
+  m_log->debug(_T("The full region has %d rectangles"),
              (int)requestedFullReg.getCount());
 
   UpdateContainer updCont;
@@ -427,23 +429,23 @@ void UpdateSender::sendUpdate()
   // Send updates
   if (updCont.screenSizeChanged || (!requestedFullReg.isEmpty() &&
                                     !encodeOptions.desktopSizeEnabled())) {
-    Log::debug(_T("Screen size changed or full region requested"));
+    m_log->debug(_T("Screen size changed or full region requested"));
     if (encodeOptions.desktopSizeEnabled()) {
-      Log::debug(_T("Desktop resize is enabled, sending NewFBSize %dx%d"),
+      m_log->debug(_T("Desktop resize is enabled, sending NewFBSize %dx%d"),
                  lastViewPortDim.width, lastViewPortDim.height);
       sendNewFBSize(&lastViewPortDim);
       // FIXME: "Dazzle" does not seem like a good word here.
-      Log::debug(_T("Dazzle changed region"));
+      m_log->debug(_T("Dazzle changed region"));
       m_updateKeeper->dazzleChangedReg();
     } else {
-      Log::debug(_T("Desktop resize is disabled, sending blank screen"));
+      m_log->debug(_T("Desktop resize is disabled, sending blank screen"));
       sendFbInClientDim(&encodeOptions, frameBuffer, &clientDim,
                         &frameBuffer->getPixelFormat());
-      Log::debug(_T("Dazzle changed region"));
+      m_log->debug(_T("Dazzle changed region"));
       m_updateKeeper->dazzleChangedReg();
     }
   } else {
-    Log::debug(_T("Processing normal updates"));
+    m_log->debug(_T("Processing normal updates"));
     CursorShape cursorShape;
     m_cursorUpdates.update(&encodeOptions,
                            &updCont,
@@ -453,7 +455,7 @@ void UpdateSender::sendUpdate()
                            &cursorShape);
 
     if (!encodeOptions.copyRectEnabled()) {
-      Log::debug(_T("CopyRect is disabled, converting to normal updates"));
+      m_log->debug(_T("CopyRect is disabled, converting to normal updates"));
       updCont.changedRegion.add(&updCont.copiedRegion);
       updCont.copiedRegion.clear();
     }
@@ -485,7 +487,7 @@ void UpdateSender::sendUpdate()
     //
 
     // Convert changedRegion to the final list of rectangles.
-    Log::debug(_T("Number of normal rectangles before splitting: %d"),
+    m_log->debug(_T("Number of normal rectangles before splitting: %d"),
                changedRegion.getCount());
     std::vector<Rect> normalRects;
     splitRegion(m_enbox.getEncoder(), &changedRegion, &normalRects,
@@ -494,7 +496,7 @@ void UpdateSender::sendUpdate()
     // Do the same for the videoRegion.
     std::vector<Rect> videoRects;
     if (!videoRegion.isEmpty()) {
-      Log::debug(_T("Video region is not empty"));
+      m_log->debug(_T("Video region is not empty"));
       m_enbox.validateJpegEncoder(); // make sure JpegEncoder is allocated
       splitRegion(m_enbox.getJpegEncoder(), &videoRegion, &videoRects,
                   frameBuffer, &encodeOptions);
@@ -505,57 +507,57 @@ void UpdateSender::sendUpdate()
     updCont.copiedRegion.getRectVector(&copyRects);
 
     // Calculate the total number of rectangles and pseudo-rectangles.
-    Log::debug(_T("Number of normal rectangles: %d"), normalRects.size());
-    Log::debug(_T("Number of video rectangles: %d"), videoRects.size());
-    Log::debug(_T("Number of CopyRect rectangles: %d"), copyRects.size());
+    m_log->debug(_T("Number of normal rectangles: %d"), normalRects.size());
+    m_log->debug(_T("Number of video rectangles: %d"), videoRects.size());
+    m_log->debug(_T("Number of CopyRect rectangles: %d"), copyRects.size());
     size_t numTotalRects =
       normalRects.size() + videoRects.size() + copyRects.size();
 
     if (updCont.cursorPosChanged) {
       numTotalRects++;
-      Log::debug(_T("Adding a pseudo-rectangle for cursor position update"));
+      m_log->debug(_T("Adding a pseudo-rectangle for cursor position update"));
     }
     if (updCont.cursorShapeChanged) {
       numTotalRects++;
-      Log::debug(_T("Adding a pseudo-rectangle for cursor shape update"));
+      m_log->debug(_T("Adding a pseudo-rectangle for cursor shape update"));
     }
-    Log::debug(_T("Total number of rectangles and pseudo-rectangles: %d"),
+    m_log->debug(_T("Total number of rectangles and pseudo-rectangles: %d"),
                numTotalRects);
 
     // FIXME: Handle this better, e.g. send first 65534 rectangles.
     _ASSERT(numTotalRects <= 65534);
 
     if (numTotalRects != 0) {
-      Log::debug(_T("Sending FramebufferUpdate message header"));
+      m_log->debug(_T("Sending FramebufferUpdate message header"));
       // FIXME: Use constant for FramebufferUpdate message type.
       m_output->writeUInt8(0); // message type
       m_output->writeUInt8(0); // padding
       m_output->writeUInt16((UINT16)numTotalRects);
 
       if (updCont.cursorPosChanged) {
-        Log::debug(_T("Sending cursor position update"));
+        m_log->debug(_T("Sending cursor position update"));
         sendCursorPosUpdate();
       }
       if (updCont.cursorShapeChanged) {
-        Log::debug(_T("Sending cursor shape update"));
+        m_log->debug(_T("Sending cursor shape update"));
         sendCursorShapeUpdate(&clientPixelFormat,
                               &cursorShape);
       }
       if (copyRects.size() > 0) {
-        Log::debug(_T("Sending CopyRect rectangles"));
+        m_log->debug(_T("Sending CopyRect rectangles"));
         sendCopyRect(&copyRects, &updCont.copySrc);
       }
 
-      Log::debug(_T("Sending video rectangles"));
-      sendRectangles(m_enbox.getJpegEncoder(), &videoRects, frameBuffer, &encodeOptions);
-      Log::debug(_T("Sending normal rectangles"));
-      Log::debug(_T("Time between request and a point before send and coding (in milliseconds): %u"),
+      m_log->debug(_T("Time between request and a point before send and coding (in milliseconds): %u"),
                  (unsigned int)(DateTime::now() - reqTimePoint).getTime());
+      m_log->debug(_T("Sending video rectangles"));
+      sendRectangles(m_enbox.getJpegEncoder(), &videoRects, frameBuffer, &encodeOptions);
+      m_log->debug(_T("Sending normal rectangles"));
       sendRectangles(m_enbox.getEncoder(), &normalRects, frameBuffer, &encodeOptions);
-      Log::debug(_T("Time between request and answer is (in milliseconds): %u"),
+      m_log->debug(_T("Time between request and answer is (in milliseconds): %u"),
                  (unsigned int)(DateTime::now() - reqTimePoint).getTime());
     } else {
-      Log::debug(_T("Nothing to send, restoring requested regions"));
+      m_log->debug(_T("Nothing to send, restoring requested regions"));
       AutoLock al(&m_reqRectLocMut);
       m_requestedFullReg.add(&requestedFullReg);
       m_requestedIncrReg.add(&requestedIncrReg);
@@ -566,7 +568,7 @@ void UpdateSender::sendUpdate()
 
   }
 
-  Log::debug(_T("Flushing output"));
+  m_log->debug(_T("Flushing output"));
   m_output->flush();
 }
 
@@ -598,19 +600,19 @@ void UpdateSender::sendRectangles(Encoder *encoder,
 
 void UpdateSender::execute()
 {
-  Log::info(_T("Starting update sender thread for client #%d"), m_id);
+  m_log->info(_T("Starting update sender thread for client #%d"), m_id);
 
   while(!isTerminating()) {
     m_newUpdatesEvent.waitForEvent();
-    Log::debug(_T("Update sender thread of client #%d is awake"), m_id);
+    m_log->debug(_T("Update sender thread of client #%d is awake"), m_id);
     if (!isTerminating()) {
       try {
-        Log::debug(_T("Trying to call the sendUpdate() function"));
+        m_log->debug(_T("Trying to call the sendUpdate() function"));
         sendUpdate();
-        Log::debug(_T("The sendUpdate() function has finished"));
+        m_log->debug(_T("The sendUpdate() function has finished"));
         m_busy = false;
       } catch(Exception &e) {
-        Log::debug(_T("The update sender thread caught an error and will")
+        m_log->debug(_T("The update sender thread caught an error and will")
                    _T(" be terminated: %s"), e.getMessage());
         Thread::terminate();
       }
@@ -640,7 +642,7 @@ void UpdateSender::readUpdateRequest(RfbInputGate *io)
     m_requestTimePoint = DateTime::now();
   }
 
-  Log::detail(_T("update requested (%d, %d, %dx%d, incremental = %d)")
+  m_log->detail(_T("update requested (%d, %d, %dx%d, incremental = %d)")
               _T(" by client (client #%d)"),
               reqRect.left, reqRect.top,
               reqRect.getWidth(), reqRect.getHeight(), (int)incremental,

@@ -33,6 +33,8 @@
 #include "desktop-ipc/GateKicker.h"
 #include "desktop-ipc/DesktopSrvDispatcher.h"
 #include "GuiDesktop.h"
+#include "log-writer/LogWriter.h"
+
 //Interfaces
 #include "util/AnEventListener.h"
 #include "desktop-ipc/ReconnectionListener.h"
@@ -45,8 +47,9 @@ class DesktopClient : public AnEventListener,
 {
 public:
   DesktopClient(ClipboardListener *extClipListener,
-             UpdateSendingListener *extUpdSendingListener,
-             AbnormDeskTermListener *extDeskTermListener);
+                UpdateSendingListener *extUpdSendingListener,
+                AbnormDeskTermListener *extDeskTermListener,
+                LogWriter *log);
   virtual ~DesktopClient();
 
 protected:
@@ -77,6 +80,8 @@ private:
   UserInput *m_userInputClient; // It uses for delegation by the SasUserInput.
 
   DesktopConfigClient *m_deskConf;
+
+  LogWriter *m_log;
 };
 
 #endif // __DESKTOPCLIENT_H__

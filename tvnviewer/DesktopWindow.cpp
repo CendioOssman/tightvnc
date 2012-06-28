@@ -24,21 +24,21 @@
 
 #include "DesktopWindow.h"
 
-DesktopWindow::DesktopWindow(ConnectionConfig *conConf)
- : m_clipboard(0), 
-   m_showVert(false), 
-   m_showHorz(false), 
-   m_scale(100), 
-   m_fbWidth(1), 
-   m_fbHeight(1), 
-   m_winResize(false),
-   m_conConf(conConf), 
-   m_brush(RGB(0, 0, 0)),
-   m_pViewerCore(0),
-   m_isBackgroundDirty(false),
-   m_isFullScreen(false)
+DesktopWindow::DesktopWindow(LogWriter *logWriter, ConnectionConfig *conConf)
+: m_logWriter(logWriter),
+  m_clipboard(0),
+  m_showVert(false),
+  m_showHorz(false),
+  m_fbWidth(1),
+  m_fbHeight(1),
+  m_winResize(false),
+  m_conConf(conConf),
+  m_brush(RGB(0, 0, 0)),
+  m_pViewerCore(0),
+  m_isBackgroundDirty(false),
+  m_isFullScreen(false)
 {
-  m_rfbKeySym = std::auto_ptr<RfbKeySym>(new RfbKeySym(this));
+  m_rfbKeySym = std::auto_ptr<RfbKeySym>(new RfbKeySym(this, m_logWriter));
 }
 
 DesktopWindow::~DesktopWindow()
@@ -75,7 +75,7 @@ void DesktopWindow::onPaint(DeviceContext *dc, PAINTSTRUCT *paintStruct)
         doDraw(dc);
       }
     } catch (Exception &ex) {
-      Log::error(_T("Error in onPaint: %s"), ex.getMessage());
+      m_logWriter->error(_T("Error in onPaint: %s"), ex.getMessage());
     }
   }
 }
@@ -258,15 +258,16 @@ bool DesktopWindow::onDrawClipboard()
   if (!IsWindowVisible(getHWnd()) || !m_conConf->isClipboardEnabled()) {
     return false;
   }
-  StringStorage strTmp;
-  if (m_clipboard.getString(&strTmp)) {
+  StringStorage clipboardString;
+  if (m_clipboard.getString(&clipboardString)) {
 
-    if (strTmp == m_strClipboard) {
+    // if string in clipboard got from server, then don't send him too
+    if (clipboardString == m_strClipboard) {
       m_strClipboard = _T("");
       return true;
     }
     m_strClipboard = _T("");
-    m_pViewerCore->sendCutTextEvent(&strTmp);
+    m_pViewerCore->sendCutTextEvent(&clipboardString);
   }
   return true;
 }
@@ -281,6 +282,7 @@ void DesktopWindow::setClipboardData(const StringStorage * strText)
 
 void DesktopWindow::doDraw(DeviceContext *dc)
 {
+  AutoLock al(&m_bufferLock);
   int fbWidth  = m_framebuffer.getDimension().width;
   int fbHeight = m_framebuffer.getDimension().height;
 
@@ -450,14 +452,16 @@ bool DesktopWindow::onDestroy()
 void DesktopWindow::updateFramebuffer(const FrameBuffer *framebuffer,
                                      const Rect *dstRect)
 {
-  AutoLock al(&m_bufferLock);
+  {
+    // FIXME: Nested locks should not be used.
+    AutoLock al(&m_bufferLock);
 
-  if (!m_framebuffer.copyFrom(dstRect, framebuffer, dstRect->left, dstRect->top)) {
-    Log::error(_T("Possible invalide region. (%d, %d), (%d, %d)"),
-               dstRect->left, dstRect->top, dstRect->right, dstRect->bottom);
-    Log::interror(_T("Error in updateFramebuffer (ViewerWindow)"));
+    if (!m_framebuffer.copyFrom(dstRect, framebuffer, dstRect->left, dstRect->top)) {
+      m_logWriter->error(_T("Possible invalide region. (%d, %d), (%d, %d)"),
+                         dstRect->left, dstRect->top, dstRect->right, dstRect->bottom);
+      m_logWriter->interror(_T("Error in updateFramebuffer (ViewerWindow)"));
+    }
   }
-
   repaint(dstRect);
 }
 
@@ -469,8 +473,9 @@ void DesktopWindow::setNewFramebuffer(const FrameBuffer *framebuffer)
   bool isBackgroundDirty = dimension.width < olddimension.width || 
                            dimension.height < olddimension.height;
 
-  Log::detail(_T("Desktop size: %d, %d"),  dimension.width, dimension.height);
+  m_logWriter->detail(_T("Desktop size: %d, %d"),  dimension.width, dimension.height);
   {
+    // FIXME: Nested locks should not be used.
     AutoLock al(&m_bufferLock);
     if (!dimension.isEmpty()) {
       // the width and height should be aligned to 4
@@ -482,6 +487,7 @@ void DesktopWindow::setNewFramebuffer(const FrameBuffer *framebuffer)
                                   &framebuffer->getPixelFormat(), 
                                   getHWnd());
       m_framebuffer.setColor(0, 0, 0);
+      m_scManager.setScreenResolution(dimension.width, dimension.height);
     }
   }
   if (dimension.isEmpty()) {
@@ -526,8 +532,7 @@ void DesktopWindow::repaint(const Rect *repaintRect)
 void DesktopWindow::setScale(int scale)
 {
   AutoLock al(&m_bufferLock);
-  m_scale = scale;
-  m_scManager.setScale(m_scale);
+  m_scManager.setScale(scale);
   m_winResize = true;
 }
 
@@ -545,6 +550,18 @@ POINTS DesktopWindow::getViewerCoord(long xPos, long yPos)
   }
   p = m_scManager.transformDispToScr(xPos, yPos);
   return p;
+}
+
+Rect DesktopWindow::getViewerGeometry()
+{
+  Rect viewerRect;
+  viewerRect.setHeight(m_scManager.getVertPoints());
+  viewerRect.setWidth(m_scManager.getHorzPoints());
+  if (viewerRect.area() == 0) {
+    viewerRect.setWidth(m_framebuffer.getDimension().width);
+    viewerRect.setHeight(m_framebuffer.getDimension().height);
+  }
+  return viewerRect;
 }
 
 void DesktopWindow::getServerGeometry(int *width, int *height, int *pixelsize)

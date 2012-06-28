@@ -57,3 +57,4 @@ bool PaintWindow::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
   }
   return BaseWindow::wndProc(message, wParam, lParam);
 }
+

@@ -23,11 +23,12 @@
 //
 
 #include "SessionChangesWatcher.h"
-#include "log-server/Log.h"
 #include "win-system/WTS.h"
 
-SessionChangesWatcher::SessionChangesWatcher(AnEventListener *extSessionChangesListener)
-: m_extSessionChangesListener(extSessionChangesListener)
+SessionChangesWatcher::SessionChangesWatcher(AnEventListener *extSessionChangesListener,
+                                             LogWriter *log)
+: m_extSessionChangesListener(extSessionChangesListener),
+  m_log(log)
 {
   ProcessIdToSessionId(GetCurrentProcessId(), &m_baseSessionId);
   resume();
@@ -46,16 +47,16 @@ void SessionChangesWatcher::execute()
   DesktopSelector::getThreadDesktopName(&prevDeskName);
 
   while (!isTerminating()) {
-    DWORD currSessionId = WTS::getActiveConsoleSessionId();
+    DWORD currSessionId = WTS::getActiveConsoleSessionId(m_log);
     bool sessionChanged = prevSession != currSessionId;
     DesktopSelector::getCurrentDesktopName(&currDeskName);
     bool desktopChanged = !currDeskName.isEqualTo(&prevDeskName);
     if (sessionChanged || desktopChanged) {
-      Log::debug(_T("Session or desktop has been changed.")
-                 _T(" The process session = %u, current session = %u")
-                 _T(" The process desktop = %s, current desktop = %s"),
-                 (unsigned int)prevSession, (unsigned int)currSessionId,
-                 prevDeskName.getString(), currDeskName.getString());
+      m_log->debug(_T("Session or desktop has been changed.")
+                   _T(" The process session = %u, current session = %u")
+                   _T(" The process desktop = %s, current desktop = %s"),
+                   (unsigned int)prevSession, (unsigned int)currSessionId,
+                   prevDeskName.getString(), currDeskName.getString());
       prevSession = currSessionId;
       prevDeskName = currDeskName;
       m_extSessionChangesListener->onAnObjectEvent();

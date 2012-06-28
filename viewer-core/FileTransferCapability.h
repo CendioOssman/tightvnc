@@ -30,13 +30,15 @@
 #include "ft-client-lib/FileTransferMessageProcessor.h"
 #include "ft-client-lib/FileTransferCore.h"
 
+#include "log-writer/LogWriter.h"
+
 #include "CapsContainer.h"
 #include "MsgCapability.h"
 
 class FileTransferCapability : public MsgCapability
 {
 public:
-  FileTransferCapability();
+  FileTransferCapability(Logger *logger = 0);
   virtual ~FileTransferCapability();
 
   virtual bool isEnabled();
@@ -51,6 +53,8 @@ protected:
   virtual void addServerCaps();
   virtual void addServerCapability(UINT32 code, const char *vendor, const char *name,
                                    const StringStorage desc);
+
+  LogWriter m_logWriter;
 
   FileTransferRequestSender *m_ftRequestSender;
   FileTransferReplyBuffer *m_ftReplyBuffer;

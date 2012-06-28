@@ -533,27 +533,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\ClientLogger.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ConnectionTimer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\CustomLog.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\FileAccount.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\FileLog.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\FileLogger.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\FileLogInstance.cpp"
 				>
 			</File>
 			<File
@@ -561,23 +545,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Log.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\LogClient.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\LogClientInstance.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\LogConn.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\LogInstance.cpp"
 				>
 			</File>
 			<File
@@ -603,6 +571,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\ClientLogger.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ConnectionListener.h"
 				>
 			</File>
@@ -611,43 +583,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\CustomLog.h"
-				>
-			</File>
-			<File
-				RelativePath=".\FileAccount.h"
-				>
-			</File>
-			<File
-				RelativePath=".\FileLog.h"
-				>
-			</File>
-			<File
 				RelativePath=".\FileLogDefs.h"
 				>
 			</File>
 			<File
-				RelativePath=".\FileLogger.h"
-				>
-			</File>
-			<File
-				RelativePath=".\FileLogInstance.h"
-				>
-			</File>
-			<File
 				RelativePath=".\ListenLogServer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Log.h"
-				>
-			</File>
-			<File
-				RelativePath=".\LogClient.h"
-				>
-			</File>
-			<File
-				RelativePath=".\LogClientInstance.h"
 				>
 			</File>
 			<File
@@ -656,10 +596,6 @@
 			</File>
 			<File
 				RelativePath=".\LogConnAuthListener.h"
-				>
-			</File>
-			<File
-				RelativePath=".\LogInstance.h"
 				>
 			</File>
 			<File

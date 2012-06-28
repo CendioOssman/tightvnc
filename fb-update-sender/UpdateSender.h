@@ -51,7 +51,7 @@ public:
   // FIXME: Document all the arguments properly.
   UpdateSender(RfbCodeRegistrator *codeRegtor,
                UpdateRequestListener *updReqListener, RfbOutputGate *output,
-               int id);
+               int id, LogWriter *log);
   virtual ~UpdateSender(void);
 
   // The sendServerInit() function sends first rfb init message to a client
@@ -165,6 +165,8 @@ protected:
                    std::vector<Rect> *rects,
                    const FrameBuffer *frameBuffer,
                    const EncodeOptions *encodeOptions);
+
+  LogWriter *m_log;
 
   WindowsEvent m_newUpdatesEvent;
 

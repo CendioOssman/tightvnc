@@ -32,7 +32,6 @@
 #include "win-system/Environment.h"
 #include "win-system/Process.h"
 #include "win-system/WinCommandLineArgs.h"
-#include "log-server/Log.h"
 #include "util/ResourceLoader.h"
 #include "tvnserver/resource.h"
 #include "tvnserver-app/NamingDefs.h"
@@ -92,6 +91,7 @@ int QueryConnectionApplication::execute(const TCHAR *peerAddr, bool acceptByDefa
                  QueryConnectionCommandLine::TIMEOUT,
                  timeOutSec);
 
+  LogWriter log(0); // Zero logger.
   Process *process = 0;
 
   int defaultRetCode = acceptByDefault ? 0 : 1;
@@ -100,7 +100,7 @@ int QueryConnectionApplication::execute(const TCHAR *peerAddr, bool acceptByDefa
   // Run command in separate process.
 
   if (Configurator::getInstance()->getServiceFlag()) {
-    process = new CurrentConsoleProcess(command.getString());
+    process = new CurrentConsoleProcess(&log, command.getString());
   } else {
     process = new Process(command.getString());
   }
@@ -110,7 +110,7 @@ int QueryConnectionApplication::execute(const TCHAR *peerAddr, bool acceptByDefa
     process->waitForExit();
     retCode = process->getExitCode();
   } catch (Exception &ex) {
-    Log::error(ex.getMessage());
+    log.error(ex.getMessage());
   }
 
   delete process;

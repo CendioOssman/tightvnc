@@ -65,6 +65,11 @@ public:
   virtual void shutdown();
 
   /**
+   * Posts message to main window.
+   */
+  virtual void postMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);
+
+  /**
    * Adds modeless dialog to application modeless dialog list to
    * enable switching between controls by pressing tab button.
    * @param dialogWindow HWND of modeless dialog.
@@ -88,22 +93,21 @@ protected:
   // value returned by this function.
   virtual int processMessages();
 
+  /**
+   * Windows prodecure for main application window.
+   */
+  static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam);
+
   HINSTANCE m_appInstance;
   HWND m_mainWindow;
   StringStorage m_windowClassName;
-private:
+protected:
   /**
    * Helper method to process modeless dialog message for modal dialog.
    * @param msg message to process.
    * @return true if don't need to translate and dispatch message in main message loop.
    */
   static bool processDialogMessage(MSG *msg);
-
-  /**
-   * Windows prodecure for main application window.
-   */
-  static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam);
-
 private:
   static LocalMutex m_MDLMutex; // Modeless dialog list mutex.
   static list<HWND> m_modelessDialogList;

@@ -23,17 +23,18 @@
 //
 
 #include "GuiDesktop.h"
-#include "log-server/Log.h"
 #include "util/BrokenHandleException.h"
 
 GuiDesktop::GuiDesktop(ClipboardListener *extClipListener,
                        UpdateSendingListener *extUpdSendingListener,
-                       AbnormDeskTermListener *extDeskTermListener)
+                       AbnormDeskTermListener *extDeskTermListener,
+                       LogWriter *log)
 : m_extUpdSendingListener(extUpdSendingListener),
   m_extDeskTermListener(extDeskTermListener),
   m_extClipListener(extClipListener),
   m_userInput(0),
-  m_updateHandler(0)
+  m_updateHandler(0),
+  m_log(log)
 {
 }
 
@@ -46,7 +47,7 @@ void GuiDesktop::getCurrentUserInfo(StringStorage *desktopName,
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
-  Log::info(_T("get current user information"));
+  m_log->info(_T("get current user information"));
   try {
     m_userInput->getCurrentUserInfo(desktopName, userName);
   } catch (...) {
@@ -58,7 +59,7 @@ void GuiDesktop::getFrameBufferProperties(Dimension *dim, PixelFormat *pf)
 {
   _ASSERT(m_updateHandler != 0);
   _ASSERT(m_extDeskTermListener != 0);
-  Log::info(_T("get frame buffer properties"));
+  m_log->info(_T("get frame buffer properties"));
   try {
     m_updateHandler->getFrameBufferProp(dim, pf);
   } catch (...) {
@@ -70,7 +71,7 @@ void GuiDesktop::getPrimaryDesktopCoords(Rect *rect)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
-  Log::info(_T("get primary desktop coordinates"));
+  m_log->info(_T("get primary desktop coordinates"));
   try {
     m_userInput->getPrimaryDisplayCoords(rect);
   } catch (...) {
@@ -83,7 +84,7 @@ void GuiDesktop::getDisplayNumberCoords(Rect *rect,
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
-  Log::info(_T("get the %u display coordinates"), (unsigned int) dispNumber);
+  m_log->info(_T("get the %u display coordinates"), (unsigned int) dispNumber);
   try {
     m_userInput->getDisplayNumberCoords(rect, dispNumber);
   } catch (...) {
@@ -95,7 +96,7 @@ void GuiDesktop::getWindowCoords(HWND hwnd, Rect *rect)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
-  Log::info(_T("get window coordinates"));
+  m_log->info(_T("get window coordinates"));
   try {
     m_userInput->getWindowCoords(hwnd, rect);
   } catch (BrokenHandleException &) {
@@ -109,7 +110,7 @@ HWND GuiDesktop::getWindowHandleByName(const StringStorage *windowName)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
-  Log::info(_T("get a window handle by a window name"));
+  m_log->info(_T("get a window handle by a window name"));
   try {
     return m_userInput->getWindowHandleByName(windowName);
   } catch (...) {
@@ -120,7 +121,7 @@ HWND GuiDesktop::getWindowHandleByName(const StringStorage *windowName)
 
 bool GuiDesktop::isRemoteInputAllowed()
 {
-  Log::info(_T("checking remote input allowing"));
+  m_log->info(_T("checking remote input allowing"));
 
   bool enabled = !Configurator::getInstance()->getServerConfig()->isBlockingRemoteInput();
   enabled = enabled && !isRemoteInputTempBlocked();
@@ -132,13 +133,13 @@ void GuiDesktop::setKeyboardEvent(UINT32 keySym, bool down)
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
 
-  Log::info(_T("set keyboard event (keySym = %u, down = %d)"), keySym, (int)down);
+  m_log->info(_T("set keyboard event (keySym = %u, down = %d)"), keySym, (int)down);
   try {
     if (isRemoteInputAllowed()) {
       m_userInput->setKeyboardEvent(keySym, down);
     }
   } catch (Exception &e) {
-    Log::error(_T("setKeyboardEvent() crashed: %s"), e.getMessage());
+    m_log->error(_T("setKeyboardEvent() crashed: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -148,7 +149,7 @@ void GuiDesktop::setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
 
-  Log::info(_T("set mouse event (x = %u, y = %u)"), (UINT32)x, (UINT32)y);
+  m_log->info(_T("set mouse event (x = %u, y = %u)"), (UINT32)x, (UINT32)y);
   Point point(x, y);
   try {
     if (isRemoteInputAllowed()) {
@@ -164,7 +165,7 @@ void GuiDesktop::setNewClipText(const StringStorage *newClipboard)
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
 
-  Log::info(_T("set new clipboard text"));
+  m_log->info(_T("set new clipboard text"));
 
   bool isEqual;
   {
@@ -192,47 +193,47 @@ void GuiDesktop::sendUpdate()
   _ASSERT(m_extUpdSendingListener != 0);
 
   if (!m_extUpdSendingListener->isReadyToSend()) {
-    Log::info(_T("nobody is ready for updates"));
+    m_log->info(_T("nobody is ready for updates"));
     return;
   }
   UpdateContainer updCont;
   try {
     if (!m_fullReqRegion.isEmpty()) {
-      Log::info(_T("set full update request to UpdateHandler"));
+      m_log->info(_T("set full update request to UpdateHandler"));
       m_updateHandler->setFullUpdateRequested(&m_fullReqRegion);
     }
 
-    Log::info(_T("extracting updates from UpdateHandler"));
+    m_log->info(_T("extracting updates from UpdateHandler"));
     m_updateHandler->extract(&updCont);
   } catch (Exception &e) {
-    Log::info(_T("WinDesktop::sendUpdate() failed with error:%s"),
+    m_log->info(_T("WinDesktop::sendUpdate() failed with error:%s"),
                e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 
   if (!updCont.isEmpty() || !m_fullReqRegion.isEmpty()) {
-    Log::info(_T("UpdateContainer is not empty.")
+    m_log->info(_T("UpdateContainer is not empty.")
               _T(" Updates will be given to all."));
     m_extUpdSendingListener->onSendUpdate(&updCont,
                                           m_updateHandler->getFrameBuffer(),
                                           m_updateHandler->getCursorShape());
-    Log::info(_T("Updates have been given to all."));
+    m_log->info(_T("Updates have been given to all."));
     AutoLock al(&m_reqRegMutex);
     m_fullReqRegion.clear();
   } else {
-    Log::info(_T("UpdateContainer is empty"));
+    m_log->info(_T("UpdateContainer is empty"));
   }
 }
 
 void GuiDesktop::onUpdate()
 {
-  Log::info(_T("update detected"));
+  m_log->info(_T("update detected"));
   m_newUpdateEvent.notify();
 }
 
 void GuiDesktop::onUpdateRequest(const Rect *rectRequested, bool incremental)
 {
-  Log::info(_T("update requested"));
+  m_log->info(_T("update requested"));
 
   AutoLock al(&m_reqRegMutex);
   if (!incremental) {
@@ -245,7 +246,7 @@ void GuiDesktop::onClipboardUpdate(const StringStorage *newClipboard)
 {
   _ASSERT(m_extClipListener != 0);
 
-  Log::info(_T("clipboard update detected"));
+  m_log->info(_T("clipboard update detected"));
 
   // Send new clipboard text, even if it is empty.
   m_extClipListener->onClipboardUpdate(newClipboard);

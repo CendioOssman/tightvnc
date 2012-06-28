@@ -135,7 +135,7 @@ void ToolBar::attachToolBar(HWND hwnd)
 
 bool ToolBar::enableButton(int idButton, bool enable)
 {
-  LRESULT result = SendMessage(m_hWndToolbar, TB_ENABLEBUTTON, 
+  LRESULT result = SendMessage(m_hWndToolbar, TB_ENABLEBUTTON,
                                idButton, MAKELONG(enable, 0));
   return !!result;
 }

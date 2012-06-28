@@ -113,7 +113,7 @@ int ServiceControlApplication::run()
       // FIXME: WsConfigRunner is a Thread, so the work will be made in a
       //        newly created thread and thus we are not aware of the result.
       //        Are there any reasons why we cannot do that synchronously?
-      WsConfigRunner tvncontrol(true);
+      WsConfigRunner tvncontrol(0, true);
     } catch (...) { }
   }
 

@@ -37,7 +37,8 @@ class UpdateFilter
 public:
   UpdateFilter(ScreenDriver *screenDriver,
                FrameBuffer *frameBuffer,
-               LocalMutex *frameBufferCriticalSection);
+               LocalMutex *frameBufferCriticalSection,
+               LogWriter *log);
   ~UpdateFilter();
 
   void filter(UpdateContainer *updateContainer);
@@ -57,6 +58,8 @@ private:
   FrameBuffer *m_frameBuffer;
   LocalMutex *m_fbMutex;
   GrabOptimizator m_grabOptimizator;
+
+  LogWriter *m_log;
 };
 
 #endif // __UPDATEFILTER_H__

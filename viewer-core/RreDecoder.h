@@ -30,7 +30,7 @@
 class RreDecoder : public Decoder
 {
 public:
-  RreDecoder();
+  RreDecoder(LogWriter *logWriter);
   ~RreDecoder();
   
   void decode(RfbInputGate *input,

@@ -24,17 +24,18 @@
 
 #include "MirrorScreenDriver.h"
 #include "util/Exception.h"
-#include "log-server/Log.h"
 
 MirrorScreenDriver::MirrorScreenDriver(UpdateKeeper *updateKeeper,
                                        UpdateListener *updateListener,
-                                       LocalMutex *fbLocalMutex)
+                                       LocalMutex *fbLocalMutex,
+                                       LogWriter *log)
 : UpdateDetector(updateKeeper,
                  updateListener),
   m_fbMutex(fbLocalMutex),
-  m_lastCounter(0)
+  m_lastCounter(0),
+  m_log(log)
 {
-  m_mirrorClient = new MirrorDriverClient();
+  m_mirrorClient = new MirrorDriverClient(m_log);
   initFrameBuffer();
 }
 
@@ -137,7 +138,7 @@ bool MirrorScreenDriver::applyNewProperties()
 
   delete m_mirrorClient;
   m_mirrorClient = 0;
-  m_mirrorClient = new MirrorDriverClient();
+  m_mirrorClient = new MirrorDriverClient(m_log);
 
   Dimension newDim = m_mirrorClient->getDimension();
   PixelFormat pf = m_mirrorClient->getPixelFormat();

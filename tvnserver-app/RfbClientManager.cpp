@@ -25,25 +25,26 @@
 #include "RfbClientManager.h"
 #include "thread/ZombieKiller.h"
 #include "QueryConnectionApplication.h"
-#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
 #include "desktop/Desktop.h"
 
 RfbClientManager::RfbClientManager(const TCHAR *serverName,
-                                   NewConnectionEvents *newConnectionEvents)
+                                   NewConnectionEvents *newConnectionEvents,
+                                   LogWriter *log)
 : m_nextClientId(0),
   m_desktop(0),
-  m_newConnectionEvents(newConnectionEvents)
+  m_newConnectionEvents(newConnectionEvents),
+  m_log(log)
 {
-  Log::info(_T("Starting rfb client manager"));
+  m_log->info(_T("Starting rfb client manager"));
 }
 
 RfbClientManager::~RfbClientManager()
 {
-  Log::info(_T("~RfbClientManager() has been called"));
+  m_log->info(_T("~RfbClientManager() has been called"));
   disconnectAllClients();
   waitUntilAllClientAreBeenDestroyed();
-  Log::info(_T("~RfbClientManager() has been completed"));
+  m_log->info(_T("~RfbClientManager() has been completed"));
 }
 
 void RfbClientManager::onClientTerminate()
@@ -108,7 +109,7 @@ DesktopInterface *RfbClientManager::onClientAuth(RfbClient *client)
   if (m_desktop == 0 && !m_clientList.empty()) {
     // Create WinDesktop and notify listeners that the first client has been
     // connected.
-    m_desktop = new Desktop(this, this, this);
+    m_desktop = new Desktop(this, this, this, m_log);
     vector<RfbClientManagerEventListener *>::iterator iter;
     for (iter = m_listeners.begin(); iter != m_listeners.end(); iter++) {
       (*iter)->afterFirstClientConnect();
@@ -212,7 +213,7 @@ bool RfbClientManager::isReadyToSend()
 
 void RfbClientManager::onAbnormalDesktopTerminate()
 {
-  Log::error(_T("onAbnormalDesktopTerminate() called"));
+  m_log->error(_T("onAbnormalDesktopTerminate() called"));
   disconnectAllClients();
 }
 
@@ -375,7 +376,8 @@ void RfbClientManager::addNewConnection(SocketIPv4 *socket,
                                               isOutgoing,
                                               m_nextClientId,
                                               constViewPort,
-                                              &m_dynViewPort));
+                                              &m_dynViewPort,
+                                              m_log));
   m_nextClientId++;
 }
 

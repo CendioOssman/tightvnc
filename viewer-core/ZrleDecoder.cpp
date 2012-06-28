@@ -28,7 +28,8 @@
 
 typedef vector<unsigned int> Palette;
 
-ZrleDecoder::ZrleDecoder()
+ZrleDecoder::ZrleDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

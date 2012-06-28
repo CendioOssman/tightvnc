@@ -65,10 +65,12 @@ const TCHAR ViewerCmdLine::ZRLE[] = _T("zrle");
 
 ViewerCmdLine::ViewerCmdLine(ConnectionData *conData,
                              ConnectionConfig *conConf,
-                             ViewerConfig *config)
+                             ViewerConfig *config,
+                             bool *isListening)
 : m_conData(conData),
   m_conConf(conConf),
-  m_config(config)
+  m_config(config),
+  m_isListening(isListening)
 {
 }
 
@@ -146,7 +148,7 @@ void ViewerCmdLine::parse()
     parseOptionsFile();
   } else {
     if (isPresent(ViewerCmdLine::LISTEN)) {
-      m_conData->setListening();
+      *m_isListening = true;
     } else {
       if (!parseHost()) {
         throw CommandLineFormatException();

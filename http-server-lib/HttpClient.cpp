@@ -28,10 +28,9 @@
 
 #include "network/socket/SocketStream.h"
 
-#include "log-server/Log.h"
-
-HttpClient::HttpClient(SocketIPv4 *socket)
-: TcpClientThread(socket)
+HttpClient::HttpClient(SocketIPv4 *socket, LogWriter *log)
+: TcpClientThread(socket),
+  m_log(log)
 {
   m_stream = new SocketStream(socket);
 
@@ -70,7 +69,7 @@ void HttpClient::execute()
     // Call request handler.
     //
 
-    HttpRequestHandler httpRequestHandler(m_dIS, m_dOS, peerHost.getString());
+    HttpRequestHandler httpRequestHandler(m_dIS, m_dOS, m_log, peerHost.getString());
 
     httpRequestHandler.processRequest();
   } catch (IOException &) { } // try / catch.

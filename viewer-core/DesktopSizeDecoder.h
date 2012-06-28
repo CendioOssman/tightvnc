@@ -30,7 +30,7 @@
 class DesktopSizeDecoder : public Decoder
 {
 public:
-  DesktopSizeDecoder();
+  DesktopSizeDecoder(LogWriter *logWriter);
   ~DesktopSizeDecoder();
 
   void decode(RfbInputGate *input,

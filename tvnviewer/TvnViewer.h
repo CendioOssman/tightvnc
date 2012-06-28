@@ -25,45 +25,112 @@
 #ifndef _TVN_VIEWER_H_
 #define _TVN_VIEWER_H_
 
+#include "AboutDialog.h"
+#include "ConfigurationDialog.h"
 #include "ConnectionListener.h"
 #include "ControlTrayIcon.h"
+#include "LoginDialog.h"
+#include "OptionsDialog.h"
+#include "ViewerCollector.h"
+#include "win-system/WindowsApplication.h"
 
-#include "thread/ThreadCollector.h"
+#include "log-writer/LogWriter.h"
+#include "thread/AutoLock.h"
 
-class TvnViewer : protected ControlTrayIcon
+#include <map>
+
+class ViewerCollector;
+class ControlTrayIcon;
+class LoginDialog;
+
+class TvnViewer : public WindowsApplication
 {
 public:
-  TvnViewer(ConnectionData *condata, ConnectionConfig *conConf);
+  TvnViewer(HINSTANCE appInstance,
+            const TCHAR *windowClassName,
+            const TCHAR *viewerWindowClassName);
   virtual ~TvnViewer();
 
-  // sync or async mode of running
-  int run(bool isBlocked);
+  //
+  // show login dialog
+  //
+  void showLoginDialog();
+
+  //
+  // show options for listening mode
+  //
+  void showListeningOptions();
+
+  //
+  // show dialog "About of Viewer"
+  //
+
+  void showAboutViewer();
+
+  //
+  // show dialog with configuration of viewer
+  //
+  void showConfiguration();
+
+  // method return true, if login dialog is visible
+  bool isVisibleLoginDialog() const;
+
+  // method return true, if listening mode is started
+  bool isListening() const;
+
+  // method return true, if now isn't connection with remote server
+  bool notConnected() const;
+
+  // newConnection(...) and startListening(...) always do copy of params (StringStorage,
+  // ConnectionData and ConnectionConfig). After call this function can free memory
+  // with hostName, connectionData, connectionConfig
+  void newListeningConnection();
+  void newConnection(const StringStorage *hostName, const ConnectionConfig *connectionConfig);
+  void newConnection(const ConnectionData *conData, const ConnectionConfig *connectionConfig);
+  void startListening(const ConnectionConfig *connectionConfig, int listeningPort);
+  void stopListening();
+
+  // Inherited from WindowsApplication
+  void registerWindowClass(WNDCLASS *wndClass);
+  static LRESULT CALLBACK wndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam);
+  virtual void createWindow(const TCHAR *className);
+  int processMessages();
+
+public:
+    static const int WM_USER_NEW_LISTENING = WM_USER + 1;
+    static const int WM_USER_NEW_CONNECTION = WM_USER + 2;
 
 protected:
-  void onNewConnection();
-  void onDefaultConnection();
-  void onConfiguration();
-  void onAboutViewer();
-  void onCloseViewer();
-  void onShowMainWindow();
-  void listeningMode();
-  void runInstance(bool isBlocked);
+  void registerViewerWindowClass();
+  void unregisterViewerWindowClass();
+  static LRESULT CALLBACK wndProcViewer(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-  std::auto_ptr<ConnectionListener> m_conListener;
-  std::vector<ViewerInstance *> m_viewerInstances;
-  std::vector<ConnectionData *> m_conDatas;
+  void runInstance(ConnectionData *conData, const ConnectionConfig *config);
+  void runInstance(const StringStorage *hostName, const ConnectionConfig *config);
 
-  ConnectionData *m_condata;
-  ConnectionConfig *m_conConf;
-  BaseWindow m_regClass;
+  ViewerCollector *m_instances;
 
-  StringStorage m_fullHost;
+  // class name of viewer-window
+  StringStorage m_viewerWindowClassName;
+
+  HACCEL m_hAccelTable;
 
 private:
-  int loginDialog();
-  bool m_isListening;
+  void addInstance(ViewerInstance *viewerInstance);
 
-  ThreadCollector m_threadCollector;
+  bool m_isListening;
+  
+  LogWriter m_logWriter;
+
+  AboutDialog m_aboutDialog;
+  ConfigurationDialog m_configurationDialog;
+  OptionsDialog m_optionsDialog;
+
+  LoginDialog *m_loginDialog;
+  ControlTrayIcon *m_trayIcon;
+  ConnectionListener *m_conListener;
+
+  WNDCLASS m_viewerWndClass;
 };
 
 #endif

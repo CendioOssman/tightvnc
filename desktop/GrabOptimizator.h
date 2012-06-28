@@ -28,6 +28,7 @@
 #include "ScreenDriver.h"
 #include "region/Region.h"
 #include "util/DemandTimer.h"
+#include "log-writer/LogWriter.h"
 #include <vector>
 #include <list>
 
@@ -36,7 +37,7 @@
 class GrabOptimizator
 {
 public:
-  GrabOptimizator();
+  GrabOptimizator(LogWriter *log);
   ~GrabOptimizator();
 
   bool grab(const Region *grabRegion, ScreenDriver *grabber);
@@ -93,6 +94,8 @@ private:
   double m_gSum;
 
   DemandTimer m_timer;
+
+  LogWriter *m_log;
 };
 
 #endif // __GRABOPTIMIZATOR_H__

@@ -25,6 +25,7 @@
 #ifndef _DECODER_H_
 #define _DECODER_H_
 
+#include "log-writer/LogWriter.h"
 #include "network/RfbInputGate.h"
 #include "region/Rect.h"
 #include "rfb/FrameBuffer.h"
@@ -35,7 +36,7 @@
 class Decoder
 {
 public:
-  Decoder();
+  Decoder(LogWriter *logWriter);
   virtual ~Decoder();
   virtual void decode(RfbInputGate *input,
                       FrameBuffer *framebuffer,
@@ -45,6 +46,9 @@ public:
   // return true, if decoder decoding pseudo encoding
   virtual bool isPseudo() const;
   static bool isPseudo(int encoding);
+
+protected:
+  LogWriter *m_logWriter;
 };
 
 #endif

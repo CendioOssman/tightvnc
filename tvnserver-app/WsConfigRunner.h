@@ -26,13 +26,14 @@
 #define __WSCONFIGRUNNER_H__
 
 #include "thread/Thread.h"
+#include "log-writer/LogWriter.h"
 
 // This class runs TvnControl in current session.
 // This class only for application mode running.
 class WsConfigRunner : private Thread
 {
 public:
-  WsConfigRunner(bool serviceMode = false);
+  WsConfigRunner(Logger *logger, bool serviceMode = false);
   virtual ~WsConfigRunner();
 
 protected:
@@ -40,6 +41,8 @@ protected:
 
 private:
   bool m_serviceMode;
+
+  LogWriter m_log;
 };
 
 #endif // __WSCONFIGRUNNER_H__

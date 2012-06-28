@@ -51,6 +51,7 @@ public:
   RfbServer(const TCHAR *bindHost, unsigned short bindPort,
             RfbClientManager *clientManager,
             bool lockAddr,
+            LogWriter *log,
             const Rect *viewPort = 0)
             throw(Exception);
   /**
@@ -76,6 +77,9 @@ protected:
    * View port for server.
    */
   ViewPortState m_viewPort;
+
+private:
+  LogWriter *m_log;
 };
 
 #endif // __LISTENTCPSOCKET_H__

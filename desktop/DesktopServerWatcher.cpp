@@ -25,7 +25,6 @@
 #include "DesktopServerWatcher.h"
 #include "win-system/Environment.h"
 #include "util/Exception.h"
-#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
 #include "win-system/CurrentConsoleProcess.h"
 #include "win-system/AnonymousPipeFactory.h"
@@ -34,11 +33,12 @@
 
 #include <time.h>
 
-DesktopServerWatcher::DesktopServerWatcher(ReconnectionListener *recListener)
+DesktopServerWatcher::DesktopServerWatcher(ReconnectionListener *recListener, LogWriter *log)
 : m_recListener(recListener),
   m_process(0),
   m_sharedMem(0),
-  m_shMemName(_T("Global\\"))
+  m_shMemName(_T("Global\\")),
+  m_log(log)
 {
   // Desktop server folder.
   StringStorage currentModulePath;
@@ -50,7 +50,7 @@ DesktopServerWatcher::DesktopServerWatcher(ReconnectionListener *recListener)
   path.format(_T("\"%s\""), currentModulePath.getString());
 
   try {
-    m_process = new CurrentConsoleProcess(path.getString());
+    m_process = new CurrentConsoleProcess(m_log, path.getString());
 
     /* Bytes order:
     (UINT64 *)[0] - memory ready flag
@@ -84,7 +84,7 @@ DesktopServerWatcher::~DesktopServerWatcher()
 
 void DesktopServerWatcher::execute()
 {
-  AnonymousPipeFactory pipeFactory;
+  AnonymousPipeFactory pipeFactory(m_log);
   AnonymousPipe *ownSidePipeChanTo, *otherSidePipeChanTo,
                 *ownSidePipeChanFrom, *otherSidePipeChanFrom;
 
@@ -133,10 +133,10 @@ void DesktopServerWatcher::execute()
 
       // Destroying other side objects
       delete otherSidePipeChanTo;
-      Log::debug(_T("DesktopServerWatcher::execute(): Destroyed otherSidePipeChanTo"));
+      m_log->debug(_T("DesktopServerWatcher::execute(): Destroyed otherSidePipeChanTo"));
       otherSidePipeChanTo = 0;
       delete otherSidePipeChanFrom;
-      Log::debug(_T("DesktopServerWatcher::execute(): Destroyed otherSidePipeChanFrom"));
+      m_log->debug(_T("DesktopServerWatcher::execute(): Destroyed otherSidePipeChanFrom"));
       otherSidePipeChanFrom = 0;
 
       m_recListener->onReconnect(ownSidePipeChanTo, ownSidePipeChanFrom);
@@ -148,7 +148,7 @@ void DesktopServerWatcher::execute()
       if (otherSidePipeChanTo) delete otherSidePipeChanTo;
       if (ownSidePipeChanFrom) delete ownSidePipeChanFrom;
       if (otherSidePipeChanFrom) delete otherSidePipeChanFrom;
-      Log::error(_T("DesktopServerWatcher has failed with error: %s"), e.getMessage());
+      m_log->error(_T("DesktopServerWatcher has failed with error: %s"), e.getMessage());
       Sleep(1000);
     }
   }
@@ -172,7 +172,7 @@ void DesktopServerWatcher::start()
       if (sysEx.getErrorCode() == 233) {
         pipeNotConnectedErrorCount++;
 
-        DWORD sessionId = WTS::getActiveConsoleSessionId();
+        DWORD sessionId = WTS::getActiveConsoleSessionId(m_log);
 
         bool isXPFamily = Environment::isWinXP() || Environment::isWin2003Server();
         bool needXPTrick = (isXPFamily) && (sessionId > 0) && (pipeNotConnectedErrorCount >= 3);
@@ -193,7 +193,7 @@ void DesktopServerWatcher::start()
 
 void DesktopServerWatcher::doXPTrick()
 {
-  Log::info(_T("Trying to do WindowsXP trick to start process on separate session"));
+  m_log->info(_T("Trying to do WindowsXP trick to start process on separate session"));
 
   try {
     WinStaLibrary winSta;
@@ -201,7 +201,7 @@ void DesktopServerWatcher::doXPTrick()
     WCHAR password[1];
     memset(password, 0, sizeof(password));
 
-    if (winSta.WinStationConnectW(NULL, 0, WTS::getActiveConsoleSessionId(),
+    if (winSta.WinStationConnectW(NULL, 0, WTS::getActiveConsoleSessionId(m_log),
       password, 0) == FALSE) {
       throw SystemException(_T("Failed to call WinStationConnectW"));
     }
@@ -211,7 +211,7 @@ void DesktopServerWatcher::doXPTrick()
     Environment::getCurrentModulePath(&pathToBinary);
 
      // Start current console process that will lock workstation (not using Xp Trick).
-    CurrentConsoleProcess lockWorkstation(pathToBinary.getString(),
+    CurrentConsoleProcess lockWorkstation(m_log, pathToBinary.getString(),
       _T("-lockworkstation"));
     lockWorkstation.start();
     lockWorkstation.waitForExit();
@@ -224,7 +224,7 @@ void DesktopServerWatcher::doXPTrick()
       throw SystemException(exitCode);
     }
   } catch (SystemException &ex) {
-    Log::error(ex.getMessage());
+    m_log->error(ex.getMessage());
     throw;
   }
 }

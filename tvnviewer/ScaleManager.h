@@ -42,25 +42,25 @@ public:
   // need to know for scrolling 
   // false -> single page
   // true -> multiple pages
-  bool getVertPages(int iHeight);
-  bool getHorzPages(int iWidth);
+  bool getVertPages(int iHeight) const;
+  bool getHorzPages(int iWidth) const;
 
   // how much to scroll
-  int getVertPoints();
-  int getHorzPoints();
+  int getVertPoints() const;
+  int getHorzPoints() const;
 
   // set the current starting point
   // point is scaled
   void setStartPoint(int x, int y);
 
   // get viewed rectangle
-  void getViewedRect(Rect * rcViewed);
+  void getViewedRect(Rect *rcViewed) const;
 
   // get scaled rectangle
-  void getScaledRect(Rect *rcScaled);
+  Rect getScaledRect();
 
   // get source rectangle
-  void getSourceRect(Rect *rcSource);
+  void getSourceRect(Rect *rcSource) const;
 
   // get destination rectangle
   void getDestinationRect(Rect *rcDestination);
@@ -69,34 +69,38 @@ public:
   void getWndFromScreen(const Rect *screen, Rect *wnd);
 
   // transform display coordinate to screen
-  POINTS transformDispToScr(int xPoint, int yPoint);
+  POINTS transformDispToScr(int xPoint, int yPoint) const;
 
+  static const int DEFAULT_SCALE_DENOMERATOR = 100;
 protected:
   // this method return round of (x/y) if bIncr is false
   // and return x/y round to up
-  int sDiv(int x, int y, bool bIncr);
+  int sDiv(int x, int y, bool bIncr) const;
 
+  // size of window with frame buffer
   Rect m_rcWindow;
-  Rect m_rcScaled;
+  // size of visible part of the frame buffer considering scale
   Rect m_rcViewed;
 
+  // position of m_rcViewer
   int m_iCentX;
   int m_iCentY;
 
   int m_xStart;
   int m_yStart;
 
+  // size of frame buffer
   int m_scrWidth;
   int m_scrHeight;
 
   int m_scrWScale;
   int m_scrHScale;
 
-  int m_scale; 
+  int m_scale;
 
 private:
-  void calcScaled(const Rect *rcViewed, Rect *rcScaled, bool bCent);
-  void keepAspectRatio(Rect *rc);
+  Rect calcScaled(const Rect *rcViewed, bool bCent);
+  void keepAspectRatio(Rect *rc) const;
 
 };
 

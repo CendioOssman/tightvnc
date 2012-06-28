@@ -25,19 +25,19 @@
 #include "ScaleManager.h"
 
 ScaleManager::ScaleManager() 
-: m_scale(100), 
-  m_scrWidth(1), 
-  m_scrHeight(1), 
-  m_scrWScale(1), 
-  m_scrHScale(1), 
-  m_xStart(0), 
-  m_yStart(0), 
-  m_iCentX(0), 
+: m_scale(DEFAULT_SCALE_DENOMERATOR),
+  m_scrWidth(1),
+  m_scrHeight(1),
+  m_scrWScale(1),
+  m_scrHScale(1),
+  m_xStart(0),
+  m_yStart(0),
+  m_iCentX(0),
   m_iCentY(0)
 {
 }
 
-int ScaleManager::sDiv(int x, int y, bool bIncr)
+int ScaleManager::sDiv(int x, int y, bool bIncr) const
 {
   if (bIncr)
     return (x + y - 1) / y;
@@ -65,7 +65,7 @@ void ScaleManager::setScreenResolution(int maxWidth, int maxHeight)
   setWindow(&m_rcWindow);
 }
 
-void ScaleManager::keepAspectRatio(Rect *rc)
+void ScaleManager::keepAspectRatio(Rect *rc) const
 {
   int iHeight = rc->getHeight() / m_scrHScale;
   int iWidth = rc->getWidth() / m_scrWScale;
@@ -74,24 +74,25 @@ void ScaleManager::keepAspectRatio(Rect *rc)
   rc->bottom = rc->top + iBar * m_scrHScale;
 }
 
-void ScaleManager::setScale(int scale) 
+void ScaleManager::setScale(int scale)
 {
   m_scale = scale;
   setStartPoint(m_xStart, m_yStart);
 }
 
-void ScaleManager::setWindow(Rect *rcWnd) 
+void ScaleManager::setWindow(Rect *rcWnd)
 {
   m_rcWindow = rcWnd;
   setStartPoint(m_xStart, m_yStart);
 }
 
-void ScaleManager::calcScaled(const Rect *rcViewed, Rect *rcScaled, bool bCent) 
+Rect ScaleManager::calcScaled(const Rect *rcViewed, bool bCent)
 {
+  Rect rcScaled;
   // calculate scaled window from viewed
-  rcScaled->setRect(rcViewed);
+  rcScaled.setRect(rcViewed);
   int scale = m_scale;
-  int denomeratorScale = 100;
+  int denomeratorScale = DEFAULT_SCALE_DENOMERATOR;
   if (m_scale == -1) {
     if (m_rcWindow.getWidth() * m_scrHeight <= m_rcWindow.getHeight() * m_scrWidth) {
       scale = m_rcWindow.getWidth();
@@ -101,31 +102,32 @@ void ScaleManager::calcScaled(const Rect *rcViewed, Rect *rcScaled, bool bCent)
       denomeratorScale = m_scrHeight;
     }
   }
-  rcScaled->left = sDiv(rcScaled->left * scale, denomeratorScale, false);
-  rcScaled->top = sDiv(rcScaled->top * scale, denomeratorScale, false);
-  rcScaled->right = sDiv(rcScaled->right * scale, denomeratorScale, true);
-  rcScaled->bottom = sDiv(rcScaled->bottom * scale, denomeratorScale, true);
+  rcScaled.left = sDiv(rcScaled.left * scale, denomeratorScale, false);
+  rcScaled.top = sDiv(rcScaled.top * scale, denomeratorScale, false);
+  rcScaled.right = sDiv(rcScaled.right * scale, denomeratorScale, true);
+  rcScaled.bottom = sDiv(rcScaled.bottom * scale, denomeratorScale, true);
 
   if (bCent) {
-    if (m_rcWindow.getWidth() > rcScaled->getWidth()) {
-      m_iCentX = (m_rcWindow.getWidth() - rcScaled->getWidth()) / 2;
+    if (m_rcWindow.getWidth() > rcScaled.getWidth()) {
+      m_iCentX = (m_rcWindow.getWidth() - rcScaled.getWidth()) / 2;
     } else {
       m_iCentX = 0;
     }
-    if (m_rcWindow.getHeight() > rcScaled->getHeight()) {
-      m_iCentY = (m_rcWindow.getHeight() - rcScaled->getHeight()) / 2;
+    if (m_rcWindow.getHeight() > rcScaled.getHeight()) {
+      m_iCentY = (m_rcWindow.getHeight() - rcScaled.getHeight()) / 2;
     } else {
       m_iCentY = 0;
     }
   }
+  return rcScaled;
 }
 
-bool ScaleManager::getVertPages(int iHeight) 
+bool ScaleManager::getVertPages(int iHeight) const
 {
   if (m_scale == -1) {
     return false;
   }
-  int lenScr = sDiv(m_scrHeight * m_scale, 100, true);
+  int lenScr = sDiv(m_scrHeight * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
   int result = sDiv(lenScr, iHeight, true);
   if (result > 1) {
     return true;
@@ -133,12 +135,12 @@ bool ScaleManager::getVertPages(int iHeight)
   return false;
 }
 
-bool ScaleManager::getHorzPages(int iWidth)
+bool ScaleManager::getHorzPages(int iWidth) const
 {
   if (m_scale == -1) {
     return false;
   }
-  int lenScr = sDiv(m_scrWidth * m_scale, 100, true);
+  int lenScr = sDiv(m_scrWidth * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
   int result = sDiv(lenScr, iWidth, true);
   if (result > 1) {
     return true;
@@ -146,20 +148,20 @@ bool ScaleManager::getHorzPages(int iWidth)
   return false;
 }
 
-int ScaleManager::getVertPoints()
+int ScaleManager::getVertPoints() const
 {
   if (m_scale == -1) {
     return 0;
   }
-  return sDiv(m_scrHeight * m_scale, 100, false);
+  return sDiv(m_scrHeight * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
 }
 
-int ScaleManager::getHorzPoints()
+int ScaleManager::getHorzPoints() const
 {
   if (m_scale == -1) {
     return 0;
   }
-  return sDiv(m_scrWidth * m_scale, 100, false);
+  return sDiv(m_scrWidth * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
 }
 
 void ScaleManager::setStartPoint(int x, int y)
@@ -168,11 +170,11 @@ void ScaleManager::setStartPoint(int x, int y)
   int wndHeight = m_rcWindow.getHeight();
 
   if (m_scale != -1) {
-    x = sDiv(x * 100, m_scale, false);
-    y = sDiv(y * 100, m_scale, false);
+    x = sDiv(x * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
+    y = sDiv(y * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
 
-    wndWidth = sDiv(wndWidth * 100, m_scale, false);
-    wndHeight = sDiv(wndHeight * 100, m_scale, false);
+    wndWidth = sDiv(wndWidth * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
+    wndHeight = sDiv(wndHeight * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
   } else {
     // scroll is off, is scale is Auto
     x = y = 0;
@@ -201,10 +203,10 @@ void ScaleManager::setStartPoint(int x, int y)
       m_rcViewed.top = 0;
     }
   }
-  calcScaled(&m_rcViewed, &m_rcScaled, true);
+  Rect rcScaled = calcScaled(&m_rcViewed, true);
 }
 
-void ScaleManager::getViewedRect(Rect *rcViewed)
+void ScaleManager::getViewedRect(Rect *rcViewed) const
 {
   Rect rect(&m_rcViewed);
   rect.setLocation(m_iCentX, m_iCentY);
@@ -212,39 +214,40 @@ void ScaleManager::getViewedRect(Rect *rcViewed)
   rcViewed->setRect(&rect);
 }
 
-void ScaleManager::getScaledRect(Rect *rcScaled)
+Rect ScaleManager::getScaledRect()
 {
-  rcScaled->setRect(&m_rcScaled);
+  return calcScaled(&m_rcViewed, true);
 }
 
 void ScaleManager::getDestinationRect(Rect *rcDestination)
 {
-  Rect rect(&m_rcScaled);
-  rect.setLocation(m_iCentX, m_iCentY);
+  Rect rcScaled = calcScaled(&m_rcViewed, true);
+  rcScaled.setLocation(m_iCentX, m_iCentY);
 
-  rcDestination->setRect(&rect);
+  rcDestination->setRect(&rcScaled);
 }
 
-void ScaleManager::getSourceRect(Rect *rcSource)
+void ScaleManager::getSourceRect(Rect *rcSource) const
 {
   rcSource->setRect(&m_rcViewed);
 }
 
-void ScaleManager::getWndFromScreen(const Rect *screen, Rect *wnd) 
+void ScaleManager::getWndFromScreen(const Rect *screen, Rect *wnd)
 {
   Rect scr = screen;
   scr.move(-m_rcViewed.left, -m_rcViewed.top);
-  calcScaled(&scr, wnd, false);
+  Rect rcScaled = calcScaled(&scr, false);
+  wnd->setRect(&rcScaled);
   wnd->move(m_iCentX, m_iCentY);
 }
 
-POINTS ScaleManager::transformDispToScr(int xPoint, int yPoint)
+POINTS ScaleManager::transformDispToScr(int xPoint, int yPoint) const
 {
   xPoint -= m_iCentX;
   yPoint -= m_iCentY;
 
   int scale = m_scale;
-  int denomeratorScale = 100;
+  int denomeratorScale = DEFAULT_SCALE_DENOMERATOR;
   if (m_scale == -1) {
     if (m_rcWindow.getWidth() * m_scrHeight <= m_rcWindow.getHeight() * m_scrWidth) {
       scale = m_rcWindow.getWidth();

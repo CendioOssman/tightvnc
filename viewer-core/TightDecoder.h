@@ -35,7 +35,7 @@
 class TightDecoder : public Decoder
 {
 public:
-  TightDecoder();
+  TightDecoder(LogWriter *logWriter);
   virtual ~TightDecoder();
   void decode(RfbInputGate *input,
               FrameBuffer *frameBuffer,

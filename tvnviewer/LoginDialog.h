@@ -35,12 +35,16 @@
 #include "gui/CheckBox.h"
 #include "gui/ComboBox.h"
 #include "gui/TrackBar.h"
+
+#include "TvnViewer.h"
 #include "resource.h"
+
+class TvnViewer;
 
 class LoginDialog : public BaseDialog
 {
 public:
-  LoginDialog();
+  LoginDialog(TvnViewer *viewer);
   ~LoginDialog();
 
   // this function returns the host
@@ -65,9 +69,10 @@ protected:
 
   Control m_listening;
   Control m_ok;
-  ConnectionConfig *m_conConf;
+  ConnectionConfig m_connectionConfig;
   ComboBox m_server;
   StringStorage m_serverHost;
+  TvnViewer *m_viewer;
 
 private:
   void enableConnect();

@@ -27,78 +27,85 @@
 #include "viewer-core/RemoteViewerCore.h"
 #include "viewer-core/FileTransferCapability.h"
 
-ViewerInstance::ViewerInstance(ConnectionData *condata, 
-                               ConnectionConfig *conConf) 
-: m_conConf(conConf),
-  m_condata(condata),
+ViewerInstance::ViewerInstance(WindowsApplication *application,
+                               ConnectionData *condata,
+                               const ConnectionConfig *conConf)
+: m_conConf(*conConf),
   m_socket(0),
-  m_viewerWnd(0)
+  m_viewerWnd(0),
+  m_viewerCore(ViewerConfig::getInstance()->getLogger())
 {
+  m_condata.setPlainPassword(condata->getDefaultPassword());
+  if (!condata->isEmpty()) {
+    m_condata.setHost(&condata->getHost());
+  }
+  m_viewerWnd = new ViewerWindow(application, &m_condata, &m_conConf);
 }
 
-ViewerInstance::ViewerInstance(ConnectionData *condata, 
-                               ConnectionConfig *conConf, 
-                               SocketIPv4 *socket) 
-: m_conConf(conConf),
-  m_condata(condata),
+ViewerInstance::ViewerInstance(WindowsApplication *application,
+                               ConnectionData *condata,
+                               const ConnectionConfig *conConf,
+                               SocketIPv4 *socket)
+: m_conConf(*conConf),
   m_socket(socket),
-  m_viewerWnd(0)
+  m_viewerWnd(0),
+  m_viewerCore(ViewerConfig::getInstance()->getLogger())
 {
+  m_condata.setPlainPassword(condata->getDefaultPassword());
+  if (!condata->isEmpty()) {
+    m_condata.setHost(&condata->getHost());
+  }
+  m_viewerWnd = new ViewerWindow(application, &m_condata, &m_conConf);
 }
+
 
 ViewerInstance::~ViewerInstance()
 {
-  terminate();
-  if (isActive()) {
-    wait();
+  if (m_socket != 0) {
+    m_socket->shutdown(SD_BOTH);
+    m_socket->close();
   }
-  if (m_viewerWnd != 0)
-    delete m_viewerWnd;
-}
 
-void ViewerInstance::start(bool newThread)
-{
-  resume();
-  if (!newThread) {
-    wait();
+  m_viewerCore.stop();
+  m_viewerCore.waitTermination();
+
+  if (m_socket != 0) {
+    delete m_socket;
   }
 }
 
 void ViewerInstance::waitViewer()
 {
-  wait();
+  m_viewerCore.waitTermination();
 }
 
-void ViewerInstance::onTerminate()
+bool ViewerInstance::isStopped() const
 {
-  m_viewerWnd->postMessage(ViewerWindow::WM_USER_STOP, 0, 0);
+  return m_viewerWnd->isStopped();
 }
 
-void ViewerInstance::execute()
+void ViewerInstance::stop()
 {
-  m_viewerWnd = new ViewerWindow(m_condata, m_conConf);
-  RemoteViewerCore viewerCore;
-  m_viewerWnd->setRemoteViewerCore(&viewerCore);
+  m_viewerWnd->postMessage(ViewerWindow::WM_USER_STOP);
+}
 
-  FileTransferCapability fileTransfer;
-  m_viewerWnd->setFileTransfer(&fileTransfer);
-  viewerCore.addExtension(&fileTransfer);
+void ViewerInstance::start()
+{
+  Logger *logger = ViewerConfig::getInstance()->getLogger();
+  m_viewerWnd->setRemoteViewerCore(&m_viewerCore);
+
+
+  m_viewerWnd->setFileTransfer(&m_fileTransfer);
+  m_viewerCore.addExtension(&m_fileTransfer);
 
   if (m_socket) {
-    viewerCore.start(m_socket,
-                     m_viewerWnd, m_conConf->getSharedFlag());
+    m_viewerCore.start(m_socket,
+                       m_viewerWnd, m_conConf.getSharedFlag());
   } else {
     StringStorage strHost;
-    m_condata->getReducedHost(&strHost);
-    UINT16 portVal = m_condata->getPort();
-    viewerCore.start(strHost.getString(), portVal,
-                     m_viewerWnd, m_conConf->getSharedFlag());
+    m_condata.getReducedHost(&strHost);
+    UINT16 portVal = m_condata.getPort();
+    m_viewerCore.start(strHost.getString(), portVal,
+                       m_viewerWnd, m_conConf.getSharedFlag());
   }
-  m_viewerWnd->run(true);
-  viewerCore.stop();
-  if (m_socket) {
-    m_socket->shutdown(SD_BOTH);
-    m_socket->close();
-  }
-  viewerCore.waitTermination();
 }

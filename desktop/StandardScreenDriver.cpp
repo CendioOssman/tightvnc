@@ -27,10 +27,10 @@
 StandardScreenDriver::StandardScreenDriver(UpdateKeeper *updateKeeper,
                                            UpdateListener *updateListener,
                                            FrameBuffer *fb,
-                                           LocalMutex *fbLocalMutex)
-: m_poller(updateKeeper, updateListener, &m_screenGrabber, fb, fbLocalMutex),
-  m_consolePoller(updateKeeper, updateListener, &m_screenGrabber, fb, fbLocalMutex),
-  m_hooks(updateKeeper, updateListener)
+                                           LocalMutex *fbLocalMutex, LogWriter *log)
+: m_poller(updateKeeper, updateListener, &m_screenGrabber, fb, fbLocalMutex, log),
+  m_consolePoller(updateKeeper, updateListener, &m_screenGrabber, fb, fbLocalMutex, log),
+  m_hooks(updateKeeper, updateListener, log)
 {
 }
 

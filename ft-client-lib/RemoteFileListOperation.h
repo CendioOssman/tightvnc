@@ -35,7 +35,7 @@
 class RemoteFileListOperation : public FileTransferOperation
 {
 public:
-  RemoteFileListOperation(const TCHAR *remotePath);
+  RemoteFileListOperation(LogWriter *logWriter, const TCHAR *remotePath);
   virtual ~RemoteFileListOperation();
 
   //

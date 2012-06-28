@@ -32,7 +32,8 @@ class LocalFilesDeleteOperation : public FileTransferOperation,
                                   private Thread
 {
 public:
-  LocalFilesDeleteOperation(const FileInfo *filesToDelete,
+  LocalFilesDeleteOperation(LogWriter *logWriter,
+                            const FileInfo *filesToDelete,
                             UINT32 filesCount,
                             const TCHAR *pathToTargetRoot);
   virtual ~LocalFilesDeleteOperation();

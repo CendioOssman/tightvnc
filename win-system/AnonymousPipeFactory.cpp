@@ -25,7 +25,8 @@
 #include "AnonymousPipeFactory.h"
 #include "win-system/SecurityAttributes.h"
 
-AnonymousPipeFactory::AnonymousPipeFactory()
+AnonymousPipeFactory::AnonymousPipeFactory(LogWriter *log)
+: m_log(log)
 {
 }
 
@@ -79,6 +80,6 @@ void AnonymousPipeFactory::generatePipes(AnonymousPipe **firstSide,
     }
   }
 
-  *firstSide = new AnonymousPipe(hFirstSideWrite, hFirstSideRead);
-  *secondSide = new AnonymousPipe(hSecondSideWrite, hSecondSideRead);
+  *firstSide = new AnonymousPipe(hFirstSideWrite, hFirstSideRead, m_log);
+  *secondSide = new AnonymousPipe(hSecondSideWrite, hSecondSideRead, m_log);
 }

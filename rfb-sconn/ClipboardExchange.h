@@ -29,12 +29,13 @@
 #include "RfbCodeRegistrator.h"
 #include "desktop/DesktopInterface.h"
 #include "network/RfbOutputGate.h"
+#include "log-writer/LogWriter.h"
 
 class ClipboardExchange : public RfbDispatcherListener, public Thread
 {
 public:
   ClipboardExchange(RfbCodeRegistrator *codeRegtor, DesktopInterface *desktop,
-                    RfbOutputGate *output, bool viewOnly);
+                    RfbOutputGate *output, bool viewOnly, LogWriter *log);
   virtual ~ClipboardExchange();
 
   void sendClipboard(const StringStorage *newClipboard);
@@ -56,6 +57,8 @@ private:
   StringStorage m_storedClip;
   bool m_hasNewClip;
   LocalMutex m_storedClipMut;
+
+  LogWriter *m_log;
 };
 
 #endif // __CLIPBOARDEXCHANGE_H__

@@ -25,18 +25,18 @@
 #include "InputInjector.h"
 #include "Keyboard.h"
 #include "win-system/Environment.h"
-#include "log-server/Log.h"
 #include <vector>
 
 #include <crtdbg.h>
 
-InputInjector::InputInjector(bool ctrlAltDelEnabled)
+InputInjector::InputInjector(bool ctrlAltDelEnabled, LogWriter *log)
 : m_controlIsPressed(false),
   m_menuIsPressed(false),
   m_deleteIsPressed(false),
   m_shiftIsPressed(false),
   m_winIsPressed(false),
-  m_ctrlAltDelEnabled(ctrlAltDelEnabled)
+  m_ctrlAltDelEnabled(ctrlAltDelEnabled),
+  m_log(log)
 {
   // FIXME: Better to call this function from an owner (Now, its
   // possible only from trunk code because in the stable hive the owner is
@@ -56,12 +56,12 @@ void InputInjector::injectKeyRelease(BYTE vkCode)
 
 void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
 {
-  Log::debug(_T("Prepare to inject the key event:")
+  m_log->debug(_T("Prepare to inject the key event:")
              _T(" vkCode = %d, release = %d, extended = %d"),
              (int)vkCode,
              (int)release,
              (int)extended);
-  Log::debug(_T("The modifier states before:")
+  m_log->debug(_T("The modifier states before:")
              _T(" m_controlIsPressed = %d;")
              _T(" m_menuIsPressed = %d;")
              _T(" m_deleteIsPressed = %d;")
@@ -88,7 +88,7 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
   if (vkCode == VK_LWIN || vkCode == VK_RWIN) {
     m_winIsPressed = !release;
   }
-  Log::debug(_T("The modifier states after:")
+  m_log->debug(_T("The modifier states after:")
              _T(" m_controlIsPressed = %d;")
              _T(" m_menuIsPressed = %d;")
              _T(" m_deleteIsPressed = %d;")
@@ -103,10 +103,10 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
   if (m_controlIsPressed && m_menuIsPressed && m_deleteIsPressed &&
       !m_winIsPressed && !m_shiftIsPressed) {
     if (m_ctrlAltDelEnabled) {
-      Log::debug(_T("Try simulate the Ctrl+Alt+Del combination"));
-      Environment::simulateCtrlAltDel();
+      m_log->debug(_T("Try simulate the Ctrl+Alt+Del combination"));
+      Environment::simulateCtrlAltDel(m_log);
     } else {
-      Log::debug(_T("The Ctrl+Alt+Del combination is disabled. Ignore the Del key pressing"));
+      m_log->debug(_T("The Ctrl+Alt+Del combination is disabled. Ignore the Del key pressing"));
     }
   } else {
     INPUT keyEvent = {0};
@@ -138,7 +138,7 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
 
 void InputInjector::injectCharEvent(WCHAR ch, bool release)
 {
-  Log::debug(_T("Try insert a char event: char = %d, release = %d"),
+  m_log->debug(_T("Try insert a char event: char = %d, release = %d"),
              (int)ch, (int)release);
 
   bool ctrlOrAltPressed = m_controlIsPressed || m_menuIsPressed;
@@ -146,14 +146,14 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
   HKL hklCurrent = (HKL)0x04090409;
   try {
     hklCurrent = getCurrentKbdLayout();
-    Log::debug(_T("Current keyboard layout = %x"), (int)hklCurrent);
+    m_log->debug(_T("Current keyboard layout = %x"), (int)hklCurrent);
     vkKeyScanResult = searchVirtKey(ch, hklCurrent);
-    Log::debug(_T("The virtual code scan result = %d"), (int)vkKeyScanResult);
+    m_log->debug(_T("The virtual code scan result = %d"), (int)vkKeyScanResult);
   } catch (...) {
-    Log::detail(_T("Can't insert the char by simulating a key press event,")
+    m_log->detail(_T("Can't insert the char by simulating a key press event,")
               _T(" therefore try insert it as an unicode symbol"));
     if (ctrlOrAltPressed) {
-      Log::warning(_T("Can't insert the char by an unicode symbol because")
+      m_log->warning(_T("Can't insert the char by an unicode symbol because")
                    _T(" a modifier is pressed"));
       throw;
     }
@@ -200,11 +200,11 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
                         !release;
   if ((ctrlPressNeeded || altPressNeeded) &&
       (m_controlIsPressed || m_menuIsPressed)) {
-    Log::error(_T("Received a control combination that we doesn't know how it can be made"));
+    m_log->error(_T("Received a control combination that we doesn't know how it can be made"));
     return;
   }
 
-  Log::debug(_T("Variable states before generate key events to get the char:")
+  m_log->debug(_T("Variable states before generate key events to get the char:")
              _T(" controlSym = %d;")
              _T(" resistantToCaps = %d;")
              _T(" invariantToShift = %d;")

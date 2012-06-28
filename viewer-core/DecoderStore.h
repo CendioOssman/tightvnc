@@ -30,10 +30,12 @@
 
 #include "Decoder.h"
 
+#include "log-writer/LogWriter.h"
+
 class DecoderStore
 {
 public:
-  DecoderStore();
+  DecoderStore(LogWriter *logWriter);
   ~DecoderStore();
 
   Decoder *getDecoder(INT32 decoderId);
@@ -50,6 +52,8 @@ public:
   void allowCopyRect(bool allow);
 
 private:
+  LogWriter *m_logWriter;
+
   map<INT32, pair<int, Decoder*> > m_decoders;
   INT32 m_preferredEncoding;
   bool m_allowCopyRect;

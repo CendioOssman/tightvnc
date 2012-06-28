@@ -30,7 +30,7 @@
 class LastRectDecoder : public Decoder
 {
 public:
-  LastRectDecoder();
+  LastRectDecoder(LogWriter *logWriter);
   virtual ~LastRectDecoder();
 
   void decode(RfbInputGate *input,

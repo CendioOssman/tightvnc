@@ -24,16 +24,20 @@
 
 #include "RemoteFilesDeleteOperation.h"
 
-RemoteFilesDeleteOperation::RemoteFilesDeleteOperation(const FileInfo *filesInfoToDelete,
+RemoteFilesDeleteOperation::RemoteFilesDeleteOperation(LogWriter *logWriter,
+                                                       const FileInfo *filesInfoToDelete,
                                                        size_t filesCount,
                                                        const TCHAR *pathToTargetRoot)
+: FileTransferOperation(logWriter)
 {
   m_toDelete = new FileInfoList(filesInfoToDelete, filesCount);
   m_pathToTargetRoot.setString(pathToTargetRoot);
 }
 
-RemoteFilesDeleteOperation::RemoteFilesDeleteOperation(FileInfo fileInfoToDelete,
+RemoteFilesDeleteOperation::RemoteFilesDeleteOperation(LogWriter *logWriter,
+                                                       FileInfo fileInfoToDelete,
                                                        const TCHAR *pathToTargetRoot)
+: FileTransferOperation(logWriter)
 {
   m_toDelete = new FileInfoList(fileInfoToDelete);
   m_pathToTargetRoot.setString(pathToTargetRoot);

@@ -50,7 +50,8 @@ public:
    * executing some of control commands and cannot be 0.
    */
   ControlServer(PipeServer *pipeServer,
-                RfbClientManager *rfbClientManager) throw(Exception);
+                RfbClientManager *rfbClientManager,
+                LogWriter *log) throw(Exception);
   /**
    * Stops and deletes control server and deletes transport.
    */
@@ -80,6 +81,8 @@ private:
    * Active rfb client manager that used in TightVNC server.
    */
   RfbClientManager *m_rfbClientManager;
+
+  LogWriter *m_log;
 };
 
 #endif

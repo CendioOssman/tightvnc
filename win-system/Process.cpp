@@ -24,7 +24,6 @@
 
 #include "Process.h"
 #include "SystemException.h"
-#include "log-server/Log.h"
 
 Process::Process(const TCHAR *path, const TCHAR *args)
 : m_hProcess(0),

@@ -24,12 +24,11 @@
 
 #include <algorithm>
 
-#include "log-server/Log.h"
-
 #include "DecoderStore.h"
 
-DecoderStore::DecoderStore()
-: m_preferredEncoding(EncodingDefs::TIGHT),
+DecoderStore::DecoderStore(LogWriter *logWriter)
+: m_logWriter(logWriter),
+  m_preferredEncoding(EncodingDefs::TIGHT),
   m_allowCopyRect(true)
 {
 }
@@ -40,7 +39,7 @@ DecoderStore::~DecoderStore()
     for (map<INT32, pair<int, Decoder *> >::iterator i = m_decoders.begin();
          i != m_decoders.end();
          i++) {
-      Log::detail(_T("Decoder '%d' destroyed"), i->second.second->getCode());
+      m_logWriter->detail(_T("Decoder '%d' destroyed"), i->second.second->getCode());
       try {
         delete i->second.second;
       } catch (...) {
@@ -74,7 +73,7 @@ vector<INT32> DecoderStore::getDecoderIds()
         decoders.push_back(make_pair(i->second.first, i->first));
     }
   }
-  sort(decoders.begin(), decoders.end());
+  sort(decoders.begin(), decoders.end(), greater<pair<int,INT32> >());
   vector<INT32> sortedDecoders;
   map<INT32, pair<int, Decoder *> >::iterator priorityEnc = m_decoders.find(m_preferredEncoding);
   if (priorityEnc != m_decoders.end())
@@ -91,7 +90,7 @@ vector<INT32> DecoderStore::getDecoderIds()
 
 bool DecoderStore::addDecoder(Decoder *decoder, int priority)
 {
-  Log::detail(_T("Decoder %d added"), decoder->getCode());
+  m_logWriter->detail(_T("Decoder %d added"), decoder->getCode());
   if (m_decoders.count(decoder->getCode()) == 0) {
     m_decoders[decoder->getCode()] = make_pair(priority, decoder);
     return true;
@@ -103,8 +102,8 @@ bool DecoderStore::addDecoder(Decoder *decoder, int priority)
 bool DecoderStore::removeDecoder(INT32 decoderId)
 {
   if (m_decoders.count(decoderId)) {
-    Log::detail(_T("Decoder '%d' destroyed (removed from list)"),
-                   m_decoders[decoderId].second->getCode());
+    m_logWriter->detail(_T("Decoder '%d' destroyed (removed from list)"),
+                        m_decoders[decoderId].second->getCode());
     delete m_decoders[decoderId].second;
     m_decoders.erase(decoderId);
     return true;
@@ -114,10 +113,16 @@ bool DecoderStore::removeDecoder(INT32 decoderId)
 
 void DecoderStore::setPreferredEncoding(INT32 encodingType)
 {
+  m_logWriter->detail(_T("Decoder store: preferred encoding is \"%d\"."), encodingType);
   m_preferredEncoding = encodingType;
 }
 
 void DecoderStore::allowCopyRect(bool allow)
 {
+  if (allow) {
+    m_logWriter->detail(_T("Decoder store: enable Copy Rect"));
+  } else {
+    m_logWriter->detail(_T("Decoder store: disable Copy Rect"));
+  }
   m_allowCopyRect = allow;
 }

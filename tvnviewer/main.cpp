@@ -23,43 +23,55 @@
 //
 
 #include "client-config-lib/ViewerConfig.h"
-#include "log-server/Log.h"
+#include "log-writer/LogWriter.h"
 #include "TvnViewer.h"
 #include "ConnectionData.h"
+#include "ConnectionListener.h"
 #include "ViewerCmdLine.h"
 #include "util/ResourceLoader.h"
 
-int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE,
                        LPTSTR lpCmdLine, int nCmdShow)
 {
-  // loading config
-  ConnectionConfig conConf;
-  ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
-                          _T(".listen"));
-  conConf.loadFromStorage(&ccsm);
-
   ViewerSettingsManager::initInstance(RegistryPaths::VIEWER_PATH);
   SettingsManager *sm = ViewerSettingsManager::getInstance();
 
   ViewerConfig config(RegistryPaths::VIEWER_PATH);
-  config.initLog(LogNames::LOG_DIR_NAME, LogNames::VIEWER_LOG_FILE_STUB_NAME);
   config.loadFromStorage(sm);
+
+  try {
+    config.initLog(LogNames::LOG_DIR_NAME, LogNames::VIEWER_LOG_FILE_STUB_NAME);
+  } catch (...) {
+  }
+
+  LogWriter logWriter(config.getLogger());
 
   // resource-loader initialization
   ResourceLoader resourceLoader(hInstance);
 
-  Log::debug(_T("main()"));
-  Log::debug(_T("loading settings from storage completed"));
-  Log::debug(_T("Log initialization completed"));
+  logWriter.debug(_T("main()"));
+  logWriter.debug(_T("loading settings from storage completed"));
+  logWriter.debug(_T("Log initialization completed"));
 
+  ConnectionConfig conConf;
   ConnectionData condata;
-  ViewerCmdLine cmd(&condata, &conConf, &config);
+  bool isListening = false;
+  ViewerCmdLine cmd(&condata, &conConf, &config, &isListening);
 
   int result = 0;
   try {
     cmd.parse();
-    TvnViewer tvnViewer(&condata, &conConf);
-    result = tvnViewer.run(true);
+    TvnViewer tvnViewer(hInstance,
+                        ApplicationNames::WINDOW_CLASS_NAME,
+                        WindowNames::TVN_WINDOW_CLASS_NAME);
+    if (isListening) {
+      tvnViewer.startListening(&conConf, ConnectionListener::DEFAULT_PORT);
+    } else if (!condata.isEmpty()) {
+      tvnViewer.newConnection(&condata, &conConf);
+    } else {
+      tvnViewer.showLoginDialog();
+    }
+    result = tvnViewer.run();
   } catch (CommandLineFormatException &excep) {
     StringStorage strError(excep.getMessage());
     MessageBox(0, strError.getString(), _T("Error"), MB_OK | MB_ICONERROR);
@@ -68,7 +80,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     cmd.onHelp();
     return 0;
   } catch (Exception &excep) {
-    Log::debug(excep.getMessage());
+    logWriter.debug(excep.getMessage());
   }
 
   return result;

@@ -32,6 +32,7 @@
 #include "network/RfbOutputGate.h"
 #include "desktop/DesktopInterface.h"
 #include "fb-update-sender/UpdateSender.h"
+#include "log-writer/LogWriter.h"
 
 #include "RfbDispatcher.h"
 #include "ClipboardExchange.h"
@@ -61,7 +62,8 @@ public:
             ClientAuthListener *extAuthListener, bool viewOnly,
             bool isOutgoing, unsigned int id,
             const ViewPortState *constViewPort,
-            const ViewPortState *dynViewPort);
+            const ViewPortState *dynViewPort,
+            LogWriter *log);
   virtual ~RfbClient();
 
   void disconnect();
@@ -135,6 +137,8 @@ private:
   bool m_isOutgoing;
   bool m_viewOnlyAuth;
   bool m_shared;
+
+  LogWriter *m_log;
 
   // Information
   unsigned int m_id;

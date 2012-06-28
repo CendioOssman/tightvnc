@@ -30,6 +30,7 @@
 #include "RfbClientManager.h"
 #include "TcpDispatcherConnectionListener.h"
 #include "util/AnsiStringStorage.h"
+#include "log-writer/LogWriter.h"
 
 /**
 Thread that makes attempt to connect to listening rfb client in separate thread.
@@ -53,7 +54,8 @@ public:
                                UINT32 connectionId,
                                const AnsiStringStorage *keyword,
                                RfbClientManager *clientManager,
-                               TcpDispatcherConnectionListener *connListener);
+                               TcpDispatcherConnectionListener *connListener,
+                               LogWriter *log);
   virtual ~ConnectToTcpDispatcherThread();
 
 protected:
@@ -77,6 +79,8 @@ private:
   SocketIPv4 *m_socket;
   bool m_pendingToRemove;
   LocalMutex m_socketDelegationMutex;
+
+  LogWriter *m_log;
 };
 
 #endif // _CONNECTTOTCPDISPATCHERTHREAD_H_

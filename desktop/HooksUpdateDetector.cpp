@@ -26,22 +26,22 @@
 #include "tvnserver-app/NamingDefs.h"
 #include "HooksUpdateDetector.h"
 #include "region/Rect.h"
-#include "log-server/Log.h"
 #include "win-system/UipiControl.h"
 #include "win-system/Environment.h"
 
 HooksUpdateDetector::HooksUpdateDetector(UpdateKeeper *updateKeeper,
-                                         UpdateListener *updateListener)
+                                         UpdateListener *updateListener, LogWriter *log)
 : UpdateDetector(updateKeeper, updateListener),
   m_updateTimer(updateListener),
   m_targetWin(0),
-  m_hookInstaller(0)
+  m_hookInstaller(0),
+  m_log(log)
 {
   try {
     m_hookInstaller = new HookInstaller();
   } catch (Exception &e) {
     Thread::terminate();
-    Log::error(_T("Failed to load the hook library: %s"), e.getMessage());
+    m_log->error(_T("Failed to load the hook library: %s"), e.getMessage());
   }
   HINSTANCE hinst = GetModuleHandle(0);
   m_targetWin = new MessageWindow(hinst,
@@ -84,7 +84,7 @@ void HooksUpdateDetector::start32Loader()
     try {
       m_hookLoader32.start();
     } catch (Exception &e) {
-      Log::error(_T("Can't run the 32-bit hook loader: %s"), e.getMessage());
+      m_log->error(_T("Can't run the 32-bit hook loader: %s"), e.getMessage());
     }
   }
 #endif
@@ -109,21 +109,21 @@ void HooksUpdateDetector::broadcastMessage(UINT message)
 
 void HooksUpdateDetector::execute()
 {
-  Log::info(_T("Hooks update detector thread id = %d"), getThreadId());
+  m_log->info(_T("Hooks update detector thread id = %d"), getThreadId());
 
   if (!isTerminating() && m_targetWin != 0) {
     m_targetWin->createWindow();
-    Log::info(_T("Hooks target window has been created (hwnd = %d)"),
+    m_log->info(_T("Hooks target window has been created (hwnd = %d)"),
               m_targetWin->getHWND());
   }
 
   try {
-    UipiControl uipiControl;
+    UipiControl uipiControl(m_log);
     uipiControl.allowMessage(HookDefinitions::SPEC_IPC_CODE,
                              m_targetWin->getHWND());
   } catch (Exception &e) {
     terminate();
-    Log::error(e.getMessage());
+    m_log->error(e.getMessage());
   }
 
   bool hookInstalled = false;
@@ -132,13 +132,13 @@ void HooksUpdateDetector::execute()
       m_hookInstaller->install(m_targetWin->getHWND());
       hookInstalled = true;
     } catch (Exception &e) {
-      Log::error(_T("Hooks installing failed, wait for the next trying: %s"),
+      m_log->error(_T("Hooks installing failed, wait for the next trying: %s"),
                  e.getMessage());
       m_initWaiter.waitForEvent(5000);
       try {
         m_hookInstaller->uninstall();
       } catch (Exception &e) {
-        Log::error(_T("Hooks uninstalling failed: %s"),
+        m_log->error(_T("Hooks uninstalling failed: %s"),
                    e.getMessage());
       }
     }
@@ -147,7 +147,7 @@ void HooksUpdateDetector::execute()
   start32Loader();
 
   if (!isTerminating()) {
-    Log::info(_T("Hooks update detector has been successfully initialized"));
+    m_log->info(_T("Hooks update detector has been successfully initialized"));
   }
 
   MSG msg;
@@ -165,7 +165,7 @@ void HooksUpdateDetector::execute()
       }
     } else {
       if (WaitMessage() == 0) {
-        Log::error(_T("Hooks update detector has failed"));
+        m_log->error(_T("Hooks update detector has failed"));
         Thread::terminate();
       }
     }
@@ -177,7 +177,7 @@ void HooksUpdateDetector::execute()
     }
     terminate32Loader();
   } catch (Exception &e) {
-    Log::error(_T("%s"), e.getMessage());
+    m_log->error(_T("%s"), e.getMessage());
   }
-  Log::info(_T("Hooks update detector has been terminated."));
+  m_log->info(_T("Hooks update detector has been terminated."));
 }

@@ -26,11 +26,12 @@
 #define __DESKTOPCONFIGLOCAL_H__
 
 #include "InputBlocker.h"
+#include "log-writer/LogWriter.h"
 
 class DesktopConfigLocal
 {
 public:
-  DesktopConfigLocal();
+  DesktopConfigLocal(LogWriter *log);
   virtual ~DesktopConfigLocal();
 
   virtual void updateByNewSettings();

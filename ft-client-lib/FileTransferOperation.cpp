@@ -25,8 +25,11 @@
 #include "FileTransferOperation.h"
 #include "OperationEventListener.h"
 
-FileTransferOperation::FileTransferOperation()
-: m_sender(0), m_replyBuffer(0), m_isTerminating(false)
+FileTransferOperation::FileTransferOperation(LogWriter *logWriter)
+: m_logWriter(logWriter),
+  m_sender(0),
+  m_replyBuffer(0),
+  m_isTerminating(false)
 {
 }
 
@@ -78,7 +81,7 @@ void FileTransferOperation::notifyFinish()
 
 void FileTransferOperation::notifyError(const TCHAR *message)
 {
-  Log::message(_T("%s\n"), message);
+  m_logWriter->message(_T("%s\n"), message);
 
   AutoLock al(&m_listeners);
 
@@ -91,7 +94,7 @@ void FileTransferOperation::notifyError(const TCHAR *message)
 
 void FileTransferOperation::notifyInformation(const TCHAR *message)
 {
-  Log::message(_T("%s\n"), message);
+  m_logWriter->message(_T("%s\n"), message);
 
   AutoLock al(&m_listeners);
 

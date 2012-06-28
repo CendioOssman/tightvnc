@@ -26,12 +26,13 @@
 #define __UIPICONTROL_H__
 
 #include "util/CommonHeader.h"
+#include "log-writer/LogWriter.h"
 
 // This class allow to control the uipi for the current process.
 class UipiControl
 {
 public:
-  UipiControl();
+  UipiControl(LogWriter *log);
   ~UipiControl();
 
   // This function allow to receive the message from a lower integrity
@@ -41,6 +42,9 @@ public:
   // message (ignored at Windows Vista or older).
   // @throws Exception on a fail (Only for Vista and later).
   void allowMessage(UINT message, HWND hwnd);
+
+private:
+  LogWriter *m_log;
 };
 
 #endif // __UIPICONTROL_H__

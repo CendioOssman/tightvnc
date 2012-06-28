@@ -23,17 +23,19 @@
 //
 
 #include "UpdateFilter.h"
-#include "log-server/Log.h"
 #include "util/CommonHeader.h"
 
 static const int BLOCK_SIZE = 32;
 
 UpdateFilter::UpdateFilter(ScreenDriver *screenDriver,
                            FrameBuffer *frameBuffer,
-                           LocalMutex *frameBufferCriticalSection)
+                           LocalMutex *frameBufferCriticalSection,
+                           LogWriter *log)
 : m_screenDriver(screenDriver),
   m_frameBuffer(frameBuffer),
-  m_fbMutex(frameBufferCriticalSection)
+  m_fbMutex(frameBufferCriticalSection),
+  m_grabOptimizator(log),
+  m_log(log)
 {
 }
 
@@ -69,13 +71,13 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
 
   toCheck.getRectVector(&rects);
   // Grabbing
-  Log::debug(_T("grabbing region, %d rectangles"), (int)rects.size());
+  m_log->debug(_T("grabbing region, %d rectangles"), (int)rects.size());
   try {
     m_grabOptimizator.grab(&toCheck, m_screenDriver);
   } catch (...) {
     return;
   }
-  Log::debug(_T("end of grabbing region"));
+  m_log->debug(_T("end of grabbing region"));
 
   // Filtering
   updateContainer->changedRegion.clear();

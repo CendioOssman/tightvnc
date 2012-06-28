@@ -25,8 +25,9 @@
 #include "ConfigServer.h"
 #include "server-config-lib/Configurator.h"
 
-ConfigServer::ConfigServer(DesktopSrvDispatcher *dispatcher)
-: DesktopServerProto(0)
+ConfigServer::ConfigServer(DesktopSrvDispatcher *dispatcher, LogWriter *log)
+: DesktopServerProto(0),
+  m_deskConf(log)
 {
   dispatcher->registerNewHandle(CONFIG_RELOAD_REQ, this);
   dispatcher->registerNewHandle(SOFT_INPUT_ENABLING_REQ, this);

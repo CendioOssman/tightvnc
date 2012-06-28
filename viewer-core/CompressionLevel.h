@@ -30,7 +30,7 @@
 class CompressionLevel : public Decoder
 {
 public:
-  CompressionLevel(int compression);
+  CompressionLevel(LogWriter *logWriter, int compression);
   virtual ~CompressionLevel();
 
   void decode(RfbInputGate *input,

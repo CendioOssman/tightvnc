@@ -99,6 +99,11 @@ void WindowsApplication::shutdown()
   PostMessage(m_mainWindow, WM_CLOSE, 0, 0);
 }
 
+void WindowsApplication::postMessage(UINT message, WPARAM wParam, LPARAM lParam)
+{
+  PostMessage(m_mainWindow, message, wParam, lParam);
+}
+
 void WindowsApplication::addModelessDialog(HWND dialogWindow)
 {
   AutoLock l(&m_MDLMutex);

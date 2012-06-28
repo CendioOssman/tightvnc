@@ -33,13 +33,16 @@
 #include "TvnServer.h"
 #include "TvnServerListener.h"
 #include "WsConfigRunner.h"
+#include "log-writer/FileLogger.h"
+#include "LogInitListener.h"
 
 /**
  * Windows TightVNC server application.
  * Used for running TightVNC server as single windows application.
  */
 class TvnServerApplication : public WindowsApplication,
-                             public TvnServerListener
+                             public TvnServerListener,
+                             private LogInitListener
 {
 public:
   /**
@@ -77,6 +80,14 @@ public:
   virtual void onTvnServerShutdown();
 
 private:
+  // This is a callback function that calls when the log can be initialized.
+  virtual void onLogInit(const TCHAR *logDir, const TCHAR *fileName, unsigned char logLevel);
+
+  // This is a callback function that calls when log properties have changed.
+  virtual void onChangeLogProps(const TCHAR *newLogDir, unsigned char newLevel);
+
+  FileLogger m_fileLogger;
+
   /**
    * Command line string.
    */

@@ -24,7 +24,6 @@
 
 #include "SecurityType.h"
 
-#include "log-server/Log.h"
 #include "rfb/AuthDefs.h"
 #include "util/Exception.h"
 

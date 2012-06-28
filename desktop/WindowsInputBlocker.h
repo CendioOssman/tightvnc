@@ -31,13 +31,14 @@
 #include "win-system/WinTimeMillis.h"
 #include "win-system/WindowsEvent.h"
 #include "InputBlocker.h"
+#include "log-writer/LogWriter.h"
 
 // Only one instance of this class may be created.
 
 class WindowsInputBlocker : public InputBlocker, protected Thread
 {
 public:
-  WindowsInputBlocker();
+  WindowsInputBlocker(LogWriter *log);
   virtual ~WindowsInputBlocker();
 
   // This functions set/unset blocks on a local keyboard and mouse.
@@ -92,6 +93,8 @@ protected:
   static unsigned int m_timeInterval;
   static DateTime m_lastInputTime;
   static LocalMutex m_lastInputTimeMutex;
+
+  LogWriter *m_log;
 };
 
 #endif // __WINDOWSINPUTBLOCKER_H__

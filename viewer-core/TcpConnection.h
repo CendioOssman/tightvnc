@@ -25,6 +25,7 @@
 #ifndef _TCP_CONNECTION_H_
 #define _TCP_CONNECTION_H_
 
+#include "log-writer/LogWriter.h"
 #include "network/RfbInputGate.h"
 #include "network/RfbOutputGate.h"
 #include "network/socket/SocketIPv4.h"
@@ -34,7 +35,7 @@
 class TcpConnection
 {
 public:
-  TcpConnection();
+  TcpConnection(LogWriter *logWriter);
   virtual ~TcpConnection();
 
   void bind(const TCHAR *host, UINT16 port);
@@ -57,6 +58,8 @@ private:
   bool m_wasBound;
   bool m_wasConnected;
   bool m_isEstablished;
+
+  LogWriter *m_logWriter;
 
   mutable LocalMutex m_connectLock;
 };

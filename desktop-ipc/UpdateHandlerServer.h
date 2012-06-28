@@ -28,6 +28,7 @@
 #include "DesktopServerProto.h"
 #include "desktop/LocalUpdateHandler.h"
 #include "DesktopSrvDispatcher.h"
+#include "log-writer/LogWriter.h"
 
 class UpdateHandlerServer: public DesktopServerProto, public ClientListener,
                            public UpdateListener
@@ -35,7 +36,8 @@ class UpdateHandlerServer: public DesktopServerProto, public ClientListener,
 public:
   UpdateHandlerServer(BlockingGate *forwGate,
                       DesktopSrvDispatcher *dispatcher,
-                      AnEventListener *extTerminationListener);
+                      AnEventListener *extTerminationListener,
+                      LogWriter *log);
   virtual ~UpdateHandlerServer();
 
   // Internal dispatcher
@@ -56,6 +58,8 @@ protected:
 
   LocalUpdateHandler *m_updateHandler;
   AnEventListener *m_extTerminationListener;
+
+  LogWriter *m_log;
 };
 
 #endif // __UPDATEHANDLERSERVER_H__

@@ -31,33 +31,34 @@
 #include "SasUserInput.h"
 #include "WindowsUserInput.h"
 #include "DesktopConfigLocal.h"
-#include "log-server/Log.h"
 #include "win-system/Environment.h"
 #include "win-system/WindowsDisplays.h"
 
 WinDesktop::WinDesktop(ClipboardListener *extClipListener,
                        UpdateSendingListener *extUpdSendingListener,
-                       AbnormDeskTermListener *extDeskTermListener)
-: GuiDesktop(extClipListener, extUpdSendingListener, extDeskTermListener),
+                       AbnormDeskTermListener *extDeskTermListener,
+                       LogWriter *log)
+: GuiDesktop(extClipListener, extUpdSendingListener, extDeskTermListener, log),
   m_wallPaper(0),
-  m_deskConf(0)
+  m_deskConf(0),
+  m_log(log)
 {
-  Log::info(_T("Creating WinDesktop"));
+  m_log->info(_T("Creating WinDesktop"));
 
   logDesktopInfo();
 
   try {
-    m_updateHandler = new LocalUpdateHandler(this);
+    m_updateHandler = new LocalUpdateHandler(this, m_log);
     bool ctrlAltDelEnabled = false;
-    m_userInput = new WindowsUserInput(this, ctrlAltDelEnabled);
-    m_deskConf = new DesktopConfigLocal();
+    m_userInput = new WindowsUserInput(this, ctrlAltDelEnabled, m_log);
+    m_deskConf = new DesktopConfigLocal(m_log);
     applyNewConfiguration();
-    m_wallPaper = new WallpaperUtil;
+    m_wallPaper = new WallpaperUtil(m_log);
     m_wallPaper->updateWallpaper();
 
     Configurator::getInstance()->addListener(this);
   } catch (Exception &ex) {
-    Log::error(_T("exception during WinDesktop creaion: %s"), ex.getMessage());
+    m_log->error(_T("exception during WinDesktop creaion: %s"), ex.getMessage());
     freeResource();
     throw;
   }
@@ -66,11 +67,11 @@ WinDesktop::WinDesktop(ClipboardListener *extClipListener,
 
 WinDesktop::~WinDesktop()
 {
-  Log::info(_T("Deleting WinDesktop"));
+  m_log->info(_T("Deleting WinDesktop"));
   terminate();
   wait();
   freeResource();
-  Log::info(_T("WinDesktop deleted"));
+  m_log->info(_T("WinDesktop deleted"));
 }
 
 void WinDesktop::freeResource()
@@ -91,7 +92,7 @@ void WinDesktop::onTerminate()
 
 void WinDesktop::execute()
 {
-  Log::info(_T("WinDesktop thread started"));
+  m_log->info(_T("WinDesktop thread started"));
 
   while (!isTerminating()) {
     m_newUpdateEvent.waitForEvent();
@@ -100,7 +101,7 @@ void WinDesktop::execute()
     }
   }
 
-  Log::info(_T("WinDesktop thread stopped"));
+  m_log->info(_T("WinDesktop thread stopped"));
 }
 
 bool WinDesktop::isRemoteInputTempBlocked()
@@ -110,28 +111,28 @@ bool WinDesktop::isRemoteInputTempBlocked()
 
 void WinDesktop::applyNewConfiguration()
 {
-  Log::info(_T("reload WinDesktop configuration"));
+  m_log->info(_T("reload WinDesktop configuration"));
   m_deskConf->updateByNewSettings();
 }
 
 void WinDesktop::logDesktopInfo()
 {
   try {
-    if (Environment::isAeroOn()) {
-      Log::debug(_T("The Aero is On"));
+    if (Environment::isAeroOn(m_log)) {
+      m_log->debug(_T("The Aero is On"));
     } else {
-      Log::debug(_T("The Aero is Off"));
+      m_log->debug(_T("The Aero is Off"));
     }
   } catch (Exception &e) {
-    Log::error(_T("Can't get information for the Aero: %s"), e.getMessage());
+    m_log->error(_T("Can't get information for the Aero: %s"), e.getMessage());
   }
 
   // Log all display coordinates
   WindowsDisplays m_winDisp;
   std::vector<Rect> displays = m_winDisp.getDisplays();
-  Log::debug(_T("The console desktop has %d displays"), (int)displays.size());
+  m_log->debug(_T("The console desktop has %d displays"), (int)displays.size());
   for (size_t i = 0; i < displays.size(); i++) {
-    Log::debug(_T("Display %d placed at the %d, %d, %dx%d coordinates"),
+    m_log->debug(_T("Display %d placed at the %d, %d, %dx%d coordinates"),
                i + 1,
                displays[i].left, displays[i].top,
                displays[i].getWidth(), displays[i].getHeight());

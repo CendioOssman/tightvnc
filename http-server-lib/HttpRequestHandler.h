@@ -27,11 +27,13 @@
 
 #include "io-lib/DataInputStream.h"
 #include "io-lib/DataOutputStream.h"
+#include "log-writer/LogWriter.h"
 
 class HttpRequestHandler
 {
 public:
-  HttpRequestHandler(DataInputStream *dataInput, DataOutputStream *dataOutput, const TCHAR *peerHost = 0);
+  HttpRequestHandler(DataInputStream *dataInput, DataOutputStream *dataOutput, LogWriter *log,
+                     const TCHAR *peerHost = 0);
   virtual ~HttpRequestHandler();
 
   // Reads HTTP request from input and sends responce to output.
@@ -41,6 +43,8 @@ protected:
   DataInputStream *m_dataInput;
   DataOutputStream *m_dataOutput;
   StringStorage m_peerHost;
+
+  LogWriter *m_log;
 };
 
 #endif

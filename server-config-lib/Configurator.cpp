@@ -510,9 +510,6 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
   if (!sm->setBoolean(_T("EnableFileTransfers"), m_serverConfig.isFileTransfersEnabled())) {
     saveResult = false;
   }
-  if (!sm->setBoolean(_T("BlankScreen"), m_serverConfig.isBlankScreenEnabled())) {
-    saveResult = false;
-  }
   if (!sm->setBoolean(_T("RemoveWallpaper"), m_serverConfig.isRemovingDesktopWallpaperEnabled())) {
     saveResult = false;
   }
@@ -654,12 +651,6 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.enableFileTransfers(boolVal);
-  }
-  if (!sm->getBoolean(_T("BlankScreen"), &boolVal)) {
-    loadResult = false;
-  } else {
-    m_isConfigLoadedPartly = true;
-    m_serverConfig.enableBlankScreen(boolVal);
   }
   if (!sm->getBoolean(_T("RemoveWallpaper"), &boolVal)) {
     loadResult = false;

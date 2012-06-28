@@ -32,6 +32,7 @@
 #include "util/ResourceLoader.h"
 #include "util/Command.h"
 #include "server-config-lib/Configurator.h"
+#include "log-writer/LogWriter.h"
 
 #include "thread/Thread.h"
 #include "thread/LocalMutex.h"
@@ -157,6 +158,8 @@ private:
   void reloadConfig();
 
 private:
+  LogWriter m_log;
+
   // Initialization of the Configurator instance.
   Configurator m_configurator;
 

@@ -24,16 +24,16 @@
 
 #include "SasUserInput.h"
 #include "win-system/Environment.h"
-#include "log-server/Log.h"
 
 #define XK_MISCELLANY
 #include "rfb/keysymdef.h"
 
-SasUserInput::SasUserInput(UserInputClient *client)
+SasUserInput::SasUserInput(UserInputClient *client, LogWriter *log)
 : m_client(client),
   m_ctrlPressed(false),
   m_altPressed(false),
-  m_underVista(false)
+  m_underVista(false),
+  m_log(log)
 {
   m_underVista = Environment::isVistaOrLater();
 }
@@ -77,7 +77,7 @@ void SasUserInput::setKeyboardEvent(UINT32 keySym, bool down)
   }
 
   if (m_ctrlPressed && m_altPressed && delPressed && m_underVista) {
-    Environment::simulateCtrlAltDelUnderVista();
+    Environment::simulateCtrlAltDelUnderVista(m_log);
   } else {
     m_client->setKeyboardEvent(keySym, down);
   }

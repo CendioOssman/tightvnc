@@ -27,33 +27,67 @@
 
 #include "gui/NotifyIcon.h"
 #include "gui/Menu.h"
+#include "TvnViewer.h"
+
 #include "resource.h"
 
-class ControlTrayIcon : protected WindowProcHolder
+class TvnViewer;
+
+class ControlTrayIcon : public NotifyIcon,
+                        public WindowProcHolder
 {
 public:
-  ControlTrayIcon();
+  ControlTrayIcon(TvnViewer *viewerApplication);
+  virtual ~ControlTrayIcon();
 
-  void showTrayIcon();
-  void hideTrayIcon();
-  void runTrayIcon();
+  //
+  // this function set icon and show icon [call setIcon(), show()]
+  //
+  void showIcon();
 
 protected:
   static UINT WM_USER_TASKBAR;
 
 protected:
-  LRESULT windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, bool *useDefWindowProc);
+  virtual LRESULT windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, bool *useDefWindowProc);
 
-  virtual void onNewConnection() = 0;
-  virtual void onDefaultConnection() = 0;
-  virtual void onConfiguration() = 0;
-  virtual void onAboutViewer() = 0;
-  virtual void onCloseViewer() = 0;
-  virtual void onShowMainWindow() = 0;
+  //
+  // Show login-dialog after click "New connection..." in pop-up menu of tray icon
+  //
+  virtual void onNewConnection();
+  
+  //
+  // Show dialog with connection options after click
+  // "Options for incoming connection..." in pop-up menu of tray icon
+  //
+  virtual void onListeningOptions();
 
-  NotifyIcon m_notifyIcon;
+  //
+  // Show dialog with configuration of viewer
+  //
+  virtual void onConfiguration();
+  
+  //
+  // Show about-dialog of viewer
+  //
+  virtual void onAboutViewer();
+
+  //
+  // Stopping of listening daemon after click
+  // "Close listening daemon" in pop-up menu of tray icon
+  //
+  virtual void onCloseViewer();
+
+  //
+  // Show login-dialog after click on tray icon
+  //
+  virtual void onShowMainWindow();
+
+  Icon m_icon;
   Menu m_menu;
   bool m_inWindowProc;
+
+  TvnViewer *m_application;
 
 private:
   void onRightButtonUp();
@@ -61,4 +95,3 @@ private:
 };
 
 #endif
-

@@ -26,17 +26,21 @@
 #define __WALLPAPERUTIL_H__
 
 #include "server-config-lib/ConfigReloadListener.h"
+#include "log-writer/LogWriter.h"
 
 class WallpaperUtil : protected ConfigReloadListener
 {
 public:
-  WallpaperUtil();
+  WallpaperUtil(LogWriter *log);
   virtual ~WallpaperUtil();
 
   virtual void updateWallpaper();
 
 protected:
   virtual void onConfigReload(ServerConfig *serverConfig);
+
+private:
+  LogWriter *m_log;
 };
 
 #endif // __WALLPAPERUTIL_H__

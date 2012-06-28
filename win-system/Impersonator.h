@@ -27,6 +27,7 @@
 
 #include "util/CommonHeader.h"
 #include "util/StringStorage.h"
+#include "log-writer/LogWriter.h"
 
 #include "SystemException.h"
 
@@ -38,7 +39,7 @@ console session.
 class Impersonator
 {
 public:
-  Impersonator();
+  Impersonator(LogWriter *log);
   virtual ~Impersonator();
 
   /**
@@ -56,6 +57,8 @@ public:
 protected:
   HANDLE m_token;
   HANDLE m_dupToken;
+
+  LogWriter *m_log;
 };
 
 #endif

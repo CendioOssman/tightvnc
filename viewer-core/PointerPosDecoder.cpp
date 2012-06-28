@@ -24,7 +24,8 @@
 
 #include "PointerPosDecoder.h"
 
-PointerPosDecoder::PointerPosDecoder()
+PointerPosDecoder::PointerPosDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

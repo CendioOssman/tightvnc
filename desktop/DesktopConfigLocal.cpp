@@ -26,9 +26,9 @@
 #include "server-config-lib/Configurator.h"
 #include "desktop/WindowsInputBlocker.h"
 
-DesktopConfigLocal::DesktopConfigLocal()
+DesktopConfigLocal::DesktopConfigLocal(LogWriter *log)
 {
-  m_inputBlocker = new WindowsInputBlocker;
+  m_inputBlocker = new WindowsInputBlocker(log);
 }
 
 DesktopConfigLocal::~DesktopConfigLocal()

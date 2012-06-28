@@ -15,13 +15,7 @@
     <ClInclude Include="socket\SocketException.h">
       <Filter>socket</Filter>
     </ClInclude>
-    <ClInclude Include="socket\SocketInputStream.h">
-      <Filter>socket</Filter>
-    </ClInclude>
     <ClInclude Include="socket\SocketIPv4.h">
-      <Filter>socket</Filter>
-    </ClInclude>
-    <ClInclude Include="socket\SocketOutputStream.h">
       <Filter>socket</Filter>
     </ClInclude>
     <ClInclude Include="socket\SocketStream.h">
@@ -42,13 +36,7 @@
     <ClCompile Include="socket\SocketException.cpp">
       <Filter>socket</Filter>
     </ClCompile>
-    <ClCompile Include="socket\SocketInputStream.cpp">
-      <Filter>socket</Filter>
-    </ClCompile>
     <ClCompile Include="socket\SocketIPv4.cpp">
-      <Filter>socket</Filter>
-    </ClCompile>
-    <ClCompile Include="socket\SocketOutputStream.cpp">
       <Filter>socket</Filter>
     </ClCompile>
     <ClCompile Include="socket\SocketStream.cpp">

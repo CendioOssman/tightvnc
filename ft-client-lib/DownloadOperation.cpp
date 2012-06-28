@@ -24,11 +24,15 @@
 
 #include "DownloadOperation.h"
 
-DownloadOperation::DownloadOperation(const FileInfo *filesToDownload,
+DownloadOperation::DownloadOperation(LogWriter *logWriter,
+                                     const FileInfo *filesToDownload,
                                      size_t filesCount,
                                      const TCHAR *pathToTargetRoot,
                                      const TCHAR *pathToSourceRoot)
-: m_file(0), m_fos(0), m_fileOffset(0)
+: CopyOperation(logWriter),
+  m_file(0),
+  m_fos(0),
+  m_fileOffset(0)
 {
   m_pathToSourceRoot.setString(pathToSourceRoot);
   m_pathToTargetRoot.setString(pathToTargetRoot);

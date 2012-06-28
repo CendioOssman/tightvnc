@@ -35,7 +35,7 @@ ServerConfig::ServerConfig()
   m_onlyLoopbackConnections(false), m_acceptHttpConnections(true),
   m_enableAppletParamInUrl(true), m_enableFileTransfers(true),
   m_mirrorDriverAllowed(true),
-  m_blankScreen(false), m_removeWallpaper(true), m_hasReadOnlyPassword(false),
+  m_removeWallpaper(true), m_hasReadOnlyPassword(false),
   m_hasPrimaryPassword(false), m_alwaysShared(false), m_neverShared(false),
   m_disconnectClients(true), m_pollingInterval(1000), m_localInputPriorityTimeout(3),
   m_blockLocalInput(false), m_blockRemoteInput(false), m_localInputPriority(false),
@@ -60,7 +60,6 @@ void ServerConfig::serialize(DataOutputStream *output)
 
   output->writeInt32(m_rfbPort);
   output->writeInt32(m_httpPort);
-  output->writeInt8(m_blankScreen ? 1 : 0);
   output->writeInt8(m_enableFileTransfers ? 1 : 0);
   output->writeInt8(m_removeWallpaper ? 1 : 0);
   output->writeInt8(m_mirrorDriverAllowed ? 1 : 0);
@@ -117,7 +116,6 @@ void ServerConfig::deserialize(DataInputStream *input)
 
   m_rfbPort = input->readInt32();
   m_httpPort = input->readInt32();
-  m_blankScreen = input->readInt8() == 1;
   m_enableFileTransfers = input->readInt8() == 1;
   m_removeWallpaper = input->readInt8() == 1;
   m_mirrorDriverAllowed = input->readInt8() != 0;
@@ -264,18 +262,6 @@ int ServerConfig::getHttpPort()
 {
   AutoLock lock(&m_objectCS);
   return m_httpPort;
-}
-
-bool ServerConfig::isBlankScreenEnabled()
-{
-  AutoLock lock(&m_objectCS);
-  return m_blankScreen;
-}
-
-void ServerConfig::enableBlankScreen(bool enabled)
-{
-  AutoLock lock(&m_objectCS);
-  m_blankScreen = enabled;
 }
 
 void ServerConfig::enableFileTransfers(bool enabled)

@@ -31,6 +31,7 @@
 #include "desktop/WindowsUserInput.h"
 #include "win-system/WindowsEvent.h"
 #include "DesktopSrvDispatcher.h"
+#include "log-writer/LogWriter.h"
 
 class UserInputServer: public DesktopServerProto, public ClientListener,
                        public ClipboardListener
@@ -38,7 +39,8 @@ class UserInputServer: public DesktopServerProto, public ClientListener,
 public:
   UserInputServer(BlockingGate *forwGate,
                   DesktopSrvDispatcher *dispatcher,
-                  AnEventListener *extTerminationListener);
+                  AnEventListener *extTerminationListener,
+                  LogWriter *log);
   virtual ~UserInputServer();
 
   // Internal dispatcher
@@ -61,6 +63,8 @@ protected:
 
   WindowsUserInput *m_userInput;
   AnEventListener *m_extTerminationListener;
+
+  LogWriter *m_log;
 };
 
 #endif // __USERINPUTSERVER_H__

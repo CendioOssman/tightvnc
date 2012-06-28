@@ -24,7 +24,8 @@
 
 #include "LastRectDecoder.h"
 
-LastRectDecoder::LastRectDecoder()
+LastRectDecoder::LastRectDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

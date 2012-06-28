@@ -24,16 +24,20 @@
 
 #include "RemoteFileRenameOperation.h"
 
-RemoteFileRenameOperation::RemoteFileRenameOperation(const TCHAR *pathToSourceFile,
+RemoteFileRenameOperation::RemoteFileRenameOperation(LogWriter *logWriter,
+                                                     const TCHAR *pathToSourceFile,
                                                      const TCHAR *pathToTargetFile)
+: FileTransferOperation(logWriter)
 {
   m_pathToSourceFile.setString(pathToSourceFile);
   m_pathToTargetFile.setString(pathToTargetFile);
 }
 
-RemoteFileRenameOperation::RemoteFileRenameOperation(FileInfo sourceFileInfo,
+RemoteFileRenameOperation::RemoteFileRenameOperation(LogWriter *logWriter,
+                                                     FileInfo sourceFileInfo,
                                                      FileInfo targetFileInfo,
                                                      const TCHAR *pathToTargetRoot)
+: FileTransferOperation(logWriter)
 {
   FileInfoList srcList(sourceFileInfo);
   FileInfoList dstList(targetFileInfo);

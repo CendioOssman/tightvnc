@@ -35,12 +35,12 @@
 
 #include "ft-common/OperationNotSupportedException.h"
 
-#include "log-server/Log.h"
+#include "log-writer/LogWriter.h"
 
 class FileTransferReplyBuffer : public FileTransferEventHandler
 {
 public:
-  FileTransferReplyBuffer(RfbInputGate *input);
+  FileTransferReplyBuffer(LogWriter *logWriter, RfbInputGate *input);
   virtual ~FileTransferReplyBuffer();
 
   void getLastErrorMessage(StringStorage *storage);
@@ -95,6 +95,11 @@ protected:
 
   RfbInputGate *m_input;
 
+  //
+  // Interface of log writer for log data
+  //
+
+  LogWriter *m_logWriter;
 
   //
   // ZLib stream for decompression of compressed data

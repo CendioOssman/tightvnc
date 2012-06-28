@@ -53,6 +53,12 @@ public:
   virtual ~FileTransferMainDialog();
 
   //
+  // Kill main dialog.
+  // Function return false, if closing dialog is canceled, and true else
+  //
+  bool tryClose();
+
+  //
   // Inherited from FtInterface
   //
   int onFtTargetFileExists(FileInfo *sourceFileInfo,

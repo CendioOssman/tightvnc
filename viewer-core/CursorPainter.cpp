@@ -24,12 +24,11 @@
 
 #include "CursorPainter.h"
 
-#include "log-server/Log.h"
 #include "thread/AutoLock.h"
 
-CursorPainter::CursorPainter(FrameBuffer *fb, LocalMutex *fbLock)
+CursorPainter::CursorPainter(FrameBuffer *fb, LogWriter *logWriter)
 : m_fb(fb),
-  m_fbLock(fbLock),
+  m_logWriter(logWriter),
   m_cursorIsMoveable(false),
   m_ignoreShapeUpdates(false),
   m_isExist(false)
@@ -43,8 +42,10 @@ CursorPainter::~CursorPainter()
 void CursorPainter::updatePointerPos(const Point *position)
 {
   AutoLock al(&m_lock);
-  m_pointerPos = *position;
+  m_pointerPosition = *position;
   m_cursorIsMoveable = true;
+
+  // Now, cursor is ready for painting.
 }
 
 void CursorPainter::setNewCursor(const Point *hotSpot,
@@ -53,10 +54,10 @@ void CursorPainter::setNewCursor(const Point *hotSpot,
                                  const vector<UINT8> *bitmask)
 {
   AutoLock al(&m_lock);
-  Log::debug(_T("Cursor hot-spot is (%d, %d)"), hotSpot->x, hotSpot->y);
+  m_logWriter->debug(_T("Cursor hot-spot is (%d, %d)"), hotSpot->x, hotSpot->y);
   m_cursor.setHotSpot(hotSpot->x, hotSpot->y);
 
-  Log::debug(_T("Cursor size is (%d, %d)"), width, height);
+  m_logWriter->debug(_T("Cursor size is (%d, %d)"), width, height);
   Dimension cursorDimension(width, height);
   PixelFormat pixelFormat = m_fb->getPixelFormat();
 
@@ -65,104 +66,83 @@ void CursorPainter::setNewCursor(const Point *hotSpot,
 
   size_t pixelSize = m_fb->getBytesPerPixel();
   size_t cursorSize = width * height * pixelSize;
+  // Server is allowed to specify zero as width and/or height of the cursor.
   if (cursorSize != 0) {
-    Log::debug(_T("Set image of cursor..."));
+    m_logWriter->debug(_T("Set image of cursor..."));
     memcpy(m_cursor.getPixels()->getBuffer(), &cursor->front(), cursorSize);
-    Log::debug(_T("Set bitmask of cursor..."));
+    m_logWriter->debug(_T("Set bitmask of cursor..."));
     m_cursor.assignMaskFromRfb(reinterpret_cast<const char *>(&bitmask->front()));
   }
 }
 
 void CursorPainter::setIgnoreShapeUpdates(bool ignore)
 {
-  Log::debug(_T("Set flag of ignor by cursor update is '%d'"), ignore);
+  m_logWriter->debug(_T("Set flag of ignor by cursor update is '%d'"), ignore);
 
   AutoLock al(&m_lock);
-  if (ignore == m_ignoreShapeUpdates)
-    return;
   m_ignoreShapeUpdates = ignore;
 }
 
 Rect CursorPainter::hideCursor()
 {
   AutoLock al(&m_lock);
-  return eraseCursor();
-}
 
-Rect CursorPainter::showCursor()
-{
-  AutoLock al(&m_lock);
-  return paintCursor();
-}
-
-Point CursorPainter::getUpperLeftPoint() const
-{
-  Point position = m_pointerPos;
-  position.move(-m_cursor.getHotSpot().x, -m_cursor.getHotSpot().y);
-  return position;
-}
-
-Rect CursorPainter::getCursorRect() const
-{
-  if (!m_isExist)
+  if (!m_isExist) {
     return Rect();
-  Rect rect(m_cursorOverlay.getDimension().getRect());
-  Point corner = getUpperLeftPoint();
-  rect.move(corner.x, corner.y);
-
-  if (corner.x < 0)
-    rect.move(-corner.x, 0);
-  if (corner.y < 0)
-    rect.move(0, -corner.y);
-
-  Log::info(_T("Cursor rect: (%d, %d), (%d, %d)"), rect.left, rect.top, rect.right, rect.bottom);
-  return rect;
-}
-
-Rect CursorPainter::eraseCursor()
-{
-  if (!m_isExist)
-    return Rect();
-  Rect erase = getCursorRect();
+  }
 
   m_isExist = false;
+
+  Rect erase(m_cursorOverlay.getDimension().getRect());
+  Point corner = getUpperLeftPoint(&m_lastPosition);
+
+  erase.move(corner.x, corner.y);
+
+  m_logWriter->info(_T("Cursor rect: (%d, %d), (%d, %d)"), erase.left, erase.top, erase.right, erase.bottom);
+
   if (erase.area() == 0) {
     return Rect();
   }
 
-  Log::debug(_T("Erasing cursor..."));
+  m_logWriter->debug(_T("Erasing cursor..."));
   m_fb->copyFrom(&erase, &m_cursorOverlay, 0, 0);
 
   return erase;
 }
 
-Rect CursorPainter::paintCursor()
+Rect CursorPainter::showCursor()
 {
+  AutoLock al(&m_lock);
+
+  m_lastPosition = m_pointerPosition;
+
   if (m_isExist) {
-    Log::error(_T("Error in CursorPainter: painting double copy of cursor."));
+    m_logWriter->error(_T("Error in CursorPainter: painting double copy of cursor."));
     _ASSERT(true);
   }
 
   if (!m_ignoreShapeUpdates && m_cursorIsMoveable && m_cursor.getDimension().area() != 0) {
 
-    Log::debug(_T("Painting cursor..."));
+    m_logWriter->debug(_T("Painting cursor..."));
 
-    Point corner = getUpperLeftPoint();
-    int x = corner.x < 0 ? 0 : corner.x;
-    int y = corner.y < 0 ? 0 : corner.y;
+    Point corner = getUpperLeftPoint(&m_lastPosition);
 
-    m_cursorOverlay.copyFrom(m_fb, x, y);
+    m_cursorOverlay.copyFrom(m_fb, corner.x, corner.y);
 
     Rect overlayRect(&m_cursor.getDimension().getRect());
     overlayRect.move(corner.x, corner.y);
-    int srcX = overlayRect.left < 0 ? -overlayRect.left : 0;
-    int srcY = overlayRect.top < 0 ? -overlayRect.top : 0;
-    overlayRect.move(srcX, srcY);
 
-    m_fb->overlay(&overlayRect, m_cursor.getPixels(), srcX, srcY, m_cursor.getMask());
+    m_fb->overlay(&overlayRect, m_cursor.getPixels(), 0, 0, m_cursor.getMask());
 
     m_isExist = true;
     return overlayRect;
   }
   return Rect();
+}
+
+Point CursorPainter::getUpperLeftPoint(const Point *position) const
+{
+  Point upperLeftPoint = *position;
+  upperLeftPoint.move(-m_cursor.getHotSpot().x, -m_cursor.getHotSpot().y);
+  return upperLeftPoint;
 }

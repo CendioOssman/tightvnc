@@ -25,13 +25,10 @@
 #include "util/CommonHeader.h"
 #include "BaseWindow.h"
 
-BaseWindow::BaseWindow() 
-: m_hWnd(0), 
-  m_hicon(0), 
-  m_bclassReg(false), 
-  m_bWndCreated(false),
-  m_hAccTable(0),
-  m_hWndDialog(0)
+BaseWindow::BaseWindow()
+: m_hWnd(0),
+  m_hicon(0),
+  m_bWndCreated(false)
 {
 }
 
@@ -39,10 +36,6 @@ BaseWindow::~BaseWindow()
 {
   if (m_bWndCreated && m_hWnd) {
     DestroyWindow(m_hWnd);
-  }
-  if (m_bclassReg && m_className.getSize()) {
-    UnregisterClass(m_className.getString(), 
-                    GetModuleHandle(0));
   }
   if (m_hicon) {
     DeleteObject(m_hicon);
@@ -52,25 +45,6 @@ BaseWindow::~BaseWindow()
 void BaseWindow::setClass(const StringStorage *className)
 {
   m_className = *className;
-  m_bclassReg = false;
-}
-
-bool BaseWindow::regClass(const StringStorage *className)
-{
-  WNDCLASS wndClass;
-
-  ZeroMemory(&wndClass, sizeof(WNDCLASS));
-  wndClass.lpfnWndProc   = staticWndProc;
-  wndClass.style         = CS_HREDRAW | CS_VREDRAW;
-  wndClass.hInstance     = GetModuleHandle(0);
-  wndClass.lpszClassName = className->getString();
-  wndClass.hbrBackground = GetSysColorBrush(COLOR_WINDOW);
-  if (!RegisterClass(&wndClass)) {
-    return false;
-  }
-  m_className = *className;
-  m_bclassReg = true;
-  return true;
 }
 
 bool BaseWindow::createWindow(const StringStorage *windowName, DWORD style, HWND hWndParent,
@@ -111,28 +85,6 @@ void BaseWindow::loadIcon(DWORD id)
     SetClassLongPtr(m_hWnd, GCLP_HICON, static_cast<LONG_PTR>(id));
   }
 }
-
-LRESULT CALLBACK BaseWindow::staticWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-  BaseWindow *_this = 0;
-
-  if (message == WM_CREATE) {
-     CREATESTRUCT * createStruct = reinterpret_cast<CREATESTRUCT *>(lParam);
-
-     _this = reinterpret_cast<BaseWindow *>(createStruct->lpCreateParams);
-     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(_this));
-     _this->setHWnd(hwnd);
-  } else {
-    _this = reinterpret_cast<BaseWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-  }
-  if (_this) {
-    if (_this->wndProc(message, wParam, lParam)) {
-     return 0;
-    }
-  }
-  return DefWindowProc(hwnd, message, wParam, lParam);
-}
-
 
 void BaseWindow::enableWindow(bool bEnable)
 {
@@ -272,7 +224,7 @@ bool BaseWindow::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
     case WM_LBUTTONUP:
     case WM_MBUTTONDOWN:
     case WM_MBUTTONUP:
-    case WM_RBUTTONDOWN: 
+    case WM_RBUTTONDOWN:
     case WM_RBUTTONUP:
     case WM_MOUSEWHEEL:
     case WM_MOUSEMOVE:
@@ -303,7 +255,7 @@ void BaseWindow::setHWnd(HWND hwnd)
   m_hWnd = hwnd;
 }
 
-HWND BaseWindow::getHWnd()
+HWND BaseWindow::getHWnd() const
 {
   return m_hWnd;
 }
@@ -342,58 +294,6 @@ void BaseWindow::postMessage(UINT Msg, WPARAM wParam, LPARAM lParam)
   _ASSERT(m_hWnd != 0);
 
   PostMessage(m_hWnd, Msg, wParam, lParam);
-}
-
-void BaseWindow::setAccTable(HACCEL hAccTable)
-{
-  m_hAccTable = hAccTable;
-}
-
-void BaseWindow::setChildDialog(HWND hwnd)
-{
-  m_hWndDialog = hwnd;
-}
-
-void BaseWindow::run(bool processAll)
-{
-  _ASSERT(m_hWnd != 0);
-
-  BOOL bRet = TRUE;
-  MSG msg;
- 
-  while (bRet)
-  {
-    bRet = GetMessage( &msg, processAll ? 0 : m_hWnd, 0, 0);
-
-    if (bRet == -1) {
-      break;
-    }
-
-    if (m_hAccTable && bRet) {
-      if (TranslateAccelerator(m_hWnd, m_hAccTable, &msg)) {
-        continue;
-      }
-    }
-
-    if (bRet && m_hWndDialog) {
-      if (IsDialogMessage(m_hWndDialog, &msg)) {
-        continue;
-      }
-    }
-
-    if (bRet) {
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);    
-    }
-  }
-}
-
-void BaseWindow::quit()
-{
-  _ASSERT(m_hWnd != 0);
-
-  DWORD Id = GetCurrentThreadId();
-  PostThreadMessage(Id, WM_QUIT, 0, 0);
 }
 
 void BaseWindow::getClientRect(RECT *rc)

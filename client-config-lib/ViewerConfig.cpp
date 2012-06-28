@@ -36,7 +36,8 @@
 ViewerConfig::ViewerConfig(const TCHAR registryPath[])
 : m_logLevel(0), m_listenPort(5500), m_historyLimit(32),
   m_showToolbar(true), m_promptOnFullscreen(true),
-  m_conHistory(&m_conHistoryKey, m_historyLimit)
+  m_conHistory(&m_conHistoryKey, m_historyLimit),
+  m_logger(0)
 {
   StringStorage registryKey;
   registryKey.format(_T("%s\\History"), registryPath);
@@ -47,6 +48,12 @@ ViewerConfig::ViewerConfig(const TCHAR registryPath[])
 
 ViewerConfig::~ViewerConfig()
 {
+  if (m_logger != 0) {
+    try {
+      delete m_logger;
+    } catch (...) {
+    }
+  }
 }
 
 bool ViewerConfig::loadFromStorage(SettingsManager *storage)
@@ -118,7 +125,9 @@ void ViewerConfig::setLogLevel(int logLevel)
   }
 
   m_logLevel = logLevel;
-  m_fileLog.changeLogProps(m_pathToLogFile.getString(), m_logLevel);
+  if (m_logger != 0) {
+    m_logger->changeLogProps(m_pathToLogFile.getString(), m_logLevel);
+  }
 }
 
 int ViewerConfig::getLogLevel()
@@ -190,7 +199,7 @@ ConnectionHistory *ViewerConfig::getConnectionHistory()
   return &m_conHistory;
 }
 
-void ViewerConfig::initLog(const TCHAR logDir[], const TCHAR logName[])
+Logger *ViewerConfig::initLog(const TCHAR logDir[], const TCHAR logName[])
 {
   m_logName = logName;
   StringStorage logFileFolderPath;
@@ -214,5 +223,14 @@ void ViewerConfig::initLog(const TCHAR logDir[], const TCHAR logName[])
   AutoLock l(&m_cs);
   m_pathToLogFile = logFileFolderPath;
 
-  m_fileLog.init(m_pathToLogFile.getString(), logName, m_logLevel);
+  if (m_logger != 0) {
+    delete m_logger;
+  }
+  m_logger = new FileLogger(m_pathToLogFile.getString(), logName, m_logLevel, false);
+  return m_logger;
+}
+
+Logger *ViewerConfig::getLogger()
+{
+  return m_logger;
 }

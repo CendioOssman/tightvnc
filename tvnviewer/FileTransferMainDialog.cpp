@@ -31,8 +31,6 @@
 
 #include "file-lib/File.h"
 
-#include "log-server/Log.h"
-
 #include "resource.h"
 #include <stdio.h>
 
@@ -197,7 +195,7 @@ void FileTransferMainDialog::onMessageReceived(UINT uMsg, WPARAM wParam, LPARAM 
   switch (uMsg) {
   case WM_OPERATION_FINISHED:
     m_ftCore->onOperationFinished();
-    
+
     if (!m_isClosing) {
       int state = static_cast<int>(wParam);
       int result = static_cast<int>(lParam);
@@ -213,24 +211,29 @@ void FileTransferMainDialog::onMessageReceived(UINT uMsg, WPARAM wParam, LPARAM 
   } // switch
 } // void
 
-void FileTransferMainDialog::onCancelButtonClick()
+bool FileTransferMainDialog::tryClose()
 {
-  if (!m_ftCore->isNothingState()) {
-    if (MessageBox(m_ctrlThis.getWindow(),
-                   _T("Do you want to close file transfers and terminate current operation?"),
-                   _T("TightVNC File Transfers"),
-                   MB_YESNO | MB_ICONQUESTION) != IDYES) {
-      return;
-    } // if result is not "yes"
-
+  if (m_ftCore->isNothingState()) {
+    // No operation is executing - close dialog
+    kill(IDCANCEL);
+    return true;
+  }
+  if (MessageBox(m_ctrlThis.getWindow(),
+                 _T("Do you want to close file transfers and terminate current operation?"),
+                 _T("TightVNC File Transfers"),
+                 MB_YESNO | MB_ICONQUESTION) == IDYES) {
     // Set flag
     m_isClosing = true;
     // Terminate current operation
     m_ftCore->terminateCurrentOperation();
-  } else {
-    // No operation is executing - close dialog
-    kill(IDCANCEL);
-  }
+    return true;
+  } // if result is not "yes"
+  return false;
+}
+
+void FileTransferMainDialog::onCancelButtonClick()
+{
+  tryClose();
 }
 
 void FileTransferMainDialog::onCancelOperationButtonClick()

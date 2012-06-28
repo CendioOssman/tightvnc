@@ -36,7 +36,7 @@ public:
 
   // getWindow()
   // Get a handle of the window 
-  HWND getHWnd();
+  HWND getHWnd() const;
   void setHWnd(HWND hwnd);
 
   // createWindow()
@@ -46,10 +46,6 @@ public:
                     int xPos = CW_USEDEFAULT, int yPos = CW_USEDEFAULT,
                     int width = CW_USEDEFAULT, int height = CW_USEDEFAULT);
   bool destroyWindow();
-
-  // regClass()
-  // Register class with className name for creating a window
-  bool regClass(const StringStorage *className);
 
   // setClass()
   // Set a class name only to the new window created by createWindow
@@ -83,9 +79,6 @@ public:
   void setStyle(DWORD style);
   void setExStyle(DWORD exstyle);
 
-  // processing window messages
-  void run(bool processAll);
-
   // full redraw of window area
   void redraw(const RECT *rcArea = 0);
 
@@ -97,18 +90,13 @@ public:
   // set foreground window
   void setForegroundWindow();
 
-  // working with accelerator
-  void setAccTable(HACCEL hAccTable);
-
   // post message to this window
   void postMessage(UINT Msg, WPARAM wParam = 0, LPARAM lParam = 0);
 
-  // quit from message loop
-  void quit();
-
-  void setChildDialog(HWND hwnd);
   void getClientRect(RECT *rc);
   void getBorderSize(int *width, int *height);
+
+  virtual bool wndProc(UINT message, WPARAM wParam, LPARAM lParam);
 
   static const int MOUSE_LDOWN  = 1;
   static const int MOUSE_MDOWN  = 2;
@@ -125,17 +113,11 @@ private:
   virtual bool onMouse(unsigned char msg, unsigned short wspeed, POINTS pt);
 
 protected:
-  virtual bool wndProc(UINT message, WPARAM wParam, LPARAM lParam);
-  static LRESULT CALLBACK staticWndProc(HWND hwnd, UINT message,
-                                       WPARAM wParam, LPARAM lParam);
-
-  HWND m_hWnd, m_hWndDialog;
+  HWND m_hWnd;
   StringStorage m_className;
   StringStorage m_windowName;
   HICON m_hicon;
-  bool m_bclassReg;
   bool m_bWndCreated;
-  HACCEL m_hAccTable;
 };
 
 #endif

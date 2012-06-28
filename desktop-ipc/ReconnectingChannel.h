@@ -28,11 +28,12 @@
 #include "io-lib/Channel.h"
 #include "thread/LocalMutex.h"
 #include "win-system/WindowsEvent.h"
+#include "log-writer/LogWriter.h"
 
 class ReconnectingChannel : public Channel
 {
 public:
-  ReconnectingChannel(unsigned int timeOut);
+  ReconnectingChannel(unsigned int timeOut, LogWriter *log);
   virtual ~ReconnectingChannel();
 
   virtual size_t read(void *buffer, size_t len);
@@ -70,6 +71,8 @@ private:
 
   WindowsEvent m_timer;
   unsigned int m_timeOut;
+
+  LogWriter *m_log;
 };
 
 #endif // __RECONNECTINGCHANNEL_H__

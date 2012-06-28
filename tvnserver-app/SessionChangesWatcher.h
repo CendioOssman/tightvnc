@@ -27,11 +27,12 @@
 
 #include "thread/GuiThread.h"
 #include "util/AnEventListener.h"
+#include "log-writer/LogWriter.h"
 
 class SessionChangesWatcher : public GuiThread
 {
 public:
-  SessionChangesWatcher(AnEventListener *extSessionChangesListener);
+  SessionChangesWatcher(AnEventListener *extSessionChangesListener, LogWriter *log);
   virtual ~SessionChangesWatcher();
 
 protected:
@@ -39,6 +40,8 @@ protected:
 
   DWORD m_baseSessionId;
   AnEventListener *m_extSessionChangesListener;
+
+  LogWriter *m_log;
 };
 
 #endif // __SESSIONCHANGESWATCHER_H__

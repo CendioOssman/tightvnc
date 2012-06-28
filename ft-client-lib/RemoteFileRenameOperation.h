@@ -34,10 +34,12 @@
 class RemoteFileRenameOperation : public FileTransferOperation
 {
 public:
-  RemoteFileRenameOperation(const TCHAR *pathToSourceFile,
+  RemoteFileRenameOperation(LogWriter *logWriter,
+                            const TCHAR *pathToSourceFile,
                             const TCHAR *pathToTargetFile);
 
-  RemoteFileRenameOperation(FileInfo sourceFileInfo,
+  RemoteFileRenameOperation(LogWriter *logWriter,
+                            FileInfo sourceFileInfo,
                             FileInfo targetFileInfo,
                             const TCHAR *pathToTargetRoot);
 

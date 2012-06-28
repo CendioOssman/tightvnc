@@ -27,7 +27,6 @@
 
 #include <cstdio>
 
-#include "Log-server/Log.h"
 #include "region/Rect.h"
 
 // many help of jpeg-lib in /usr/share/doc/jpeg-8c-r1/example.c.bz2

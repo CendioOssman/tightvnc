@@ -23,15 +23,16 @@
 //
 
 #include "UpdateHandlerServer.h"
-#include "log-server/Log.h"
 
 UpdateHandlerServer::UpdateHandlerServer(BlockingGate *forwGate,
                                          DesktopSrvDispatcher *dispatcher,
-                                         AnEventListener *extTerminationListener)
+                                         AnEventListener *extTerminationListener,
+                                         LogWriter *log)
 : DesktopServerProto(forwGate),
-  m_extTerminationListener(extTerminationListener)
+  m_extTerminationListener(extTerminationListener),
+  m_log(log)
 {
-  m_updateHandler = new LocalUpdateHandler(this);
+  m_updateHandler = new LocalUpdateHandler(this, log);
 
   dispatcher->registerNewHandle(EXTRACT_REQ, this);
   dispatcher->registerNewHandle(SCREEN_PROP_REQ, this);
@@ -51,8 +52,8 @@ void UpdateHandlerServer::onUpdate()
   try {
     m_forwGate->writeUInt8(UPDATE_DETECTED);
   } catch (Exception &e) {
-    Log::error(_T("An error has been occurred while sending the")
-               _T(" UPDATE_DETECTED message from UpdateHandlerServer: %s"),
+    m_log->error(_T("An error has been occurred while sending the")
+                 _T(" UPDATE_DETECTED message from UpdateHandlerServer: %s"),
                e.getMessage());
     m_extTerminationListener->onAnObjectEvent();
   }

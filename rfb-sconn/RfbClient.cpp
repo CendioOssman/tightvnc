@@ -29,7 +29,6 @@
 #include "network/socket/SocketStream.h"
 #include "RfbInitializer.h"
 #include "ClientAuthListener.h"
-#include "log-server/Log.h"
 #include "server-config-lib/Configurator.h"
 
 RfbClient::RfbClient(NewConnectionEvents *newConnectionEvents,
@@ -38,7 +37,8 @@ RfbClient::RfbClient(NewConnectionEvents *newConnectionEvents,
                      ClientAuthListener *extAuthListener, bool viewOnly,
                      bool isOutgoing, unsigned int id,
                      const ViewPortState *constViewPort,
-                     const ViewPortState *dynViewPort)
+                     const ViewPortState *dynViewPort,
+                     LogWriter *log)
 : m_socket(socket), // now we own the socket
   m_newConnectionEvents(newConnectionEvents),
   m_viewOnly(viewOnly),
@@ -54,8 +54,9 @@ RfbClient::RfbClient(NewConnectionEvents *newConnectionEvents,
   m_clientInputHandler(0),
   m_id(id),
   m_desktop(0),
-  m_constViewPort(constViewPort),
-  m_dynamicViewPort(dynViewPort)
+  m_constViewPort(constViewPort, log),
+  m_dynamicViewPort(dynViewPort, log),
+  m_log(log)
 {
   resume();
 }
@@ -72,7 +73,7 @@ void RfbClient::disconnect()
   // Shutdown and close socket.
   try { m_socket->shutdown(SD_BOTH); } catch (...) { }
   try { m_socket->close(); } catch (...) { }
-  Log::message(_T("Connection has been closed"));
+  m_log->message(_T("Connection has been closed"));
 }
 
 unsigned int RfbClient::getId() const
@@ -185,24 +186,24 @@ void RfbClient::execute()
   try {
     // First initialization phase
     try {
-      Log::info(_T("Entering RFB initialization phase 1"));
+      m_log->info(_T("Entering RFB initialization phase 1"));
       rfbInitializer.authPhase();
       setClientState(IN_AUTH);
-      Log::debug(_T("RFB initialization phase 1 completed"));
+      m_log->debug(_T("RFB initialization phase 1 completed"));
 
       m_shared = rfbInitializer.getSharedFlag();
-      Log::debug(_T("Shared flag = %d"), (int)m_shared);
+      m_log->debug(_T("Shared flag = %d"), (int)m_shared);
       m_viewOnlyAuth = rfbInitializer.getViewOnlyAuth();
-      Log::debug(_T("Initial view-only state = %d"), (int)m_viewOnly);
-      Log::debug(_T("Authenticated with view-only password = %d"), (int)m_viewOnlyAuth);
+      m_log->debug(_T("Initial view-only state = %d"), (int)m_viewOnly);
+      m_log->debug(_T("Authenticated with view-only password = %d"), (int)m_viewOnlyAuth);
       m_viewOnly = m_viewOnly || m_viewOnlyAuth;
 
       // Let RfbClientManager handle new authenticated connection.
       m_desktop = m_extAuthListener->onClientAuth(this);
 
-      Log::info(_T("View only = %d"), (int)m_viewOnly);
+      m_log->info(_T("View only = %d"), (int)m_viewOnly);
     } catch (Exception &e) {
-      Log::error(_T("Error during RFB initialization: %s"), e.getMessage());
+      m_log->error(_T("Error during RFB initialization: %s"), e.getMessage());
       throw;
     }
     _ASSERT(m_desktop != 0);
@@ -211,59 +212,59 @@ void RfbClient::execute()
     m_dynamicViewPort.initDesktopInterface(m_desktop);
 
     RfbDispatcher dispatcher(&input, &connClosingEvent);
-    Log::debug(_T("Dispatcher has been created"));
+    m_log->debug(_T("Dispatcher has been created"));
     CapContainer srvToClCaps, clToSrvCaps, encCaps;
     RfbCodeRegistrator codeRegtor(&dispatcher, &srvToClCaps, &clToSrvCaps,
                                   &encCaps);
     // Init modules
     // UpdateSender initialization
     m_updateSender = new UpdateSender(&codeRegtor, m_desktop,
-                                      &output, m_id);
-    Log::debug(_T("UpdateSender has been created"));
+                                      &output, m_id, m_log);
+    m_log->debug(_T("UpdateSender has been created"));
     PixelFormat pf;
     Dimension fbDim;
     m_desktop->getFrameBufferProperties(&fbDim, &pf);
     Rect viewPort = getViewPortRect(&fbDim);
     m_updateSender->init(&Dimension(&viewPort), &pf);
-    Log::debug(_T("UpdateSender has been initialized"));
+    m_log->debug(_T("UpdateSender has been initialized"));
     // ClientInputHandler initialization
     m_clientInputHandler = new ClientInputHandler(&codeRegtor, this,
                                                   m_viewOnly);
-    Log::debug(_T("ClientInputHandler has been created"));
+    m_log->debug(_T("ClientInputHandler has been created"));
     // ClipboardExchange initialization
     m_clipboardExchange = new ClipboardExchange(&codeRegtor, m_desktop, &output,
-                                                m_viewOnly);
-    Log::debug(_T("ClipboardExchange has been created"));
+                                                m_viewOnly, m_log);
+    m_log->debug(_T("ClipboardExchange has been created"));
 
     // FileTransfers initialization
     if (config->isFileTransfersEnabled() &&
         rfbInitializer.getTightEnabledFlag()) {
-      fileTransfer = new FileTransferRequestHandler(&codeRegtor, &output, m_desktop, !m_viewOnly);
-      Log::debug(_T("File transfer has been created"));
+      fileTransfer = new FileTransferRequestHandler(&codeRegtor, &output, m_desktop, m_log, !m_viewOnly);
+      m_log->debug(_T("File transfer has been created"));
     } else {
-      Log::info(_T("File transfer is not allowed"));
+      m_log->info(_T("File transfer is not allowed"));
     }
 
     // Second initialization phase
     // Send and receive initialization information between server and viewer
-    Log::debug(_T("View port: (%d,%d) (%dx%d)"), viewPort.left,
+    m_log->debug(_T("View port: (%d,%d) (%dx%d)"), viewPort.left,
                                                  viewPort.top,
                                                  viewPort.getWidth(),
                                                  viewPort.getHeight());
-    Log::info(_T("Entering RFB initialization phase 2"));
+    m_log->info(_T("Entering RFB initialization phase 2"));
     rfbInitializer.afterAuthPhase(&srvToClCaps, &clToSrvCaps,
                                   &encCaps, &Dimension(&viewPort), &pf);
-    Log::debug(_T("RFB initialization phase 2 completed"));
+    m_log->debug(_T("RFB initialization phase 2 completed"));
 
     // Start normal phase
     setClientState(IN_NORMAL_PHASE);
 
-    Log::info(_T("Entering normal phase of the RFB protocol"));
+    m_log->info(_T("Entering normal phase of the RFB protocol"));
     dispatcher.resume();
 
     connClosingEvent.waitForEvent();
   } catch (Exception &e) {
-    Log::error(_T("Connection will be closed: %s"), e.getMessage());
+    m_log->error(_T("Connection will be closed: %s"), e.getMessage());
     sysLogMessage.format(_T("The client %s has been")
                          _T(" disconnected for the reason: %s"),
                          peerStr.getString(), e.getMessage());

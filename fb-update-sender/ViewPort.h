@@ -30,6 +30,7 @@
 #include "desktop/DesktopInterface.h"
 #include "thread/LocalMutex.h"
 #include "util/DateTime.h"
+#include "log-writer/LogWriter.h"
 
 // This class calculates actual view port rectangle.
 // Typical usage:
@@ -42,8 +43,8 @@
 class ViewPort
 {
 public:
-  ViewPort();
-  ViewPort(const ViewPortState *viewPortState);
+  ViewPort(LogWriter *log);
+  ViewPort(const ViewPortState *viewPortState, LogWriter *log);
   ~ViewPort();
 
   // Sets desktop interface that can be used in some mode to get
@@ -78,6 +79,8 @@ private:
   LocalMutex m_stateMutex;
 
   DateTime m_latestHwndResolvingTime;
+
+  LogWriter *m_log;
 };
 
 #endif // __VIEWPORT_H__

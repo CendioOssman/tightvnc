@@ -26,17 +26,18 @@
 #include "Poller.h"
 #include "region/Region.h"
 #include "server-config-lib/Configurator.h"
-#include "log-server/Log.h"
 
 Poller::Poller(UpdateKeeper *updateKeeper,
                UpdateListener *updateListener,
                ScreenGrabber *screenGrabber,
                FrameBuffer *backupFrameBuffer,
-               LocalMutex *frameBufferCriticalSection)
+               LocalMutex *frameBufferCriticalSection,
+               LogWriter *log)
 : UpdateDetector(updateKeeper, updateListener),
-m_screenGrabber(screenGrabber),
-m_backupFrameBuffer(backupFrameBuffer),
-m_fbMutex(frameBufferCriticalSection)
+  m_screenGrabber(screenGrabber),
+  m_backupFrameBuffer(backupFrameBuffer),
+  m_fbMutex(frameBufferCriticalSection),
+  m_log(log)
 {
   m_pollingRect.setRect(0, 0, 16, 16);
 }
@@ -54,7 +55,7 @@ void Poller::onTerminate()
 
 void Poller::execute()
 {
-  Log::info(_T("poller thread id = %d"), getThreadId());
+  m_log->info(_T("poller thread id = %d"), getThreadId());
 
   FrameBuffer *screenFrameBuffer;
 
@@ -75,9 +76,9 @@ void Poller::execute()
       if (!screenFrameBuffer->isEqualTo(m_backupFrameBuffer)) {
         m_updateKeeper->setScreenSizeChanged();
       } else {
-        Log::info(_T("grabbing screen for polling"));
+        m_log->info(_T("grabbing screen for polling"));
         m_screenGrabber->grab();
-        Log::info(_T("end of grabbing screen for polling"));
+        m_log->info(_T("end of grabbing screen for polling"));
 
         // Polling
         int pollingWidth = m_pollingRect.getWidth();

@@ -36,7 +36,9 @@ TvnService::TvnService(WinServiceEvents *winServiceEvents,
                        NewConnectionEvents *newConnectionEvents)
 : Service(ServiceNames::SERVICE_NAME), m_tvnServer(0),
   m_winServiceEvents(winServiceEvents),
-  m_newConnectionEvents(newConnectionEvents)
+  m_newConnectionEvents(newConnectionEvents),
+  m_logServer(LogNames::LOG_PIPE_PUBLIC_NAME),
+  m_clientLogger(LogNames::LOG_PIPE_PUBLIC_NAME, LogNames::SERVER_LOG_FILE_STUB_NAME)
 {
 }
 
@@ -48,7 +50,8 @@ void TvnService::onStart()
 {
   try {
     m_winServiceEvents->enable();
-    m_tvnServer = new TvnServer(true, m_newConnectionEvents);
+    // FIXME: Use real logger instead of zero.
+    m_tvnServer = new TvnServer(true, m_newConnectionEvents, this, &m_clientLogger);
     m_tvnServer->addListener(this);
     m_winServiceEvents->onSuccServiceStart();
   } catch (Exception &e) {
@@ -134,4 +137,17 @@ bool TvnService::getBinPath(StringStorage *binPath)
                   SERVICE_COMMAND_LINE_KEY);
 
   return true;
+}
+
+void TvnService::onLogInit(const TCHAR *logDir, const TCHAR *fileName,
+                           unsigned char logLevel)
+{
+  size_t headerLineCount = m_clientLogger.getLogDumpSize();
+  m_logServer.start(logDir, logLevel, headerLineCount);
+  m_clientLogger.connect();
+}
+
+void TvnService::onChangeLogProps(const TCHAR *newLogDir, unsigned char newLevel)
+{
+  m_logServer.changeLogProps(newLogDir, newLevel);
 }

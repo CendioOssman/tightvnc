@@ -26,22 +26,22 @@
 #include "HttpClient.h"
 
 #include "thread/ZombieKiller.h"
-#include "log-server/Log.h"
 
-HttpServer::HttpServer(const TCHAR *bindHost, unsigned short bindPort, bool lockAddr)
-: TcpServer(bindHost, bindPort, true, lockAddr)
+HttpServer::HttpServer(const TCHAR *bindHost, unsigned short bindPort, bool lockAddr, LogWriter *log)
+: TcpServer(bindHost, bindPort, true, lockAddr),
+  m_log(log)
 {
-  Log::message(_T("Http server started"));
+  m_log->message(_T("Http server started"));
 }
 
 HttpServer::~HttpServer()
 {
-  Log::message(_T("Http server stopped"));
+  m_log->message(_T("Http server stopped"));
 }
 
 void HttpServer::onAcceptConnection(SocketIPv4 *socket)
 {
-  TcpClientThread *clientThread = new HttpClient(socket);
+  TcpClientThread *clientThread = new HttpClient(socket, m_log);
 
   clientThread->resume();
 

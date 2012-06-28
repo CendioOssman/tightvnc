@@ -30,8 +30,9 @@
 
 #include "win-system/Shell.h"
 
-LoginDialog::LoginDialog()
+LoginDialog::LoginDialog(TvnViewer *viewer)
 : BaseDialog(IDD_LOGINDIALOG),
+  m_viewer(viewer),
   m_isListening(false)
 {
 }
@@ -40,7 +41,7 @@ LoginDialog::~LoginDialog()
 {
 }
 
-BOOL LoginDialog::onInitDialog() 
+BOOL LoginDialog::onInitDialog()
 {
   setControlById(m_server, IDC_CSERVER);
   setControlById(m_listening, IDC_LISTENING);
@@ -49,14 +50,9 @@ BOOL LoginDialog::onInitDialog()
   SetForegroundWindow(getControl()->getWindow());
   m_server.setFocus();
   if (m_isListening) {
-    onListening();
+    m_listening.setEnabled(false);
   }
   return TRUE;
-}
-
-void LoginDialog::setConConf(ConnectionConfig *conConf) 
-{
-  m_conConf = conConf;
 }
 
 void LoginDialog::enableConnect()
@@ -71,7 +67,7 @@ void LoginDialog::enableConnect()
   }
 }
 
-void LoginDialog::updateHistory() 
+void LoginDialog::updateHistory()
 {
   ConnectionHistory *conHistory;
 
@@ -92,11 +88,11 @@ void LoginDialog::updateHistory()
     m_server.getText(&server);
     ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
                             server.getString());
-    m_conConf->loadFromStorage(&ccsm);
+    m_connectionConfig.loadFromStorage(&ccsm);
   }
 }
 
-void LoginDialog::onConnect() 
+void LoginDialog::onConnect()
 {
   ConnectionHistory *conHistory = ViewerConfig::getInstance()->getConnectionHistory();
 
@@ -105,6 +101,8 @@ void LoginDialog::onConnect()
   conHistory->load();
   conHistory->addHost(m_serverHost.getString());
   conHistory->save();
+
+  m_viewer->newConnection(&m_serverHost, &m_connectionConfig);
 }
 
 void LoginDialog::onConfiguration()
@@ -119,17 +117,16 @@ void LoginDialog::onConfiguration()
 BOOL LoginDialog::onOptions()
 {
   OptionsDialog dialog;
-  dialog.setConnectionConfig(m_conConf);
+  dialog.setConnectionConfig(&m_connectionConfig);
   dialog.setParent(getControl());
   if (dialog.showModal() == 1) {
     StringStorage server;
     m_server.getText(&server);
     if (server.isEmpty()) {
-      server.setString(_T(".listen"));
+      ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
+                              server.getString());
+      m_connectionConfig.saveToStorage(&ccsm);
     }
-    ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
-                            server.getString());
-    m_conConf->saveToStorage(&ccsm);
     return FALSE;
   }
   return TRUE;
@@ -159,7 +156,6 @@ void LoginDialog::openUrl(const TCHAR *url)
 
 void LoginDialog::setListening(bool isListening)
 {
-  m_listening.setEnabled(isListening);
   m_isListening = isListening;
 }
 
@@ -167,9 +163,10 @@ void LoginDialog::onListening()
 {
   ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
                           _T(".listen"));
-  m_conConf->loadFromStorage(&ccsm);
+  m_connectionConfig.loadFromStorage(&ccsm);
 
   m_listening.setEnabled(false);
+  m_viewer->startListening(&m_connectionConfig, ViewerConfig::getInstance()->getListenPort());
 }
 
 void LoginDialog::onAbout()
@@ -184,22 +181,29 @@ BOOL LoginDialog::onCommand(UINT controlID, UINT notificationID)
 {
   switch (controlID) {
   case IDC_CSERVER:
+    // select item in ComboBox with list of history
     if (notificationID == CBN_SELENDOK) {
       StringStorage server;
       m_server.getItemText(m_server.getSelectedItemIndex(), &server);
       ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
                               server.getString());
-      m_conConf->loadFromStorage(&ccsm);
+      m_connectionConfig.loadFromStorage(&ccsm);
     }
     enableConnect();
     break;
 
+  // click "Connect"
   case IDOK:
     onConnect();
-    kill(CONNECTION_MODE);
+    kill(0);
     break;
+
+  // cancel connection
   case IDCANCEL:
-    kill(CANCEL_MODE);
+    if (!m_isListening && m_viewer->notConnected()) {
+      m_viewer->shutdown();
+    }
+    kill(0);
     break;
 
   case IDC_BCONFIGURATION:
@@ -211,7 +215,7 @@ BOOL LoginDialog::onCommand(UINT controlID, UINT notificationID)
 
   case IDC_LISTENING:
     onListening();
-    kill(LISTENING_MODE);
+    kill(0);
     break;
 
   case IDC_ORDER_SUPPORT_BUTTON:
@@ -223,12 +227,13 @@ BOOL LoginDialog::onCommand(UINT controlID, UINT notificationID)
     break;
 
   default:
+    _ASSERT(true);
     return FALSE;
   }
   return TRUE;
 }
 
-StringStorage LoginDialog::getServerHost() 
+StringStorage LoginDialog::getServerHost()
 {
   return m_serverHost;
 }

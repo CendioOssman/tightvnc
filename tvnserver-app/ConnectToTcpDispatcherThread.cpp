@@ -28,8 +28,6 @@
 #include "io-lib/DataInputStream.h"
 #include "tcp-dispatcher/TcpDispatcherInitializer.h"
 
-#include "log-server/Log.h"
-
 ConnectToTcpDispatcherThread::ConnectToTcpDispatcherThread(
   const TCHAR *connectHost,
   unsigned int connectPort,
@@ -37,7 +35,8 @@ ConnectToTcpDispatcherThread::ConnectToTcpDispatcherThread(
   UINT32 connectionId,
   const AnsiStringStorage *keyword,
   RfbClientManager *clientManager,
-  TcpDispatcherConnectionListener *connListener)
+  TcpDispatcherConnectionListener *connListener,
+  LogWriter *log)
 
 : m_connectHost(connectHost),
   m_connectPort(connectPort),
@@ -47,7 +46,8 @@ ConnectToTcpDispatcherThread::ConnectToTcpDispatcherThread(
   m_clientManager(clientManager),
   m_connListener(connListener),
   m_socket(new SocketIPv4()),
-  m_pendingToRemove(false)
+  m_pendingToRemove(false),
+  m_log(log)
 {
   resume();
 }
@@ -82,7 +82,7 @@ void ConnectToTcpDispatcherThread::execute()
                                      &m_dispatcherName,
                                      0,
                                      m_connectionId,
-                                     &m_keyword);
+                                     &m_keyword, m_log);
     tcpDisp.readProtocolType();
 
     tcpDisp.continueTcpDispatchProtocol();
@@ -104,7 +104,7 @@ void ConnectToTcpDispatcherThread::execute()
       }
     }
   } catch (Exception &someEx) {
-    Log::error(_T("Failed to connect to %s:%d with reason: '%s'"),
+    m_log->error(_T("Failed to connect to %s:%d with reason: '%s'"),
                m_connectHost.getString(), m_connectPort, someEx.getMessage());
     m_connListener->onClearId();
 

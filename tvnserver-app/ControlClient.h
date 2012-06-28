@@ -33,6 +33,7 @@
 #include "ControlAppAuthenticator.h"
 #include "TcpDispatcherConnectionListener.h"
 #include "thread/ThreadCollector.h"
+#include "log-writer/LogWriter.h"
 
 /**
  * ControlClient exception sclass.
@@ -69,7 +70,8 @@ public:
   ControlClient(Transport *transport,
                 RfbClientManager *rfbClientManager,
                 ControlAppAuthenticator *authenticator,
-                HANDLE pipeHandle);
+                HANDLE pipeHandle,
+                LogWriter *log);
   /**
    * Stops client thread and deletes control client.
    */
@@ -225,6 +227,8 @@ private:
   LocalMutex m_tcpDispValuesMutex;
 
   ThreadCollector m_connectingSocketThreadCollector;
+
+  LogWriter *m_log;
 
   /**
    * Array of client messages that needs client to be auth.

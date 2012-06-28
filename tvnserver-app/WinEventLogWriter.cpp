@@ -25,7 +25,8 @@
 #include "WinEventLogWriter.h"
 #include "win-event-log/MessageProvider.h"
 
-WinEventLogWriter::WinEventLogWriter()
+WinEventLogWriter::WinEventLogWriter(LogWriter *log)
+: m_sysLog(log)
 {
 }
 

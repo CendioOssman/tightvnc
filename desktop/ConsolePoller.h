@@ -28,6 +28,7 @@
 #include "UpdateDetector.h"
 #include "ScreenGrabber.h"
 #include "win-system/WindowsEvent.h"
+#include "log-writer/LogWriter.h"
 
 class ConsolePoller : public UpdateDetector
 {
@@ -36,7 +37,8 @@ public:
                 UpdateListener *updateListener,
                 ScreenGrabber *screenGrabber,
                 FrameBuffer *backupFrameBuffer,
-                LocalMutex *frameBufferMutex);
+                LocalMutex *frameBufferMutex,
+                LogWriter *log);
 
   virtual ~ConsolePoller();
 
@@ -52,6 +54,7 @@ private:
   LocalMutex *m_frameBufferMutex;
   Rect m_pollingRect;
   WindowsEvent m_intervalWaiter;
+  LogWriter *m_log;
 };
 
 #endif // __CONSOLEPOLLER_H__

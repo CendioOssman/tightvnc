@@ -24,14 +24,15 @@
 
 #include "RfbServer.h"
 #include "server-config-lib/Configurator.h"
-#include "log-server/Log.h"
 
 RfbServer::RfbServer(const TCHAR *bindHost, unsigned short bindPort,
                      RfbClientManager *clientManager,
                      bool lockAddr,
+                     LogWriter *log,
                      const Rect *viewPort)
 : TcpServer(bindHost, bindPort, false, lockAddr),
-  m_clientManager(clientManager)
+  m_clientManager(clientManager),
+  m_log(log)
 {
   if (viewPort != 0) {
     m_viewPort.setArbitraryRect(viewPort);
@@ -40,9 +41,9 @@ RfbServer::RfbServer(const TCHAR *bindHost, unsigned short bindPort,
   TcpServer::start();
 
   if (viewPort == 0) {
-    Log::message(_T("Rfb server started at %s:%d"), bindHost, (int)bindPort);
+    m_log->message(_T("Rfb server started at %s:%d"), bindHost, (int)bindPort);
   } else {
-    Log::message(_T("Rfb server started at %s:%d with [%d %d %d %d] view port specified"),
+    m_log->message(_T("Rfb server started at %s:%d with [%d %d %d %d] view port specified"),
                  bindHost, (int)bindPort,
                  viewPort->left, viewPort->right, viewPort->top, viewPort->bottom);
   }
@@ -50,7 +51,7 @@ RfbServer::RfbServer(const TCHAR *bindHost, unsigned short bindPort,
 
 RfbServer::~RfbServer()
 {
-  Log::message(_T("Rfb server at %s:%d stopped"), getBindHost(), (int)getBindPort());
+  m_log->message(_T("Rfb server at %s:%d stopped"), getBindHost(), (int)getBindPort());
 }
 
 void RfbServer::onAcceptConnection(SocketIPv4 *socket)
@@ -62,7 +63,7 @@ void RfbServer::onAcceptConnection(SocketIPv4 *socket)
     StringStorage peerIpString;
     peerAddr.toString(&peerIpString);
 
-    Log::message(_T("Incoming rfb connection from %s"), peerIpString.getString());
+    m_log->message(_T("Incoming rfb connection from %s"), peerIpString.getString());
 
     struct sockaddr_in addr_in = peerAddr.getSockAddr();
 
@@ -72,7 +73,7 @@ void RfbServer::onAcceptConnection(SocketIPv4 *socket)
     IpAccessRule::ActionType action = config->getActionByAddress((unsigned long)addr_in.sin_addr.S_un.S_addr);
 
     if (action == IpAccessRule::ACTION_TYPE_DENY) {
-      Log::message(_T("Connection rejected due to access control rules"));
+      m_log->message(_T("Connection rejected due to access control rules"));
       delete socket;
       return;
     }
@@ -85,6 +86,6 @@ void RfbServer::onAcceptConnection(SocketIPv4 *socket)
     m_clientManager->addNewConnection(socket, &m_viewPort, false, false);
 
   } catch (Exception &ex) {
-    Log::error(_T("Failed to process incoming rfb connection with following reason: \"%s\""), ex.getMessage());
+    m_log->error(_T("Failed to process incoming rfb connection with following reason: \"%s\""), ex.getMessage());
   }
 }

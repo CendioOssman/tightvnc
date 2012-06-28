@@ -44,7 +44,7 @@ class ExtraRfbServers
   };
 
 public:
-  ExtraRfbServers();
+  ExtraRfbServers(LogWriter *log);
   virtual ~ExtraRfbServers();
 
   // Check current configuration and restart the servers if necessary.
@@ -75,6 +75,8 @@ private:
   // Do not allow copying objects.
   ExtraRfbServers(const ExtraRfbServers &);
   ExtraRfbServers &operator=(const ExtraRfbServers &);
+
+  LogWriter *m_log;
 };
 
 #endif // __TVNSERVERAPP_EXTRA_RFB_SERVERS_H__

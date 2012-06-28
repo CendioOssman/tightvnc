@@ -138,7 +138,6 @@
     <ClCompile Include="inflate.c" />
     <ClCompile Include="inftrees.c" />
     <ClCompile Include="infutil.c" />
-    <ClCompile Include="maketree.c" />
     <ClCompile Include="trees.c" />
     <ClCompile Include="uncompr.c" />
     <ClCompile Include="zutil.c" />

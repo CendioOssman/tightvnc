@@ -32,11 +32,12 @@
 #include "io-lib/Channel.h"
 #include "io-lib/DataInputStream.h"
 #include "io-lib/DataOutputStream.h"
+#include "log-writer/LogWriter.h"
 
 class HttpClient : public TcpClientThread
 {
 public:
-  HttpClient(SocketIPv4 *socket);
+  HttpClient(SocketIPv4 *socket, LogWriter *log);
   virtual ~HttpClient();
 
 protected:
@@ -47,6 +48,8 @@ protected:
   // Wrappers around socket stream.
   DataInputStream *m_dIS;
   DataOutputStream *m_dOS;
+
+  LogWriter *m_log;
 };
 
 #endif

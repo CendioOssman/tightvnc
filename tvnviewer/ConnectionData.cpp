@@ -31,32 +31,25 @@
 #include "viewer-core/VncAuthentication.h"
 
 ConnectionData::ConnectionData()
-: m_Used(false),
-  m_isListening(false)
+: m_isEmpty(true)
 {
 }
 
-bool ConnectionData::isUsed() const
+bool ConnectionData::isEmpty() const
 {
-  return m_Used;
+  return m_isEmpty;
 }
 
-void ConnectionData::setListening()
+void ConnectionData::setHost(const StringStorage *host)
 {
-  m_isListening = true;
-}
+  StringStorage chompedString = *host;
+  TCHAR spaceChar[] = _T(" \t\n\r");
+  chompedString.removeChars(spaceChar, sizeof(spaceChar));
 
-bool ConnectionData::isListening() const
-{
-  return m_isListening;
-}
-
-void ConnectionData::setHost(const StringStorage *str)
-{
-  AnsiStringStorage ansiStr(str);
+  AnsiStringStorage ansiStr(&chompedString);
 
   set(ansiStr.getString());
-  m_Used = true;
+  m_isEmpty = false;
 }
 
 const StringStorage *ConnectionData::getDefaultPassword() const

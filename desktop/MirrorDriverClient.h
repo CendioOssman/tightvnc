@@ -34,11 +34,12 @@
 #include "gui/MessageWindow.h"
 #include "thread/GuiThread.h"
 #include "win-system/WindowsEvent.h"
+#include "log-writer/LogWriter.h"
 
 class MirrorDriverClient : private GuiThread, private WindowMessageHandler
 {
 public:
-  MirrorDriverClient();
+  MirrorDriverClient(LogWriter *log);
   virtual ~MirrorDriverClient();
 
   PixelFormat getPixelFormat() const;
@@ -108,6 +109,8 @@ private:
   PixelFormat m_pixelFormat;
   Dimension m_dimension;
   Screen m_screen;
+
+  LogWriter *m_log;
 };
 
 #endif // __MIRRORDRIVERCLIENT_H__

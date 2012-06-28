@@ -27,8 +27,9 @@
 #include "thread/AutoLock.h"
 #include <crtdbg.h>
 
-FileTransferReplyBuffer::FileTransferReplyBuffer(RfbInputGate *input)
-: m_isCompressionSupported(false),
+FileTransferReplyBuffer::FileTransferReplyBuffer(LogWriter *logWriter, RfbInputGate *input)
+: m_logWriter(logWriter),
+  m_isCompressionSupported(false),
   m_filesInfoCount(0), m_filesInfo(NULL),
   m_downloadBufferSize(0), 
   m_downloadFileFlags(0), m_downloadLastModified(0),
@@ -95,8 +96,8 @@ void FileTransferReplyBuffer::onCompressionSupportReply()
 {
   m_isCompressionSupported = (m_input->readUInt8() == 1);
 
-  Log::info(_T("Received compression support reply: %s\n"),
-            m_isCompressionSupported ? _T("supported") : _T("not supported"));
+  m_logWriter->info(_T("Received compression support reply: %s\n"),
+                    m_isCompressionSupported ? _T("supported") : _T("not supported"));
 }
 
 void FileTransferReplyBuffer::onFileListReply()
@@ -142,10 +143,10 @@ void FileTransferReplyBuffer::onFileListReply()
     fileInfo->setFileName(t.getString());
   } // for all newly created file's info
 
-  Log::info(_T("Received file list reply: \n")
-            _T("\t files count = %d\n")
-            _T("\t use compression = %d\n"),
-            m_filesInfoCount, compressionLevel);
+  m_logWriter->info(_T("Received file list reply: \n")
+                    _T("\t files count = %d\n")
+                    _T("\t use compression = %d\n"),
+                    m_filesInfoCount, compressionLevel);
 
 }
 
@@ -156,22 +157,22 @@ void FileTransferReplyBuffer::onMd5DataReply()
 
 void FileTransferReplyBuffer::onUploadReply()
 {
-  Log::info(_T("Received upload reply\n"));
+  m_logWriter->info(_T("Received upload reply\n"));
 }
 
 void FileTransferReplyBuffer::onUploadDataReply()
 {
-  Log::info(_T("Received upload data reply\n"));
+  m_logWriter->info(_T("Received upload data reply\n"));
 }
 
 void FileTransferReplyBuffer::onUploadEndReply()
 {
-  Log::info(_T("Received upload end reply\n"));
+  m_logWriter->info(_T("Received upload end reply\n"));
 }
 
 void FileTransferReplyBuffer::onDownloadReply()
 {
-  Log::info(_T("Received download reply\n"));
+  m_logWriter->info(_T("Received download reply\n"));
 }
 
 void FileTransferReplyBuffer::onDownloadDataReply()
@@ -183,11 +184,11 @@ void FileTransferReplyBuffer::onDownloadDataReply()
   m_downloadBuffer = readCompressedDataBlock(coBufferSize, uncoBufferSize, coLevel);
   m_downloadBufferSize = uncoBufferSize;
 
-  Log::info(_T("Received download data reply:\n")
-            _T("\tcompressed size: %d\n")
-            _T("\tuncompressed size: %d\n")
-            _T("\tuse compression: %d\n"),
-            coBufferSize, uncoBufferSize, coLevel);
+  m_logWriter->info(_T("Received download data reply:\n")
+                    _T("\tcompressed size: %d\n")
+                    _T("\tuncompressed size: %d\n")
+                    _T("\tuse compression: %d\n"),
+                    coBufferSize, uncoBufferSize, coLevel);
 }
 
 void FileTransferReplyBuffer::onDownloadEndReply()
@@ -195,41 +196,41 @@ void FileTransferReplyBuffer::onDownloadEndReply()
   m_downloadFileFlags = m_input->readUInt8();
   m_downloadLastModified = m_input->readUInt64();
 
-  Log::info(_T("Received download end reply:\n")
-            _T("\tfile flags: %d\n")
-            _T("\tmodification time: %ld\n"),
-            m_downloadFileFlags, m_downloadLastModified);
+  m_logWriter->info(_T("Received download end reply:\n")
+                    _T("\tfile flags: %d\n")
+                    _T("\tmodification time: %ld\n"),
+                    m_downloadFileFlags, m_downloadLastModified);
 }
 
 void FileTransferReplyBuffer::onMkdirReply()
 {
-  Log::info(_T("Received mkdir reply\n"));
+  m_logWriter->info(_T("Received mkdir reply\n"));
 }
 
 void FileTransferReplyBuffer::onRmReply()
 {
-  Log::info(_T("Received rm reply\n"));
+  m_logWriter->info(_T("Received rm reply\n"));
 }
 
 void FileTransferReplyBuffer::onMvReply()
 {
-  Log::info(_T("Received rename reply\n"));
+  m_logWriter->info(_T("Received rename reply\n"));
 }
 
 void FileTransferReplyBuffer::onDirSizeReply()
 {
   m_dirSize = m_input->readUInt64();
 
-  Log::info(_T("Received dirsize reply\n"));
+  m_logWriter->info(_T("Received dirsize reply\n"));
 }
 
 void FileTransferReplyBuffer::onLastRequestFailedReply()
 {
   m_input->readUTF8(&m_lastErrorMessage);
 
-  Log::info(_T("Received last request failed reply:\n")
-            _T("\terror message: %s\n"),
-            m_lastErrorMessage.getString());
+  m_logWriter->info(_T("Received last request failed reply:\n")
+                    _T("\terror message: %s\n"),
+                    m_lastErrorMessage.getString());
 }
 
 vector<UINT8> FileTransferReplyBuffer::readCompressedDataBlock(UINT32 compressedSize,

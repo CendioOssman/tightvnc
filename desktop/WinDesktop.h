@@ -30,6 +30,7 @@
 #include "desktop/WallpaperUtil.h"
 #include "thread/GuiThread.h"
 #include "GuiDesktop.h"
+#include "log-writer/LogWriter.h"
 
 class WinDesktop : public GuiThread,
                    public GuiDesktop
@@ -37,7 +38,8 @@ class WinDesktop : public GuiThread,
 public:
   WinDesktop(ClipboardListener *extClipListener,
              UpdateSendingListener *extUpdSendingListener,
-             AbnormDeskTermListener *extDeskTermListener);
+             AbnormDeskTermListener *extDeskTermListener,
+             LogWriter *log);
   virtual ~WinDesktop();
 
 protected:
@@ -56,6 +58,8 @@ private:
   WallpaperUtil *m_wallPaper;
 
   DesktopConfigLocal *m_deskConf;
+
+  LogWriter *m_log;
 };
 
 #endif // __WINDESKTOP_H__

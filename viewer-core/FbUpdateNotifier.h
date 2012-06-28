@@ -25,6 +25,7 @@
 #ifndef _FB_UDPATE_NOTIFIER_H_
 #define _FB_UPDATE_NOTIFIER_H_
 
+#include "log-writer/LogWriter.h"
 #include "rfb/FrameBuffer.h"
 #include "region/Rect.h"
 #include "region/Region.h"
@@ -38,7 +39,7 @@
 class FbUpdateNotifier : public Thread
 {
 public:
-  FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock);
+  FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logger);
   virtual ~FbUpdateNotifier();
   void setAdapter(CoreEventsAdapter *adapter);
 
@@ -64,6 +65,8 @@ protected:
 
   LocalMutex m_updateLock;
   WindowsEvent m_eventUpdate;
+
+  LogWriter *m_logWriter;
 
   Region m_update;
   Rect m_oldPosition;

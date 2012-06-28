@@ -46,13 +46,9 @@ public:
 
 public:
   ConnectionConfig();
+  ConnectionConfig(const ConnectionConfig &conConfig);
   ~ConnectionConfig();
-
-  //
-  // FIXME: Remove it on refactoring.
-  //
-
-  ConnectionConfig& operator=(ConnectionConfig& other);
+  ConnectionConfig& operator=(const ConnectionConfig& other);
 
   // Allow/disallow usage of encoding "copy rect"
   void allowCopyRect(bool allow);
@@ -242,10 +238,7 @@ protected:
   int m_localCursor;
 
   // Critical section
-  LocalMutex m_cs;
-
-private:
-  ConnectionConfig(ConnectionConfig *conConfig);
+  mutable LocalMutex m_cs;
 };
 
 #endif

@@ -23,30 +23,43 @@
 //
 
 #include "ConnectionListener.h"
+#include "TvnViewer.h"
+
+#include "thread/AutoLock.h"
 
 const TCHAR ConnectionListener::DEFAULT_HOST[] = _T("0.0.0.0");
 
-ConnectionListener::ConnectionListener(ConnectionData *conData,
-                                       ConnectionConfig *conConf,
+ConnectionListener::ConnectionListener(WindowsApplication *application,
                                        UINT16 port)
-: m_conData(conData),
-  m_conConf(conConf),
-  TcpServer(DEFAULT_HOST, port, true)
+: TcpServer(DEFAULT_HOST, port, true),
+  m_application(application)
 {
 }
 
 ConnectionListener::~ConnectionListener() 
 {
-  for (size_t i = 0; i < m_viewerInstances.size(); i++) {
-    delete m_viewerInstances[i];
+  AutoLock al(&m_connectionsLock);
+  while (!m_connections.empty()) {
+    SocketIPv4 *socket = m_connections.front();
+    delete socket;
+    m_connections.pop_front();
   }
 }
 
 void ConnectionListener::onAcceptConnection(SocketIPv4 *socket)
 {
-  ViewerInstance *viewerInst = new ViewerInstance(m_conData,
-                                                  m_conConf,
-                                                  socket);
-  m_viewerInstances.push_back(viewerInst);
-  viewerInst->start(true);
+  AutoLock al(&m_connectionsLock);
+  m_connections.push_front(socket);
+  m_application->postMessage(TvnViewer::WM_USER_NEW_LISTENING);
+}
+
+SocketIPv4 *ConnectionListener::getNewConnection()
+{
+  AutoLock al(&m_connectionsLock);
+  SocketIPv4 *socket = 0;
+  if (!m_connections.empty()) {
+    socket = m_connections.front();
+    m_connections.pop_front();
+  }
+  return socket;
 }

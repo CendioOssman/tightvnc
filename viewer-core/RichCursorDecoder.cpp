@@ -24,7 +24,8 @@
 
 #include "RichCursorDecoder.h"
 
-RichCursorDecoder::RichCursorDecoder()
+RichCursorDecoder::RichCursorDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 

@@ -32,17 +32,29 @@ class WinClipboard
 public:
 
   WinClipboard(HWND hwnd);
-  ~WinClipboard();
+  virtual ~WinClipboard();
 
   void setHWnd(HWND hwnd);
-  bool getString(StringStorage * str);
-  bool setString(const StringStorage * str);
+  
+  // get string from windows clipboard
+  bool getString(StringStorage *str);
+
+  // update windows clipboard
+  bool setString(const StringStorage *str);
 
 protected:
+  static const TCHAR CR = _T('\r');
+  static const TCHAR LF = _T('\n');
+
+protected:
+  // function removed CR before LF
+  StringStorage removeCR(const StringStorage *str);
+
+  // function replaced LF to CR+LF. If before LF already is CR, this not added second
+  StringStorage addCR(const StringStorage *str);
+
   HANDLE m_hndClipboard;
   HWND m_hWnd;
-
 };
-
 
 #endif

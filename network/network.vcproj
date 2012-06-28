@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="network"
 	ProjectGUID="{9D22D911-02A4-4497-8C15-0BA34C6CA1FB}"
 	RootNamespace="network"
@@ -558,27 +558,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\socket\SocketInputStream.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\socket\SocketInputStream.h"
-				>
-			</File>
-			<File
 				RelativePath=".\socket\SocketIPv4.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\socket\SocketIPv4.h"
-				>
-			</File>
-			<File
-				RelativePath=".\socket\SocketOutputStream.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\socket\SocketOutputStream.h"
 				>
 			</File>
 			<File

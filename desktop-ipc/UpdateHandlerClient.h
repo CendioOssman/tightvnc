@@ -28,13 +28,14 @@
 #include "desktop/UpdateHandler.h"
 #include "DesktopServerProto.h"
 #include "DesktopSrvDispatcher.h"
+#include "log-writer/LogWriter.h"
 
 class UpdateHandlerClient : public UpdateHandler, public DesktopServerProto,
                             public ClientListener
 {
 public:
   UpdateHandlerClient(BlockingGate *forwGate, DesktopSrvDispatcher *dispatcher,
-                      UpdateListener *externalUpdateListener);
+                      UpdateListener *externalUpdateListener, LogWriter *log);
   virtual ~UpdateHandlerClient();
 
   virtual void extract(UpdateContainer *updateContainer);
@@ -50,6 +51,8 @@ protected:
   virtual void onRequest(UINT8 reqCode, BlockingGate *backGate);
 
   UpdateListener *m_externalUpdateListener;
+
+  LogWriter *m_log;
 };
 
 #endif // __UPDATEHANDLERCLIENT_H__

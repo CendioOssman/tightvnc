@@ -266,9 +266,7 @@
     <ClInclude Include="socket\sockdefs.h" />
     <ClInclude Include="socket\SocketAddressIPv4.h" />
     <ClInclude Include="socket\SocketException.h" />
-    <ClInclude Include="socket\SocketInputStream.h" />
     <ClInclude Include="socket\SocketIPv4.h" />
-    <ClInclude Include="socket\SocketOutputStream.h" />
     <ClInclude Include="socket\SocketStream.h" />
     <ClInclude Include="socket\WindowsSocket.h" />
     <ClInclude Include="RfbInputGate.h" />
@@ -279,9 +277,7 @@
   <ItemGroup>
     <ClCompile Include="socket\SocketAddressIPv4.cpp" />
     <ClCompile Include="socket\SocketException.cpp" />
-    <ClCompile Include="socket\SocketInputStream.cpp" />
     <ClCompile Include="socket\SocketIPv4.cpp" />
-    <ClCompile Include="socket\SocketOutputStream.cpp" />
     <ClCompile Include="socket\SocketStream.cpp" />
     <ClCompile Include="socket\WindowsSocket.cpp" />
     <ClCompile Include="RfbInputGate.cpp" />

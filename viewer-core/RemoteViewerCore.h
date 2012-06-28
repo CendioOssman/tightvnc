@@ -25,7 +25,7 @@
 #ifndef _REMOTE_VIEWER_CORE_H_
 #define _REMOTE_VIEWER_CORE_H_
 
-#include "log-server/Log.h"
+#include "log-writer/LogWriter.h"
 #include "network/RfbInputGate.h"
 #include "network/RfbOutputGate.h"
 #include "network/socket/SocketStream.h"
@@ -69,7 +69,7 @@ class RemoteViewerCore : protected Thread
 {
 public:
   //
-  // Constructor with no arguments.
+  // Dummy constructor.
   //
   // It creates an "empty" object which will not start new threads and thus
   // will not do any protocol work until start() is called. This constructor
@@ -77,10 +77,13 @@ public:
   //
   // Call start() to "activate" an object created with this constructor.
   //
-  RemoteViewerCore();
+  // To allow logging, pass a pointer to an object which implements the Logger
+  // interface (see log-writer/Logger.h). Logging is disabled by default.
+  //
+  RemoteViewerCore(Logger *logger = 0);
 
   //
-  // Constructors with arguments.
+  // Active constructors.
   //
   // These constructors create and initialize the object, attach it to the
   // specified data connection (e.g. an open TCP/IP socket), set callbacks for
@@ -90,6 +93,9 @@ public:
   //
   // See also: start() for the details on operation and threading model.
   //
+  // To allow logging, pass a pointer to an object which implements the Logger
+  // interface (see log-writer/Logger.h). Logging is disabled by default.
+  //
 
   //
   // This constructor takes any type of connection that can be specified via
@@ -97,14 +103,20 @@ public:
   //
   RemoteViewerCore(RfbInputGate *input, RfbOutputGate *output,
                    CoreEventsAdapter *adapter,
+                   Logger *logger = 0,
                    bool sharedFlag = true);
 
   //
   // This constructor initiates new TCP connection to the specified host and
   // port, and then uses the established connection for data exchange.
   //
+  // NOTE: RemoteViewerCore will not initialize Windows sockets for you.
+  //       If you use this component under Windows, you should call
+  //       WindowsSocket::startup() prior to calling this constructor.
+  //
   RemoteViewerCore(const TCHAR *host, UINT16 port,
                    CoreEventsAdapter *adapter,
+                   Logger *logger = 0,
                    bool sharedFlag = true);
 
   //
@@ -113,6 +125,7 @@ public:
   //
   RemoteViewerCore(SocketIPv4 *socket,
                    CoreEventsAdapter *adapter,
+                   Logger *logger = 0,
                    bool sharedFlag = true);
 
   //
@@ -134,21 +147,21 @@ public:
   virtual ~RemoteViewerCore();
 
   //
-  // Each of the overloaded start() functions actually starts operation.
+  // Each overloaded start() function actually starts operation.
   //
   // All start() functions attach the object to the specified data connection
   // (e.g. an open TCP/IP socket), set callbacks for events originating in the
   // object, and actually start operation.
   //
-  // Three overloaded start() functions correspond to three constructors with
-  // parameters. Each of those constructor calls the corresponding start()
-  // function. Each of the functions work similarly, but may do different work
+  // Three overloaded start() functions correspond to three active
+  // constructors. All those constructors call the corresponding start()
+  // function. All start() functions work similarly, but may do different work
   // at startup. For example, one of them initiates new TCP connection.
   //
   // These functions start a number of threads and return control to the
   // calling thread. Only one of these functions should be called, and it
   // should be called just once, and only if the object was created with the
-  // constructor with no arguments.
+  // dummy constructor.
   //
   // On various events, corresponding callback functions will be called via
   // the CoreEventsAdapter interface (the adapter). To receive these
@@ -191,6 +204,10 @@ public:
   // This version initiates new TCP connection to the specified host and port,
   // and then uses the established connection for data exchange.
   //
+  // NOTE: RemoteViewerCore will not initialize Windows sockets for you.
+  //       If you use this component under Windows, you should call
+  //       WindowsSocket::startup() prior to calling function.
+  //
   void start(const TCHAR *host, UINT16 port,
              CoreEventsAdapter *adapter,
              bool sharedFlag = true);
@@ -205,11 +222,11 @@ public:
 
   //
   // Check if the object was started, by either calling start() or by using
-  // the constructor with arguments.
+  // one of the active constructors.
   //
   // If the object was started and then shut down via stop() or on error, this
   // function will still return true, as it only reports the fact that start()
-  // was called, regardless of the actual object state.
+  // was called, regardless of the actual state of the object.
   //
   bool wasStarted() const;
 
@@ -344,21 +361,80 @@ public:
   void addExtension(MsgCapability *capability);
 
 private:
-  // Inherited from Thread
+  //
+  // Overrides Thread::execute(). Implements the input thread.
+  //
   void execute();
 
+  //
+  // This function includes common initialization code used by constructors.
+  //
   void init();
+
+  //
+  // This one includes common code reused by public start(...) functions.
+  //
   void start(CoreEventsAdapter *adapter, bool sharedFlag);
 
+  //
+  // RFB protocol implementation.
+  //
+
+  //
+  // Read a message type code (UINT8) from the data connection.
+  // If the code is 0xFC then it's a beginning of TightVNC-specific extended
+  // code so we read next 3 bytes and compose UINT32 message type.
+  //
   UINT32 receiveServerMessageType();
+
+  //
+  // Read pixel format from the data connection and return it.
+  //
   PixelFormat readPixelFormat();
-  void receiveFrameBufferUpd();
-  // method return true, if is last rectangle, else return false
-  bool receiveFrameBufferUpdRectangle();
+
+  //
+  // This method processes FramebufferUpdate server message (code 0):
+  //   * receive the number of rectangles in this update,
+  //   * then call receiveFrameBufferUpdRectangle() for each rectangle,
+  //   * then send FramebufferUpdateRequest client message (code 3).
+  //
+  void receiveFbUpdate();
+
+  //
+  // Receive rectangle, decode it and notify m_fbUpdateNotifier.
+  //
+  // Returns true if this rectangle should be the last one in this update,
+  // false otherwise. This is needed to support LastRect pseudo-encoding
+  // (code -224).
+  //
+  bool receiveFbUpdateRectangle();
+
+  //
+  // Process a fake rectangle which represents a pseudo-encoding.
+  //
   void processPseudoEncoding(const Rect *rect, int encType);
-  void sendFrameBufferUpdRequest(bool incremental = true);
+
+  //
+  // Send FramebufferUpdateRequest client message (code 3).
+  // This method updates pixel format if needed.
+  //
+  void sendFbUpdateRequest(bool incremental = true);
+
+  //
+  // Receive Bell server message (code 2) and send event to the adapter.
+  //
   void receiveBell();
+
+  //
+  // Receive ServerCutText server message (code 3) and send event to the
+  // adapter.
+  //
   void receiveServerCutText();
+
+  //
+  // Receive SetColourMapEntries server message (code 1) and forget it:
+  // for now, color maps are not supported.
+  //
   void receiveSetColorMapEntries();
 
   bool isRfbProtocolString(const char protocol[12]) const;
@@ -374,18 +450,40 @@ private:
   RfbCapabilityInfo readCapability();
   void sendEncodings();
 
+  //
+  // Update properties (Dimension and PixelfFormat) of m_frameBuffer.
+  //
   void setFbProperties(const Dimension *fbDimension,
                        const PixelFormat *fbPixelFormat);
 
+  //
+  // If m_isNewPixelFormat flag is set to true, then pixel format of the frame buffer
+  // will be updated to m_viewerPixelFormat.
+  //
+  // This method must be called only from the input thread, otherwise data corruption
+  // is possible on the protocol level.
+  //
+  // Returns true if pixel format was actually changed.
+  //
   bool updatePixelFormat();
 
+  LogWriter m_logWriter;
+
+  // m_tcpConnection depends on m_logWriter and must be defined after it.
+  // See also: C++ standard 12.6.2 - Initializing bases and members.
   TcpConnection m_tcpConnection;
+
   RfbInputGate *m_input;
   RfbOutputGate *m_output;
 
   CoreEventsAdapter *m_adapter;
+
+  // m_decoderStore depends on m_logWriter and must be defined after it.
+  // See also: C++ standard 12.6.2 - Initializing bases and members.
   DecoderStore m_decoderStore;
 
+  // m_fbUpdateNotifier depends on m_logWriter and must be defined after it.
+  // See also: C++ standard 12.6.2 - Initializing bases and members.
   FbUpdateNotifier m_fbUpdateNotifier;
 
   CapsContainer m_authCaps;

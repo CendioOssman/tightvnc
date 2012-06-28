@@ -25,7 +25,6 @@
 #include "WTS.h"
 
 #include "SystemException.h"
-#include "log-server/Log.h"
 #include "thread/AutoLock.h"
 #include "PipeImpersonatedThread.h"
 #include <crtdbg.h>
@@ -41,12 +40,12 @@ HANDLE WTS::m_userProcessToken = INVALID_HANDLE_VALUE;
 
 LocalMutex WTS::m_mutex;
 
-DWORD WTS::getActiveConsoleSessionId()
+DWORD WTS::getActiveConsoleSessionId(LogWriter *log)
 {
   AutoLock l(&m_mutex);
 
   if (!m_initialized) {
-    initialize();
+    initialize(log);
   }
 
   if (m_WTSGetActiveConsoleSessionId == 0) {
@@ -56,17 +55,17 @@ DWORD WTS::getActiveConsoleSessionId()
   return m_WTSGetActiveConsoleSessionId();
 }
 
-void WTS::queryConsoleUserToken(HANDLE *token) throw(SystemException)
+void WTS::queryConsoleUserToken(HANDLE *token, LogWriter *log) throw(SystemException)
 {
   {
     AutoLock l(&m_mutex);
 
     if (!m_initialized) {
-      initialize();
+      initialize(log);
     }
   }
 
-  DWORD sessionId = getActiveConsoleSessionId();
+  DWORD sessionId = getActiveConsoleSessionId(log);
 
   AutoLock l(&m_mutex);
 
@@ -159,7 +158,7 @@ void WTS::duplicatePipeClientToken(HANDLE pipeHandle)
   CloseHandle(threadHandle);
 }
 
-void WTS::initialize()
+void WTS::initialize(LogWriter *log)
 {
   _ASSERT(!m_initialized);
 
@@ -167,13 +166,13 @@ void WTS::initialize()
     m_kernel32Library = new DynamicLibrary(_T("Kernel32.dll"));
     m_WTSGetActiveConsoleSessionId = (pWTSGetActiveConsoleSessionId)m_kernel32Library->getProcAddress("WTSGetActiveConsoleSessionId");
   } catch (Exception &e) {
-    Log::error(_T("Can't load the Kernel32.dll library: %s"), e.getMessage());
+    log->error(_T("Can't load the Kernel32.dll library: %s"), e.getMessage());
   }
   try {
     m_wtsapi32Library = new DynamicLibrary(_T("Wtsapi32.dll"));
     m_WTSQueryUserToken = (pWTSQueryUserToken)m_wtsapi32Library->getProcAddress("WTSQueryUserToken");
   } catch (Exception &e) {
-    Log::error(_T("Can't load the Wtsapi32.dll library: %s"), e.getMessage());
+    log->error(_T("Can't load the Wtsapi32.dll library: %s"), e.getMessage());
   }
 
   m_initialized = true;

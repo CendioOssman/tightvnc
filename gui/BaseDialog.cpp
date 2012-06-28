@@ -240,7 +240,7 @@ bool BaseDialog::setForeground()
   return m_ctrlThis.setForeground();
 }
 
-BOOL BaseDialog::onInitDialog() 
+BOOL BaseDialog::onInitDialog()
 {
   return FALSE;
 }

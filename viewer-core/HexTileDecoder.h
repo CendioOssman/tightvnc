@@ -30,7 +30,7 @@
 class HexTileDecoder : public Decoder
 {
 public:
-  HexTileDecoder();
+  HexTileDecoder(LogWriter *logWriter);
   ~HexTileDecoder();
 
   void decode(RfbInputGate *input,

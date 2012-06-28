@@ -28,7 +28,7 @@
 #include "util/StringStorage.h"
 #include "util/Singleton.h"
 #include "config-lib/ConnectionHistory.h"
-#include "log-server/FileLogInstance.h"
+#include "log-writer/FileLogger.h"
 #include "thread/LocalMutex.h"
 #include "thread/AutoLock.h"
 
@@ -67,6 +67,13 @@ public:
   // Puts log directory to the logDir argument.
   void getLogDir(StringStorage *logDir);
 
+  // Creates path to log file and place value to m_pathToLogFile member
+  // creates logger and return pointer to him
+  Logger *initLog(const TCHAR logDir[], const TCHAR logName[]);
+
+  // function return pointer to logger
+  Logger *getLogger();
+
   // Sets number of connections to remember
   void setHistoryLimit(int historyLimit);
   // Returns number of connections to remember
@@ -89,9 +96,6 @@ public:
   // Returns connection history
   ConnectionHistory *getConnectionHistory();
 
-  // Creates path to log file and place value to m_pathToLogFile member
-  void initLog(const TCHAR logDir[], const TCHAR logName[]);
-
 protected:
   // TCP port for accepting incoming connection
   // when client runs in daemon mode
@@ -108,7 +112,7 @@ protected:
   // Log file
   StringStorage m_pathToLogFile;
   StringStorage m_logName;
-  FileLogInstance m_fileLog;
+  FileLogger *m_logger;
   // Connection history
   RegistryKey m_conHistoryKey; // Used by m_conHistory
   ConnectionHistory m_conHistory;

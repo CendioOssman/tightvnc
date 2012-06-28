@@ -36,8 +36,9 @@ BOOL CALLBACK WindowFinder::findWindowsByClassFunc(HWND hwnd, LPARAM lParam)
     WindowsParam *windowsParam = (WindowsParam *)lParam;
     StringVector::iterator classNameIter;
 
-    TCHAR winName[256];
-    if (GetClassName(hwnd, (LPTSTR)&winName, sizeof(winName)) != 0) {
+    const size_t maxTcharCount = 256;
+    TCHAR winName[maxTcharCount];
+    if (GetClassName(hwnd, winName, maxTcharCount) != 0) {
       StringStorage nextWinName(winName);
 
       if (nextWinName.getLength() > 0 && hwnd != 0) {
@@ -71,10 +72,9 @@ void WindowFinder::findWindowsByClass(StringVector *classNames,
 BOOL CALLBACK WindowFinder::findWindowsByNameFunc(HWND hwnd, LPARAM lParam)
 {
   if (IsWindowVisible(hwnd) != 0) {
-    TCHAR nameChars[256];
-    if (GetWindowText(hwnd, (LPTSTR)&nameChars, sizeof(nameChars)) != 0) {
-      nameChars[sizeof(nameChars) - 1] = 0; // To avoid errors when
-                                            // the string truncates
+    const size_t maxTcharCount = 256;
+    TCHAR nameChars[maxTcharCount];
+    if (GetWindowText(hwnd, nameChars, maxTcharCount) != 0) {
       StringStorage winName(nameChars);
       winName.toLowerCase();
 

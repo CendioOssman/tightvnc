@@ -28,9 +28,10 @@
 
 #include "win-system/WTS.h"
 
-Impersonator::Impersonator()
+Impersonator::Impersonator(LogWriter *log)
 : m_token(INVALID_HANDLE_VALUE),
-  m_dupToken(INVALID_HANDLE_VALUE)
+  m_dupToken(INVALID_HANDLE_VALUE),
+  m_log(log)
 {
 }
 
@@ -40,7 +41,7 @@ Impersonator::~Impersonator()
 
 void Impersonator::impersonateAsLoggedUser()
 {
-  WTS::queryConsoleUserToken(&m_token);
+  WTS::queryConsoleUserToken(&m_token, m_log);
 
   if ((!DuplicateToken(m_token, SecurityImpersonation, &m_dupToken)) || 
       (!ImpersonateLoggedOnUser(m_dupToken))) {

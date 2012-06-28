@@ -36,7 +36,7 @@
 class CopyOperation : public FileTransferOperation
 {
 public:
-  CopyOperation();
+  CopyOperation(LogWriter *logWriter);
 
   virtual ~CopyOperation();
 

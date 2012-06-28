@@ -25,10 +25,12 @@
 #include "FileTransferSecurity.h"
 
 #include "server-config-lib/Configurator.h"
-#include "log-server/Log.h"
 
-FileTransferSecurity::FileTransferSecurity(DesktopInterface *desktop)
-: m_hasAccess(false), m_desktop(desktop)
+FileTransferSecurity::FileTransferSecurity(DesktopInterface *desktop, LogWriter *log)
+: Impersonator(log),
+  m_hasAccess(false),
+  m_desktop(desktop),
+  m_log(log)
 {
   m_desktop = desktop;
 }
@@ -62,7 +64,7 @@ void FileTransferSecurity::beginMessageProcessing()
 
       m_hasAccess = true;
     } catch (Exception &e) {
-      Log::error(_T("Access denied to the file transfer: %s"),
+      m_log->error(_T("Access denied to the file transfer: %s"),
                  e.getMessage());
       m_hasAccess = false;
     } // try / catch.

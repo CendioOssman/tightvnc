@@ -30,13 +30,15 @@
 #include "ClientListener.h"
 #include "util/AnEventListener.h"
 #include "win-system/WindowsEvent.h"
+#include "log-writer/LogWriter.h"
 #include <map>
 
 class DesktopSrvDispatcher: public GuiThread
 {
 public:
   DesktopSrvDispatcher(BlockingGate *gate,
-                 AnEventListener *m_extTerminationListener);
+                       AnEventListener *m_extTerminationListener,
+                       LogWriter *log);
   virtual ~DesktopSrvDispatcher();
 
   void registerNewHandle(UINT8 code, ClientListener *listener);
@@ -51,6 +53,8 @@ protected:
   std::map<UINT8, ClientListener *> m_handlers;
 
   AnEventListener *m_extErrorListener;
+
+  LogWriter *m_log;
 };
 
 #endif // __DESKTOPSRVDISPATCHER_H__

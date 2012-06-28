@@ -26,7 +26,6 @@
 #include "Environment.h"
 #include "DynamicLibrary.h"
 #include "SystemException.h"
-#include "log-server/Log.h"
 
 #ifndef MSGFLT_ADD
 #define MSGFLT_ADD 1
@@ -40,7 +39,8 @@ typedef BOOL (WINAPI *SetFilterEx)(HWND hWnd,
 typedef BOOL (WINAPI *SetFilter)(UINT message,
                                  DWORD action);
 
-UipiControl::UipiControl()
+UipiControl::UipiControl(LogWriter *log)
+: m_log(log)
 {
 }
 
@@ -50,10 +50,10 @@ UipiControl::~UipiControl()
 
 void UipiControl::allowMessage(UINT message, HWND hwnd)
 {
-  Log::info(_T("Try allow to receive the %u windows message"));
+  m_log->info(_T("Try allow to receive the %u windows message"));
   if (Environment::isVistaOrLater()) {
     DynamicLibrary user32lib(_T("user32.dll"));
-    Log::info(_T("user32.dll successfully loaded."));
+    m_log->info(_T("user32.dll successfully loaded."));
     SetFilterEx setFilterEx;
     // FIXME: Test this on Windows7.
     // Try to load the ChangeWindowMessageFilterEx() function.
@@ -66,7 +66,7 @@ void UipiControl::allowMessage(UINT message, HWND hwnd)
         throw Exception(_T("Can't load the ChangeWindowMessageFilterEx() or ")
                         _T("ChangeWindowMessageFilter() functions."));
       }
-      Log::info(_T("The ChangeWindowMessageFilter() function ")
+      m_log->info(_T("The ChangeWindowMessageFilter() function ")
                 _T("successfully found."));
       if (setFilter(message, MSGFLT_ADD) != TRUE) {
         DWORD errCode = GetLastError();
@@ -75,11 +75,11 @@ void UipiControl::allowMessage(UINT message, HWND hwnd)
                        _T("the ChangeWindowMessageFilter() function."));
         throw SystemException(errMess.getString(), errCode);
       }
-      Log::info(_T("The ChangeWindowMessageFilter() function ")
+      m_log->info(_T("The ChangeWindowMessageFilter() function ")
                 _T("successfully executed."));
     } else {
       // FIXME: Can't to check for Windows7.
-      Log::info(_T("The ChangeWindowMessageFilterEx() function ")
+      m_log->info(_T("The ChangeWindowMessageFilterEx() function ")
                 _T("successfully found."));
       if (setFilterEx(hwnd, message, MSGFLT_ADD, 0) != TRUE) {
         DWORD errCode = GetLastError();
@@ -88,10 +88,10 @@ void UipiControl::allowMessage(UINT message, HWND hwnd)
                        _T("the ChangeWindowMessageFilterEx() function."));
         throw SystemException(errMess.getString(), errCode);
       }
-      Log::info(_T("The ChangeWindowMessageFilterEx() function ")
+      m_log->info(_T("The ChangeWindowMessageFilterEx() function ")
                 _T("successfully executed."));
     }
   } else {
-    Log::info(_T("The allowMessage() function call is ignored."));
+    m_log->info(_T("The allowMessage() function call is ignored."));
   }
 }

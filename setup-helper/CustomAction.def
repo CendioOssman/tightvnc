@@ -3,3 +3,6 @@
 EXPORTS
 
 AllowSas
+SetRfbPassword
+SetControlPassword
+SetViewOnlyPassword

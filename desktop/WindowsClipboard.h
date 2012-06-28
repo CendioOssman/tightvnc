@@ -28,12 +28,13 @@
 #include "util/CommonHeader.h"
 #include "gui/MessageWindow.h"
 #include "ClipboardListener.h"
+#include "log-writer/LogWriter.h"
 #include "thread/GuiThread.h"
 
 class WindowsClipboard : protected MessageWindow, GuiThread
 {
 public:
-  WindowsClipboard(ClipboardListener *clipboardListener);
+  WindowsClipboard(ClipboardListener *clipboardListener, LogWriter *log);
   virtual ~WindowsClipboard(void);
 
   // This function replaces clipboard content by the text
@@ -53,6 +54,8 @@ protected:
   HWND m_hwndNextViewer;
 
   ClipboardListener *m_clipboardListener;
+
+  LogWriter *m_log;
 
   static const HINSTANCE m_hinst;
 };

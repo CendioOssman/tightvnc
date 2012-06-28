@@ -35,10 +35,12 @@
 #include "file-lib/File.h"
 #include "ft-common/FolderListener.h"
 
-FileTransferCore::FileTransferCore(FileTransferRequestSender *sender,
+FileTransferCore::FileTransferCore(LogWriter *logWriter,
+                                   FileTransferRequestSender *sender,
                                    FileTransferReplyBuffer *replyBuffer,
                                    ListenerContainer<FileTransferEventHandler *> *ftListeners)
-: m_state(NOTHING_STATE),
+: m_logWriter(logWriter),
+  m_state(NOTHING_STATE),
   m_sender(sender), m_replyBuffer(replyBuffer),
   m_fileTransferListeners(ftListeners),
   m_currentOperation(0)
@@ -216,7 +218,8 @@ void FileTransferCore::downloadOperation(const FileInfo *filesToDownload,
 {
   m_state = DOWNLOAD_STATE;
 
-  DownloadOperation *dOp = new DownloadOperation(filesToDownload,
+  DownloadOperation *dOp = new DownloadOperation(m_logWriter,
+                                                 filesToDownload,
                                                  filesCount,
                                                  pathToTargetRoot,
                                                  pathToSourceRoot);
@@ -231,7 +234,8 @@ void FileTransferCore::uploadOperation(const FileInfo *filesToDownload,
 {
   m_state = UPLOAD_STATE;
 
-  UploadOperation *uOp = new UploadOperation(filesToDownload,
+  UploadOperation *uOp = new UploadOperation(m_logWriter,
+                                             filesToDownload,
                                              filesCount,
                                              pathToSourceRoot,
                                              pathToTargetRoot);
@@ -244,7 +248,8 @@ void FileTransferCore::localFilesDeleteOperation(const FileInfo *filesToDelete,
                                                  const TCHAR *pathToTargetRoot)
 {
   m_state = LOCAL_REMOVE_STATE;
-  executeOperation(new LocalFilesDeleteOperation(filesToDelete, filesCount,
+  executeOperation(new LocalFilesDeleteOperation(m_logWriter,
+                                                 filesToDelete, filesCount,
                                                  pathToTargetRoot));
 }
 
@@ -253,7 +258,8 @@ void FileTransferCore::remoteFilesDeleteOperation(const FileInfo *filesInfoToDel
                                                  const TCHAR *pathToTargetRoot)
 {
   m_state = REMOVE_STATE;
-  executeOperation(new RemoteFilesDeleteOperation(filesInfoToDelete, filesCount,
+  executeOperation(new RemoteFilesDeleteOperation(m_logWriter,
+                                                  filesInfoToDelete, filesCount,
                                                   pathToTargetRoot));
 }
 
@@ -261,7 +267,8 @@ void FileTransferCore::remoteFolderCreateOperation(FileInfo file, const TCHAR *p
 {
     m_state = MKDIR_STATE;
 
-    executeOperation(new RemoteFolderCreateOperation(file,
+    executeOperation(new RemoteFolderCreateOperation(m_logWriter,
+                                                     file,
                                                      pathToTargetRoot));
 }
 void FileTransferCore::remoteFileRenameOperation(FileInfo sourceFileInfo,
@@ -270,7 +277,8 @@ void FileTransferCore::remoteFileRenameOperation(FileInfo sourceFileInfo,
 {
   m_state = RENAME_STATE;
 
-  executeOperation(new RemoteFileRenameOperation(sourceFileInfo,
+  executeOperation(new RemoteFileRenameOperation(m_logWriter,
+                                                 sourceFileInfo,
                                                  targetFileInfo,
                                                  pathToTargetRoot));
 }
@@ -278,7 +286,7 @@ void FileTransferCore::remoteFileRenameOperation(FileInfo sourceFileInfo,
 void FileTransferCore::remoteFileListOperation(const TCHAR *pathToFile)
 {
   m_state = FILE_LIST_STATE;
-  executeOperation(new RemoteFileListOperation(pathToFile));
+  executeOperation(new RemoteFileListOperation(m_logWriter, pathToFile));
 }
 
 void FileTransferCore::terminateCurrentOperation()

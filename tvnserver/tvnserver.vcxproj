@@ -438,6 +438,9 @@
       <Project>{7d22b0dc-d240-47db-ac6b-165ae3c0c54d}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\log-writer\log-writer.vcxproj">
+      <Project>{f9a69a98-b750-4242-b6af-de87e4201216}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\network\network.vcxproj">
       <Project>{9d22d911-02a4-4497-8c15-0ba34c6ca1fb}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

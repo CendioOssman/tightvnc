@@ -25,9 +25,9 @@
 #include "WallpaperUtil.h"
 #include "win-system/Environment.h"
 #include "server-config-lib/Configurator.h"
-#include "log-server/Log.h"
 
-WallpaperUtil::WallpaperUtil()
+WallpaperUtil::WallpaperUtil(LogWriter *log)
+: m_log(log)
 {
   Configurator::getInstance()->addListener(this);
 }
@@ -37,10 +37,10 @@ WallpaperUtil::~WallpaperUtil()
   Configurator::getInstance()->removeListener(this);
 
   try {
-    Environment::restoreWallpaper();
-    Log::info(_T("Wallpaper was successfully restored"));
+    Environment::restoreWallpaper(m_log);
+    m_log->info(_T("Wallpaper was successfully restored"));
   } catch (Exception &e) {
-    Log::error(e.getMessage());
+    m_log->error(e.getMessage());
   }
 }
 
@@ -54,13 +54,13 @@ void WallpaperUtil::updateWallpaper()
   try {
     ServerConfig *srvConf = Configurator::getInstance()->getServerConfig();
     if (srvConf->isRemovingDesktopWallpaperEnabled()) {
-      Environment::disableWallpaper();
-      Log::info(_T("Wallpaper was successfully disabled"));
+      Environment::disableWallpaper(m_log);
+      m_log->info(_T("Wallpaper was successfully disabled"));
     } else {
-      Environment::restoreWallpaper();
-      Log::info(_T("Wallpaper was successfully restored"));
+      Environment::restoreWallpaper(m_log);
+      m_log->info(_T("Wallpaper was successfully restored"));
     }
   } catch (Exception &e) {
-    Log::error(e.getMessage());
+    m_log->error(e.getMessage());
   }
 }

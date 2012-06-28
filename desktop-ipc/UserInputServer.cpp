@@ -24,17 +24,18 @@
 
 #include "UserInputServer.h"
 #include "thread/AutoLock.h"
-#include "log-server/Log.h"
 #include "util/BrokenHandleException.h"
 
 UserInputServer::UserInputServer(BlockingGate *forwGate,
                                  DesktopSrvDispatcher *dispatcher,
-                                 AnEventListener *extTerminationListener)
+                                 AnEventListener *extTerminationListener,
+                                 LogWriter *log)
 : DesktopServerProto(forwGate),
-  m_extTerminationListener(extTerminationListener)
+  m_extTerminationListener(extTerminationListener),
+  m_log(log)
 {
   bool ctrlAltDelEnabled = true;
-  m_userInput = new WindowsUserInput(this, ctrlAltDelEnabled);
+  m_userInput = new WindowsUserInput(this, ctrlAltDelEnabled, m_log);
 
   dispatcher->registerNewHandle(POINTER_POS_CHANGED, this);
   dispatcher->registerNewHandle(CLIPBOARD_CHANGED, this);
@@ -49,7 +50,7 @@ UserInputServer::UserInputServer(BlockingGate *forwGate,
 
 UserInputServer::~UserInputServer()
 {
-  Log::debug(_T("The UserInputServer destructor has been called"));
+  m_log->debug(_T("The UserInputServer destructor has been called"));
   delete m_userInput;
 }
 
@@ -63,7 +64,7 @@ void UserInputServer::onClipboardUpdate(const StringStorage *newClipboard)
       sendNewClipboard(newClipboard, m_forwGate);
     }
   } catch (Exception &e) {
-    Log::error(_T("An error has been occurred while sending a")
+    m_log->error(_T("An error has been occurred while sending a")
                _T(" CLIPBOARD_CHANGED message from UserInputServer: %s"),
                e.getMessage());
     m_extTerminationListener->onAnObjectEvent();

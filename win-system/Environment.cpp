@@ -27,7 +27,6 @@
 
 #include <shlobj.h>
 #include <crtdbg.h>
-#include "log-server/Log.h"
 #include "win-system/AutoImpersonator.h"
 #include "win-system/WTS.h"
 #include "win-system/ProcessHandle.h"
@@ -153,11 +152,11 @@ bool Environment::getCurrentModuleFolderPath(StringStorage *out)
   return true;
 }
 
-bool Environment::getCurrentUserName(StringStorage *out)
+bool Environment::getCurrentUserName(StringStorage *out, LogWriter *log)
 {
   TCHAR *userName;
   DWORD byteCount;
-  DWORD sessionId = WTS::getActiveConsoleSessionId();
+  DWORD sessionId = WTS::getActiveConsoleSessionId(log);
   if (WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE, sessionId,
                                  WTSUserName, &userName, &byteCount) == 0) {
     return false;
@@ -180,22 +179,23 @@ bool Environment::getComputerName(StringStorage *out)
   return true;
 }
 
-void Environment::restoreWallpaper()
+void Environment::restoreWallpaper(LogWriter *log)
 {
-  Log::info(_T("Try to restore wallpaper"));
-  Impersonator imp;
-  AutoImpersonator ai(&imp);
+  // FIXME: Remove log from here. Log only from caller.
+  log->info(_T("Try to restore wallpaper"));
+  Impersonator imp(log);
+  AutoImpersonator ai(&imp, log);
 
   if (SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, 0, 0) == 0) {
       throw SystemException(_T("Cannot restore desktop wallpaper"));
   }
 }
 
-void Environment::disableWallpaper()
+void Environment::disableWallpaper(LogWriter *log)
 {
-  Log::info(_T("Try to disable wallpaper"));
-  Impersonator imp;
-  AutoImpersonator ai(&imp);
+  log->info(_T("Try to disable wallpaper"));
+  Impersonator imp(log);
+  AutoImpersonator ai(&imp, log);
 
   if (SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, _T(""), 0) == 0) {
     throw SystemException(_T("Cannot disable desktop wallpaper"));
@@ -243,9 +243,10 @@ bool Environment::isVistaOrLater()
   return m_osVerInfo.dwMajorVersion >= 6;
 }
 
-void Environment::simulateCtrlAltDel()
+void Environment::simulateCtrlAltDel(LogWriter *log)
 {
-  Log::info(_T("Requested Ctrl+Alt+Del simulation"));
+  // FIXME: Do not use log here.
+  log->info(_T("Requested Ctrl+Alt+Del simulation"));
 
   // Are we running on Windows NT OS family?
   if (!isVistaOrLater() && isWinNTFamily()) {
@@ -254,9 +255,10 @@ void Environment::simulateCtrlAltDel()
   }
 }
 
-void Environment::simulateCtrlAltDelUnderVista()
+void Environment::simulateCtrlAltDelUnderVista(LogWriter *log)
 {
-  Log::info(_T("Requested Ctrl+Alt+Del simulation under Vista or later"));
+  // FIXME: Do not use log here.
+  log->info(_T("Requested Ctrl+Alt+Del simulation under Vista or later"));
 
   try {
     DynamicLibrary sasLib(_T("sas.dll"));
@@ -266,12 +268,12 @@ void Environment::simulateCtrlAltDelUnderVista()
     }
     sendSas(FALSE); // Try only under service
   } catch (Exception &e) {
-    Log::error(_T("The simulateCtrlAltDelUnderVista() function failed: %s"),
+    log->error(_T("The simulateCtrlAltDelUnderVista() function failed: %s"),
                e.getMessage());
   }
 }
 
-bool Environment::isAeroOn()
+bool Environment::isAeroOn(LogWriter *log)
 {
   try {
     DynamicLibrary dwmLib(_T("Dwmapi.dll"));
@@ -290,7 +292,7 @@ bool Environment::isAeroOn()
     }
     return result != FALSE;
   } catch (Exception &e) {
-    Log::error(_T("The DwmIsCompositionEnabled() function failed: %s"),
+    log->error(_T("The DwmIsCompositionEnabled() function failed: %s"),
                e.getMessage());
     throw;
   }

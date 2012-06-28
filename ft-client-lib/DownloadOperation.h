@@ -49,7 +49,8 @@ public:
   // is located (system independed, see ft protocol info)
   //
 
-  DownloadOperation(const FileInfo *filesToDownload, size_t filesCount,
+  DownloadOperation(LogWriter *logWriter,
+                    const FileInfo *filesToDownload, size_t filesCount,
                     const TCHAR *pathToTargetRoot,
                     const TCHAR *pathToSourceRoot);
 

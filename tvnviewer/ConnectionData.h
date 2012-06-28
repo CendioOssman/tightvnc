@@ -33,10 +33,8 @@ class ConnectionData : private HostPath
 public:
   ConnectionData();
 
-  void setHost(const StringStorage *str);
-  bool isUsed() const;
-  void setListening();
-  bool isListening() const;
+  void setHost(const StringStorage *host);
+  bool isEmpty() const;
   const StringStorage *getDefaultPassword() const;
   void setPlainPassword(const StringStorage *password);
   void setCryptedPassword(const StringStorage *password);
@@ -47,8 +45,7 @@ public:
   int getPort() const;
   
 protected:
-  bool m_Used;
-  bool m_isListening;
+  bool m_isEmpty;
   StringStorage m_defaultPassword;
 };
 

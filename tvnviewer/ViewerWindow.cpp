@@ -23,23 +23,26 @@
 //
 
 #include "config-lib/IniFileSettingsManager.h"
-#include "log-server/Log.h"
 #include "util/Exception.h"
 #include "util/ResourceLoader.h"
 #include "viewer-core/StandardPixelFormatFactory.h"
-#include "win-system/Process.h"
 
 #include "AboutDialog.h"
 #include "AuthenticationDialog.h"
 #include "ConfigurationDialog.h"
 #include "FsWarningDialog.h"
 #include "NamingDefs.h"
+#include "TvnViewer.h"
 #include "ViewerWindow.h"
 
-ViewerWindow::ViewerWindow(ConnectionData *conData,
-                           ConnectionConfig *conConf)
+ViewerWindow::ViewerWindow(WindowsApplication *application,
+                           ConnectionData *conData,
+                           ConnectionConfig *conConf,
+                           Logger *logger)
 : m_ccsm(RegistryPaths::VIEWER_PATH,
          conData->getHost().getString()),
+  m_application(application),
+  m_logWriter(logger),
   m_conConf(conConf),
   m_scale(100),
   m_isFullScr(false),
@@ -47,7 +50,10 @@ ViewerWindow::ViewerWindow(ConnectionData *conData,
   m_pViewerCore(0),
   m_fileTransfer(0),
   m_conData(conData),
-  m_dsktWnd(conConf)
+  m_dsktWnd(&m_logWriter, conConf),
+  m_isConnected(false),
+  m_sizeIsChanged(false),
+  m_stopped(false)
 {
   m_standardScale.push_back(10);
   m_standardScale.push_back(15);
@@ -69,15 +75,13 @@ ViewerWindow::ViewerWindow(ConnectionData *conData,
 
   m_dsktWnd.setClass(&windowClass);
   m_dsktWnd.createWindow(&subTitleName, WS_VISIBLE | WS_CLIPSIBLINGS | WS_CHILD, getHWnd());
-
-  ResourceLoader *rLoader = ResourceLoader::getInstance();
-  setAccTable(rLoader->loadAccelerator(IDR_ACCEL_APP_KEYS));
 }
 
 ViewerWindow::~ViewerWindow()
 {
-  if (m_ftDialog != 0)
+  if (m_ftDialog != 0) {
     delete m_ftDialog;
+  }
 }
 
 void ViewerWindow::setFileTransfer(FileTransferCapability *ft)
@@ -94,16 +98,17 @@ void ViewerWindow::setRemoteViewerCore(RemoteViewerCore *pCore)
 
 bool ViewerWindow::onCreate(LPCREATESTRUCT lps)
 {
+  m_control.setWindow(m_hWnd);
+
   setClassCursor(LoadCursor(NULL, IDC_ARROW));
   loadIcon(IDI_APPICON);
   m_toolbar.loadToolBarfromRes(IDB_TOOLBAR);
-  m_toolbar.setButtonsRange(IDS_TB_CONNOPTIONS);
-  m_toolbar.setViewAutoButtons(2, ToolBar::TB_Style_sep);
+  m_toolbar.setButtonsRange(IDS_TB_NEWCONNECTION);
   m_toolbar.setViewAutoButtons(4, ToolBar::TB_Style_sep);
-  m_toolbar.setViewAutoButtons(8, ToolBar::TB_Style_sep);
-  m_toolbar.setViewAutoButtons(9, ToolBar::TB_Style_sep);
+  m_toolbar.setViewAutoButtons(6, ToolBar::TB_Style_sep);
   m_toolbar.setViewAutoButtons(10, ToolBar::TB_Style_sep);
-  m_toolbar.setViewAutoButtons(14, ToolBar::TB_Style_sep);
+  m_toolbar.setViewAutoButtons(11, ToolBar::TB_Style_sep);
+  m_toolbar.setViewAutoButtons(15, ToolBar::TB_Style_sep);
   m_toolbar.attachToolBar(getHWnd());
   m_menu.getSystemMenu(getHWnd());
   m_menu.loadMenu();
@@ -113,6 +118,7 @@ bool ViewerWindow::onCreate(LPCREATESTRUCT lps)
   bool bShowToolbar = config->isToolbarShown();
   if (!bShowToolbar) {
     m_toolbar.hide();
+    m_bToolBar = false;
   }
   m_menu.checkedMenuItem(IDS_TB_TOOLBAR, bShowToolbar);
   return true;
@@ -199,10 +205,12 @@ void ViewerWindow::applySettings()
     doSize();
     redraw();
   }
-  if (m_conConf->isFullscreenEnabled()) {
-    doFullScr();
-  } else {
-    doUnFullScr();
+  if (m_isConnected) {
+    if (m_conConf->isFullscreenEnabled()) {
+      doFullScr();
+    } else {
+      doUnFullScr();
+    }
   }
   changeCursor(m_conConf->getLocalCursorShape());
   enableUserElements();
@@ -239,21 +247,31 @@ bool ViewerWindow::onSysCommand(WPARAM wParam, LPARAM lParam)
 bool ViewerWindow::onMessage(UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message) {
-    case WM_DESTROY:
-    case WM_USER_STOP:
-      return onDestroy();
-    case WM_CREATE:
-      return onCreate((LPCREATESTRUCT) lParam);
-    case WM_SIZE:
-      return onSize(wParam, lParam);
-    case WM_USER_ERROR:
-      return onError(wParam);
-    case WM_SETFOCUS:
-      return onFocus(wParam);
-    case WM_ERASEBKGND:
-      return onEraseBackground((HDC)wParam);
-    case WM_KILLFOCUS:
-      return onKillFocus(wParam);
+  case WM_SIZING:
+    m_sizeIsChanged = true;
+    return false;
+  case WM_NCDESTROY:
+    m_stopped = true;
+    return true;
+  case WM_USER_STOP:
+    SendMessage(m_hWnd, WM_DESTROY, 0, 0);
+    return true;
+  case WM_USER_FS_WARNING:
+    return onFsWarning();
+  case WM_CLOSE:
+    return onClose();
+  case WM_CREATE:
+    return onCreate((LPCREATESTRUCT) lParam);
+  case WM_SIZE:
+    return onSize(wParam, lParam);
+  case WM_USER_ERROR:
+    return onError(wParam);
+  case WM_SETFOCUS:
+    return onFocus(wParam);
+  case WM_ERASEBKGND:
+    return onEraseBackground((HDC)wParam);
+  case WM_KILLFOCUS:
+    return onKillFocus(wParam);
   }
   return false;
 }
@@ -405,14 +423,21 @@ void ViewerWindow::commandToolBar()
   if (m_toolbar.isVisible()) {
     m_menu.checkedMenuItem(IDS_TB_TOOLBAR,   false);
     m_toolbar.hide();
+    adjustWindowSize();
     doSize();
   } else {
     if (!m_isFullScr) {
       m_menu.checkedMenuItem(IDS_TB_TOOLBAR, true);
       m_toolbar.show();
+      adjustWindowSize();
       doSize();
     }
   }
+}
+
+void ViewerWindow::commandNewConnection()
+{
+  m_application->postMessage(TvnViewer::WM_USER_NEW_CONNECTION);
 }
 
 void ViewerWindow::commandSaveConnection()
@@ -460,7 +485,7 @@ void ViewerWindow::commandSaveConnection()
       m_conConf->saveToStorage(&sm);
     }
   } catch (...) {
-    Log::error(_T("Unknown error in save connection"));
+    m_logWriter.error(_T("Unknown error in save connection"));
   }
 }
 
@@ -628,6 +653,9 @@ bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
     case IDS_TB_TRANSFER:
       showFileTransferDialog();
       return true;
+    case IDS_TB_NEWCONNECTION:
+      commandNewConnection();
+      return true;
     case IDS_TB_SAVECONNECTION:
       commandSaveConnection();
       return true;
@@ -659,7 +687,7 @@ void ViewerWindow::showFileTransferDialog()
   if (iState) {
     if (m_ftDialog) {
       if (!m_ftDialog->isCreated()) {
-        setChildDialog(0);
+        m_ftDialog->setParent(&m_control);
         m_fileTransfer->setInterface(0);
         delete m_ftDialog;
         m_ftDialog = 0;
@@ -671,18 +699,18 @@ void ViewerWindow::showFileTransferDialog()
     }
     m_ftDialog->show();
     HWND dialogWnd = m_ftDialog->getControl()->getWindow();
-    setChildDialog(dialogWnd);
+    m_application->addModelessDialog(dialogWnd);
   }
 }
 
-void ViewerWindow::applyScreenChanges(bool isFullScreen) 
+void ViewerWindow::applyScreenChanges(bool isFullScreen)
 {
   m_isFullScr = isFullScreen;
   doSize();
   redraw();
 }
 
-void ViewerWindow::doFullScr() 
+void ViewerWindow::doFullScr()
 {
   if (m_isFullScr) {
     return;
@@ -692,11 +720,6 @@ void ViewerWindow::doFullScr()
   m_conConf->saveToStorage(&m_ccsm);
 
   ViewerConfig *config = ViewerConfig::getInstance();
-  if (config->isPromptOnFullscreenEnabled()) {
-    FsWarningDialog fsWarning;
-    fsWarning.showModal();
-  }
-
   GetWindowRect(getHWnd(), &m_rcNormal);
   m_bToolBar = m_toolbar.isVisible();
   m_toolbar.hide();
@@ -706,7 +729,7 @@ void ViewerWindow::doFullScr()
   m_menu.enableMenuItem(IDS_TB_TOOLBAR,     1);
 
   RECT rc;
-  m_sysinf.getDesktopAllArea(&rc);  
+  m_sysinf.getDesktopAllArea(&rc);
   setStyle(WS_VISIBLE | WS_POPUP | WS_SYSMENU);
   setPosition(rc.left, rc.top);
   int width = rc.right - rc.left;
@@ -715,9 +738,13 @@ void ViewerWindow::doFullScr()
 
   SetFocus(m_dsktWnd.getHWnd());
   applyScreenChanges(true);
+
+  if (config->isPromptOnFullscreenEnabled()) {
+    postMessage(WM_USER_FS_WARNING);
+  }
 }
 
-void ViewerWindow::doUnFullScr() 
+void ViewerWindow::doUnFullScr()
 {
   if (!m_isFullScr) {
     return;
@@ -762,26 +789,29 @@ bool ViewerWindow::onNotify(int idCtrl, LPNMHDR pnmh)
   return true;
 }
 
-bool ViewerWindow::onDestroy()
+bool ViewerWindow::onClose()
 {
-  if (m_ftDialog) {
-    if (m_ftDialog->isCreated()) {
-      m_ftDialog->kill(0);
-      delete m_ftDialog;
-      m_ftDialog = 0;
+  if (m_ftDialog != 0 && m_ftDialog->isCreated()) {
+    if (!m_ftDialog->tryClose()) {
+      return true;
     }
   }
-  quit();
+  destroyWindow();
   return true;
 }
 
-void ViewerWindow::doSize() 
+void ViewerWindow::doSize()
 {
   postMessage(WM_SIZE);
 }
 
 bool ViewerWindow::onSize(WPARAM wParam, LPARAM lParam) 
 {
+  if (wParam == SIZE_MAXIMIZED) {
+    m_isMaximized = true;
+  } else {
+    m_isMaximized = false;
+  }
   RECT rc;
   int x, y;
 
@@ -789,7 +819,7 @@ bool ViewerWindow::onSize(WPARAM wParam, LPARAM lParam)
   x = y = 0;
   if (m_toolbar.isVisible()) {
     m_toolbar.autoSize();
-    y = m_toolbar.getHeight();
+    y = m_toolbar.getHeight() - 1;
     rc.bottom -= y;
   }
   if (m_dsktWnd.getHWnd()) {
@@ -805,7 +835,8 @@ bool ViewerWindow::onSize(WPARAM wParam, LPARAM lParam)
   return true;
 }
 
-void ViewerWindow::showWindow() {
+void ViewerWindow::showWindow()
+{
   show();
 
   StringStorage str = m_pViewerCore->getRemoteDesktopName();
@@ -825,6 +856,14 @@ bool ViewerWindow::onError(WPARAM wParam)
   return true;
 }
 
+bool ViewerWindow::onFsWarning()
+{
+  FsWarningDialog fsWarning;
+  fsWarning.setParent(&m_control);
+  fsWarning.showModal();
+  return true;
+}
+
 bool ViewerWindow::onFocus(WPARAM wParam)
 {
   SetFocus(m_dsktWnd.getHWnd());
@@ -840,49 +879,47 @@ void ViewerWindow::onBell()
   MessageBeep(MB_ICONASTERISK);
 }
 
-void ViewerWindow::calculateDefaultSize(RECT *prc, int *width, int *height)
+Rect ViewerWindow::calculateDefaultSize()
 {
-  *width  = prc->right - prc->left;
-  *height = prc->bottom - prc->top;
- 
-  int serverWidth, serverHeight;
-  m_dsktWnd.getServerGeometry(&serverWidth, &serverHeight, 0);
+  RECT desktopRc;
+  if (!m_sysinf.getDesktopArea(&desktopRc)) {
+     m_sysinf.getDesktopAllArea(&desktopRc);
+  }
+  Rect defaultRect(&desktopRc);
 
-  if (serverWidth < *width && serverHeight < *height) {
+  int widthDesktop  = defaultRect.getWidth();
+  int heightDesktop = defaultRect.getHeight();
+
+  Rect viewerRect = m_dsktWnd.getViewerGeometry();
+  int serverWidth = viewerRect.getWidth();
+  int serverHeight = viewerRect.getHeight();
+
+  if (serverWidth < widthDesktop && serverHeight < heightDesktop) {
     int borderWidth, borderHeight;
     getBorderSize(&borderWidth, &borderHeight);
-    int maxWidth     = serverWidth  + borderWidth + 1;
-    int maxHeight    = serverHeight + borderHeight + 1;
+    int totalWidth     = serverWidth  + borderWidth;
+    int totalHeight    = serverHeight + borderHeight + 1;
     if (m_toolbar.isVisible()) {
-      // FIXME: removed this literal (toolbar height)
-      maxHeight += m_toolbar.getHeight() - 3;
+      totalHeight += m_toolbar.getHeight();
     }
-    int startX = prc->left + (*width - maxWidth) / 2;
-    int startY = prc->top + (*height - maxHeight) / 2;
-
-    prc->left = startX;
-    prc->top = startY;
-    *width = maxWidth;
-    *height = maxHeight;
+    defaultRect.setHeight(totalHeight);
+    defaultRect.setWidth(totalWidth);
+    defaultRect.move((widthDesktop - totalWidth) / 2,
+                     (heightDesktop - totalHeight) / 2);
   }
+  return defaultRect;
 }
 
 void ViewerWindow::onConnected()
 {
+  m_isConnected = true;
+
   showWindow();
   setForegroundWindow();
   applySettings();
 
-  RECT rc;
-  if (!m_sysinf.getDesktopArea(&rc)) {
-     m_sysinf.getDesktopAllArea(&rc);
-  }
-  int width, height;
-  calculateDefaultSize(&rc, &width, &height);
-  if (!m_isFullScr) {
-    setPosition(rc.left, rc.top);
-    setSize(width, height);
-  }
+  m_sizeIsChanged = false;
+  adjustWindowSize();
 }
 
 void ViewerWindow::onDisconnect(const StringStorage *message)
@@ -910,6 +947,7 @@ void ViewerWindow::onFrameBufferUpdate(const FrameBuffer *fb, const Rect *rect)
 void ViewerWindow::onFrameBufferPropChange(const FrameBuffer *fb)
 {
   m_dsktWnd.setNewFramebuffer(fb);
+  adjustWindowSize();
 }
 
 void ViewerWindow::getPassword(StringStorage *strPassw)
@@ -962,4 +1000,19 @@ void ViewerWindow::onCutText(const StringStorage *cutText)
 void ViewerWindow::doCommand(int iCommand)
 {
   postMessage(WM_COMMAND, iCommand);
+}
+
+bool ViewerWindow::isStopped() const
+{
+  return m_stopped;
+}
+
+void ViewerWindow::adjustWindowSize()
+{
+  Rect defaultSize = calculateDefaultSize();
+  m_rcNormal = defaultSize.toWindowsRect();
+  if (!m_isFullScr && !m_sizeIsChanged && !m_isMaximized) {
+    setPosition(defaultSize.left, defaultSize.top);
+    setSize(defaultSize.getWidth(), defaultSize.getHeight());
+  }
 }

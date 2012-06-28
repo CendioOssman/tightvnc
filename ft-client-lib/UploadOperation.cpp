@@ -28,10 +28,12 @@
 #include "ft-common/FolderListener.h"
 #include "file-lib/EOFException.h"
 
-UploadOperation::UploadOperation(FileInfo fileToUpload,
+UploadOperation::UploadOperation(LogWriter *logWriter,
+                                 FileInfo fileToUpload,
                                  const TCHAR *pathToSourceRoot,
                                  const TCHAR *pathToTargetRoot)
-: m_file(0), m_fis(0), m_gotoChild(false), m_gotoParent(false), m_firstUpload(true),
+: CopyOperation(logWriter),
+  m_file(0), m_fis(0), m_gotoChild(false), m_gotoParent(false), m_firstUpload(true),
   m_remoteFilesInfo(0), m_remoteFilesCount(0)
 {
   m_pathToSourceRoot.setString(pathToSourceRoot);
@@ -42,10 +44,12 @@ UploadOperation::UploadOperation(FileInfo fileToUpload,
   changeFileToUpload(m_toCopy);
 }
 
-UploadOperation::UploadOperation(const FileInfo *filesToUpload, size_t filesCount,
+UploadOperation::UploadOperation(LogWriter *logWriter,
+                                 const FileInfo *filesToUpload, size_t filesCount,
                                  const TCHAR *pathToSourceRoot,
                                  const TCHAR *pathToTargetRoot)
-: m_file(0), m_fis(0), m_gotoChild(false), m_gotoParent(false), m_firstUpload(true),
+: CopyOperation(logWriter),
+  m_file(0), m_fis(0), m_gotoChild(false), m_gotoParent(false), m_firstUpload(true),
   m_remoteFilesInfo(0), m_remoteFilesCount(0)
 {
   m_pathToSourceRoot.setString(pathToSourceRoot);

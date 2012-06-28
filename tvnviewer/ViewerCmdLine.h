@@ -36,7 +36,8 @@ class ViewerCmdLine {
 public:
   ViewerCmdLine(ConnectionData *conData,
                 ConnectionConfig *conConf,
-                ViewerConfig *config);
+                ViewerConfig *config,
+                bool *isListening);
 
   // this function parse the command line
   void parse() throw(CommandLineFormatException, CommandLineFormatHelp);
@@ -88,6 +89,7 @@ protected:
   ConnectionData *m_conData;
   ConnectionConfig *m_conConf;
   ViewerConfig *m_config;
+  bool *m_isListening;
 
   std::map<StringStorage, StringStorage> m_options;
 

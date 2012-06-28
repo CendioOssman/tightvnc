@@ -33,7 +33,7 @@
 class SasUserInput : public UserInput
 {
 public:
-  SasUserInput(UserInputClient *client);
+  SasUserInput(UserInputClient *client, LogWriter *log);
   virtual ~SasUserInput();
 
   virtual void sendInit(BlockingGate *gate);
@@ -54,6 +54,7 @@ private:
   bool m_ctrlPressed;
   bool m_altPressed;
   bool m_underVista;
+  LogWriter *m_log;
 };
 
 #endif // __SASUSERINPUT_H__

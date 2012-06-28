@@ -30,11 +30,12 @@
 #include "desktop/UpdateContainer.h"
 #include "util/DateTime.h"
 #include "thread/LocalMutex.h"
+#include "log-writer/LogWriter.h"
 
 class CursorUpdates
 {
 public:
-  CursorUpdates();
+  CursorUpdates(LogWriter *log);
   virtual ~CursorUpdates();
 
   // Important: After calling the update() function frame buffer
@@ -94,6 +95,8 @@ private:
   // the last send method: by a cursor shape update or drawing on the
   // frame buffer.
   bool m_isDrawCursorMethod;
+
+  LogWriter *m_log;
 };
 
 #endif // __CURSORUPDATES_H__

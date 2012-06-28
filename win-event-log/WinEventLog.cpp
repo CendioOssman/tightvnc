@@ -26,12 +26,13 @@
 #include "util/CommonHeader.h"
 #include "tvnserver-app/NamingDefs.h"
 #include "util/Exception.h"
-#include "log-server/Log.h"
 #include "win-system/Environment.h"
 #include "win-system/RegistryKey.h"
+#include "thread/AutoLock.h"
 
-WinEventLog::WinEventLog()
-: m_hEventLog(0)
+WinEventLog::WinEventLog(LogWriter *log)
+: m_hEventLog(0),
+  m_log(log)
 {
 }
 
@@ -44,7 +45,7 @@ void WinEventLog::enable()
   try {
     updateEventSourcesSubkey();
   } catch (Exception &e) {
-    Log::error(_T("Cannot update event sources registry subkey: %s"),
+    m_log->error(_T("Cannot update event sources registry subkey: %s"),
                e.getMessage());
   }
   registerEventSource();
@@ -131,7 +132,7 @@ void WinEventLog::reportEvent(unsigned int messageId,
     StringStorage errStr;
     Environment::getErrStr(_T("Cannot report an event to the system log"),
                            &errStr);
-    Log::error(_T("%s"), errStr.getString());
+    m_log->error(_T("%s"), errStr.getString());
   }
 }
 

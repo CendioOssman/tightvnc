@@ -27,12 +27,14 @@
 
 #include "UpdateDetector.h"
 #include "win-system/WindowsEvent.h"
+#include "log-writer/LogWriter.h"
 
 class MouseDetector : public UpdateDetector
 {
 public:
   MouseDetector(UpdateKeeper *updateKeeper,
-                UpdateListener *updateListener);
+                UpdateListener *updateListener,
+                LogWriter *log);
   virtual ~MouseDetector(void);
 
   Point getCursorPos() const;
@@ -44,6 +46,7 @@ protected:
 private:
   WindowsEvent m_sleepTimer;
   Point m_lastCursorPos;
+  LogWriter *m_log;
 };
 
 #endif // __MOUSEDETECTOR_H__

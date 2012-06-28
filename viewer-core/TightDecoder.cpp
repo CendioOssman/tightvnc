@@ -24,12 +24,11 @@
 
 #include "TightDecoder.h"
 
-#include "log-server/Log.h"
-
 #include "StandardPixelFormatFactory.h"
 
-TightDecoder::TightDecoder()
-: m_isCPixel(false)
+TightDecoder::TightDecoder(LogWriter *logWriter)
+: Decoder(logWriter),
+  m_isCPixel(false)
 {
   m_inflater.resize(DECODERS_NUM);
   for (int i = 0; i < DECODERS_NUM; i++)
@@ -183,7 +182,7 @@ void TightDecoder::processJpeg(RfbInputGate *input,
       StringStorage error;
       error.format(_T("Error in tight-decoder, subencoding \"jpeg\": %s"), 
                    ex.getMessage());
-      Log::error(error.getString());
+      m_logWriter->error(error.getString());
     }
   }
 }

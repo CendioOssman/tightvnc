@@ -26,6 +26,7 @@
 #define _FILE_TRANSFER_CORE_H_
 
 #include "ft-common/FileInfo.h"
+#include "log-writer/LogWriter.h"
 
 #include "FileTransferEventHandler.h"
 #include "FileTransferRequestSender.h"
@@ -52,7 +53,8 @@ public:
   // ftListeners - needs for executing file transfer operations
   //
 
-  FileTransferCore(FileTransferRequestSender *sender,
+  FileTransferCore(LogWriter *logWriter,
+                   FileTransferRequestSender *sender,
                    FileTransferReplyBuffer *replyBuffer,
                    ListenerContainer<FileTransferEventHandler *> *ftListeners);
   virtual ~FileTransferCore();
@@ -115,6 +117,12 @@ protected:
   virtual void ftOpErrorMessage(FileTransferOperation *sender, const TCHAR *message);
   virtual void ftOpInfoMessage(FileTransferOperation *sender,
                                const TCHAR *message);
+
+  //
+  // Interface of log
+  //
+
+  LogWriter *m_logWriter;
 
   //
   // Current dialog state, needed for checking what type of

@@ -533,6 +533,18 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\FileAccount.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\FileLogger.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LogDump.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\LogWriter.cpp"
 				>
 			</File>
@@ -542,6 +554,18 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\FileAccount.h"
+				>
+			</File>
+			<File
+				RelativePath=".\FileLogger.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LogDump.h"
+				>
+			</File>
 			<File
 				RelativePath=".\Logger.h"
 				>

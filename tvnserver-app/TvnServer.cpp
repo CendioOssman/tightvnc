@@ -54,18 +54,22 @@
 #include <time.h>
 
 TvnServer::TvnServer(bool runsInServiceContext,
-                     NewConnectionEvents *newConnectionEvents)
+                     NewConnectionEvents *newConnectionEvents,
+                     LogInitListener *logInitListener,
+                     Logger *logger)
 : Singleton<TvnServer>(),
   ListenerContainer<TvnServerListener *>(),
   m_runAsService(runsInServiceContext),
+  m_logInitListener(logInitListener),
   m_rfbClientManager(0),
   m_httpServer(0), m_controlServer(0), m_rfbServer(0),
   m_config(runsInServiceContext),
-  m_logManager(LogNames::SERVER_LOG_FILE_STUB_NAME)
+  m_log(logger),
+  m_extraRfbServers(&m_log)
 {
-  Log::message(_T("%s Build on %s"),
-               ProductNames::SERVER_PRODUCT_NAME,
-               BuildTime::DATE);
+  m_log.message(_T("%s Build on %s"),
+                 ProductNames::SERVER_PRODUCT_NAME,
+                 BuildTime::DATE);
 
   // Initialize configuration.
   // FIXME: It looks like configurator may be created as a member object.
@@ -74,25 +78,29 @@ TvnServer::TvnServer(bool runsInServiceContext,
   m_srvConfig = Configurator::getInstance()->getServerConfig();
 
   try {
-    Log::storeHeader();
-    m_logManager.init();
+    StringStorage logDir;
+    m_srvConfig->getLogFileDir(&logDir);
+    unsigned char logLevel = m_srvConfig->getLogLevel();
+    // FIXME: Use correct log name.
+    m_logInitListener->onLogInit(logDir.getString(), LogNames::SERVER_LOG_FILE_STUB_NAME, logLevel);
+
   } catch (...) {
     // A log error must not be a reason that stop the server.
   }
 
   // Initialize windows sockets.
 
-  Log::info(_T("Initialize WinSock"));
+  m_log.info(_T("Initialize WinSock"));
 
   try {
     WindowsSocket::startup(2, 1);
   } catch (Exception &ex) {
-    Log::interror(_T("%s"), ex.getMessage());
+    m_log.interror(_T("%s"), ex.getMessage());
   }
 
    // Instanize zombie killer singleton.
    // FIXME: may be need to do it in another place or use "lazy" initialization.
-  m_rfbClientManager = new RfbClientManager(NULL, newConnectionEvents);
+  m_rfbClientManager = new RfbClientManager(NULL, newConnectionEvents, &m_log);
 
   m_rfbClientManager->addListener(this);
 
@@ -131,12 +139,12 @@ TvnServer::~TvnServer()
 
   delete m_rfbClientManager;
 
-  Log::info(_T("Shutdown WinSock"));
+  m_log.info(_T("Shutdown WinSock"));
 
   try {
     WindowsSocket::cleanup();
   } catch (Exception &ex) {
-    Log::error(_T("%s"), ex.getMessage());
+    m_log.error(_T("%s"), ex.getMessage());
   }
 }
 
@@ -185,6 +193,7 @@ void TvnServer::onConfigReload(ServerConfig *serverConfig)
       restartHttpServer();
     }
   }
+  changeLogProps();
 }
 
 void TvnServer::getServerInfo(TvnServerInfo *info)
@@ -279,18 +288,18 @@ void TvnServer::afterLastClientDisconnect()
   Environment::getCurrentModulePath(&thisModulePath);
   thisModulePath.quoteSelf();
   if (isRunningAsService()) {
-    process = new CurrentConsoleProcess(thisModulePath.getString(),
+    process = new CurrentConsoleProcess(&m_log, thisModulePath.getString(),
                                         keys.getString());
   } else {
     process = new Process(thisModulePath.getString(), keys.getString());
   }
 
-  Log::message(_T("Execute disconnect action in separate process"));
+  m_log.message(_T("Execute disconnect action in separate process"));
 
   try {
     process->start();
   } catch (SystemException &ex) {
-    Log::error(_T("Failed to start application: \"%s\""), ex.getMessage());
+    m_log.error(_T("Failed to start application: \"%s\""), ex.getMessage());
   }
 
   delete process;
@@ -303,13 +312,13 @@ void TvnServer::restartHttpServer()
   stopHttpServer();
 
   if (m_srvConfig->isAcceptingHttpConnections()) {
-    Log::message(_T("Starting HTTP server"));
+    m_log.message(_T("Starting HTTP server"));
     try {
       // FIXME: HTTP server should bind to localhost if only loopback
       //        connections are allowed.
-      m_httpServer = new HttpServer(_T("0.0.0.0"), m_srvConfig->getHttpPort(), m_runAsService);
+      m_httpServer = new HttpServer(_T("0.0.0.0"), m_srvConfig->getHttpPort(), m_runAsService, &m_log);
     } catch (Exception &ex) {
-      Log::error(_T("Failed to start HTTP server: \"%s\""), ex.getMessage());
+      m_log.error(_T("Failed to start HTTP server: \"%s\""), ex.getMessage());
     }
   }
 }
@@ -321,11 +330,11 @@ void TvnServer::restartControlServer()
 
   stopControlServer();
 
-  Log::message(_T("Starting control server"));
+  m_log.message(_T("Starting control server"));
 
   try {
     StringStorage pipeName;
-    ControlPipeName::createPipeName(isRunningAsService(), &pipeName);
+    ControlPipeName::createPipeName(isRunningAsService(), &pipeName, &m_log);
 
     // FIXME: Memory leak
     SecurityAttributes *pipeSecurity = new SecurityAttributes();
@@ -333,9 +342,9 @@ void TvnServer::restartControlServer()
     pipeSecurity->shareToAllUsers();
 
     PipeServer *pipeServer = new PipeServer(pipeName.getString(), pipeSecurity);
-    m_controlServer = new ControlServer(pipeServer , m_rfbClientManager);
+    m_controlServer = new ControlServer(pipeServer , m_rfbClientManager, &m_log);
   } catch (Exception &ex) {
-    Log::error(_T("Failed to start control server: \"%s\""), ex.getMessage());
+    m_log.error(_T("Failed to start control server: \"%s\""), ex.getMessage());
   }
 }
 
@@ -352,18 +361,18 @@ void TvnServer::restartMainRfbServer()
   const TCHAR *bindHost = m_srvConfig->isOnlyLoopbackConnectionsAllowed() ? _T("localhost") : _T("0.0.0.0");
   unsigned short bindPort = m_srvConfig->getRfbPort();
 
-  Log::message(_T("Starting main RFB server"));
+  m_log.message(_T("Starting main RFB server"));
 
   try {
-    m_rfbServer = new RfbServer(bindHost, bindPort, m_rfbClientManager, m_runAsService);
+    m_rfbServer = new RfbServer(bindHost, bindPort, m_rfbClientManager, m_runAsService, &m_log);
   } catch (Exception &ex) {
-    Log::error(_T("Failed to start main RFB server: \"%s\""), ex.getMessage());
+    m_log.error(_T("Failed to start main RFB server: \"%s\""), ex.getMessage());
   }
 }
 
 void TvnServer::stopHttpServer()
 {
-  Log::message(_T("Stopping HTTP server"));
+  m_log.message(_T("Stopping HTTP server"));
 
   HttpServer *httpServer = 0;
   {
@@ -378,7 +387,7 @@ void TvnServer::stopHttpServer()
 
 void TvnServer::stopControlServer()
 {
-  Log::message(_T("Stopping control server"));
+  m_log.message(_T("Stopping control server"));
 
   ControlServer *controlServer = 0;
   {
@@ -393,7 +402,7 @@ void TvnServer::stopControlServer()
 
 void TvnServer::stopMainRfbServer()
 {
-  Log::message(_T("Stopping main RFB server"));
+  m_log.message(_T("Stopping main RFB server"));
 
   RfbServer *rfbServer = 0;
   {
@@ -406,11 +415,14 @@ void TvnServer::stopMainRfbServer()
   }
 }
 
-void TvnServer::updateLogDirPath()
+void TvnServer::changeLogProps()
 {
-  // Creating log directory if it is still no exists.
-  StringStorage logFileDir;
-  m_srvConfig->getLogFileDir(&logFileDir);
-  File logDirectory(logFileDir.getString());
-  logDirectory.mkdir();
+  StringStorage logDir;
+  unsigned char logLevel;
+  {
+    AutoLock al(&m_mutex);
+    m_srvConfig->getLogFileDir(&logDir);
+    logLevel = m_srvConfig->getLogLevel();
+  }
+  m_logInitListener->onChangeLogProps(logDir.getString(), logLevel);
 }

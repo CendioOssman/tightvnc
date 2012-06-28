@@ -24,16 +24,16 @@
 
 #include "RfbKeySym.h"
 #include "util/CommonHeader.h"
-#include "log-server/Log.h"
 
 #define XK_MISCELLANY
 #include "rfb/keysymdef.h"
 
-RfbKeySym::RfbKeySym(RfbKeySymListener *extKeySymListener)
+RfbKeySym::RfbKeySym(RfbKeySymListener *extKeySymListener, LogWriter *log)
 : m_extKeySymListener(extKeySymListener),
   m_allowProcessCharEvent(false),
   m_leftMetaIsPressed(false),
-  m_rightMetaIsPressed(false)
+  m_rightMetaIsPressed(false),
+  m_log(log)
 {
   clearKeyState();
 }
@@ -57,21 +57,21 @@ void RfbKeySym::sendModifier(unsigned char virtKey, bool down)
 void RfbKeySym::processKeyEvent(unsigned short virtKey,
                                 unsigned int addKeyData)
 {
-  Log::debug(_T("processKeyEvent() function called: virtKey = %#4.4x, addKeyData")
+  m_log->debug(_T("processKeyEvent() function called: virtKey = %#4.4x, addKeyData")
              _T(" = %#x"), (unsigned int)virtKey, addKeyData);
   if (virtKey == VK_LWIN || virtKey == VK_RWIN) { // Ignoring the Win key
-    Log::debug(_T("Ignoring the Win key event"));
+    m_log->debug(_T("Ignoring the Win key event"));
     return;
   }
 
   bool down = (addKeyData & 0x80000000) == 0;
-  Log::debug(_T("down = %u"), (unsigned int)down);
+  m_log->debug(_T("down = %u"), (unsigned int)down);
 
   bool ctrlPressed = isPressed(VK_LCONTROL) || isPressed(VK_RCONTROL);
   bool altPressed = isPressed(VK_LMENU) || isPressed(VK_RMENU);
   bool shiftPressed = isPressed(VK_LSHIFT) || isPressed(VK_RSHIFT);
   bool capsToggled = (GetKeyState(VK_CAPITAL) & 1) != 0;
-  Log::debug(_T("ctrl = %u, alt = %u, shift = %u, caps toggled = %u"),
+  m_log->debug(_T("ctrl = %u, alt = %u, shift = %u, caps toggled = %u"),
              (unsigned int)ctrlPressed,
              (unsigned int)altPressed,
              (unsigned int)shiftPressed,
@@ -95,7 +95,7 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
       rfbSym = XK_KP_Enter;
     }
 
-    Log::debug(_T("The key has been mapped to the %#4.4x rfb symbol"),
+    m_log->debug(_T("The key has been mapped to the %#4.4x rfb symbol"),
                rfbSym);
     sendKeySymEvent(rfbSym, down);
   } else {
@@ -111,13 +111,13 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
                           0, currentLayout);
     }
 
-    Log::debug(_T("ToUnicodeEx() return %d"), count);
+    m_log->debug(_T("ToUnicodeEx() return %d"), count);
 
     if (count == 1 && !m_allowProcessCharEvent || count > 1) {
       bool ctrlAltPressed = ctrlPressed && altPressed;
       bool onlyCtrlPressed = ctrlPressed && !altPressed;
       if (ctrlAltPressed) {
-        Log::debug(_T("Release the ctrl and alt")
+        m_log->debug(_T("Release the ctrl and alt")
                    _T(" modifiers before send the key event(s)"));
         releaseModifiers();
       }
@@ -125,32 +125,32 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
         if (onlyCtrlPressed && outBuff[i] < 32) {
           if (onlyCtrlPressed && outBuff[i] >= 1 && outBuff[i] <= 26 &&
               !shiftPressed) {
-            Log::debug(_T("The %u char is a control symbol then")
+            m_log->debug(_T("The %u char is a control symbol then")
                        _T(" it will be increased by 96 to %u"),
                        (unsigned int)outBuff[i], (unsigned int)outBuff[i] + 96);
             outBuff[i] += 96;
           } else {
-            Log::debug(_T("The %u char is a control symbol then")
+            m_log->debug(_T("The %u char is a control symbol then")
                        _T(" it will be increased by 64 to %u"),
                        (unsigned int)outBuff[i], (unsigned int)outBuff[i] + 64);
             outBuff[i] += 64;
           }
         }
         if (m_keyMap.unicodeCharToKeySym(outBuff[i], &rfbSym)) {
-          Log::debug(_T("Sending the %#4.4x rfb symbol"), rfbSym);
+          m_log->debug(_T("Sending the %#4.4x rfb symbol"), rfbSym);
           sendKeySymEvent(rfbSym, down);
         } else {
-          Log::error(_T("Can't translate the %#4.4x unicode character to an")
+          m_log->error(_T("Can't translate the %#4.4x unicode character to an")
                      _T(" rfb symbol to send it"), (unsigned int)outBuff[i]);
         }
       }
       if (ctrlAltPressed) {
-        Log::debug(_T("Restore the ctrl and alt")
+        m_log->debug(_T("Restore the ctrl and alt")
                    _T(" modifiers after send the key event(s)"));
         restoreModifiers();
       }
     } else if (count == 0) {
-      Log::debug(_T("Was get a not printable symbol then try get a printable")
+      m_log->debug(_T("Was get a not printable symbol then try get a printable")
                  _T(" with turned off the ctrl and alt modifiers"));
       // E.g if pressed Ctrl + Alt + A
       // Try found char without modificators
@@ -165,17 +165,17 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
       count = ToUnicodeEx(virtKey, 0, withoutCtrlAltKbdState, outBuff,
                           sizeof(outBuff) / sizeof(WCHAR),
                           0, currentLayout);
-      Log::debug(_T("ToUnicodeEx() without ctrl and alt return %d"), count);
+      m_log->debug(_T("ToUnicodeEx() without ctrl and alt return %d"), count);
       if (count == 1) { // other case will be ignored
         if (m_keyMap.unicodeCharToKeySym(outBuff[0], &rfbSym)) {
           sendKeySymEvent(rfbSym, down);
         } else {
-          Log::error(_T("Can't translate the %#4.4x unicode character to an")
+          m_log->error(_T("Can't translate the %#4.4x unicode character to an")
                      _T(" rfb symbol to send it"), (unsigned int)outBuff[0]);
         }
       }
     } else if (count == -1 && down) {
-      Log::debug(_T("Dead key pressed, wait for a char event"));
+      m_log->debug(_T("Dead key pressed, wait for a char event"));
       m_allowProcessCharEvent = true;
     }
   }
@@ -185,7 +185,7 @@ void RfbKeySym::processCharEvent(WCHAR charCode,
                                  unsigned int addKeyData)
 {
   if (m_allowProcessCharEvent) {
-    Log::debug(_T("processCharEvent() function called with alowed processing:")
+    m_log->debug(_T("processCharEvent() function called with alowed processing:")
                _T(" charCode = %#4.4x, addKeyData = %#x"),
                (unsigned int)charCode, addKeyData);
     m_allowProcessCharEvent = false;
@@ -194,7 +194,7 @@ void RfbKeySym::processCharEvent(WCHAR charCode,
       sendKeySymEvent(rfbSym, true);
       sendKeySymEvent(rfbSym, false);
     } else {
-      Log::error(_T("Can't translate the %#4.4x unicode character to an")
+      m_log->error(_T("Can't translate the %#4.4x unicode character to an")
                  _T(" rfb symbol to send it"), (unsigned int)charCode);
     }
   }
@@ -202,7 +202,7 @@ void RfbKeySym::processCharEvent(WCHAR charCode,
 
 void RfbKeySym::processFocusRestoration()
 {
-  Log::info(_T("Process focus restoration in the RfbKeySym class"));
+  m_log->info(_T("Process focus restoration in the RfbKeySym class"));
   unsigned char kbdState[256];
   if (GetKeyboardState(kbdState) != 0) {
     checkAndSendDiff(VK_CONTROL, kbdState[VK_CONTROL]);
@@ -219,7 +219,7 @@ void RfbKeySym::processFocusRestoration()
 
 void RfbKeySym::processFocusLoss()
 {
-  Log::info(_T("Process focus loss in the RfbKeySym class"));
+  m_log->info(_T("Process focus loss in the RfbKeySym class"));
 
   Sleep(100);
   // Send a modifier key up only if the key is down.

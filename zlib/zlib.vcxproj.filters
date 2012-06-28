@@ -41,9 +41,6 @@
     <ClCompile Include="infutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="maketree.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="trees.c">
       <Filter>Source Files</Filter>
     </ClCompile>

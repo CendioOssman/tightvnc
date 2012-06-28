@@ -24,7 +24,8 @@
 
 #include "Decoder.h"
 
-Decoder::Decoder()
+Decoder::Decoder(LogWriter *logWriter)
+: m_logWriter(logWriter)
 {
 }
 

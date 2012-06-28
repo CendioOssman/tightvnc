@@ -31,6 +31,7 @@
 
 #include "WindowsEvent.h"
 #include "thread/LocalMutex.h"
+#include "log-writer/LogWriter.h"
 
 class AnonymousPipe : public Channel, private Pipe
 {
@@ -39,7 +40,7 @@ public:
   // function calling.
   // @param hRead is a read handle getting by the CreatePipe()
   // function calling but is not the same as for hWrite.
-  AnonymousPipe(HANDLE hWrite, HANDLE hRead);
+  AnonymousPipe(HANDLE hWrite, HANDLE hRead, LogWriter *log);
   virtual ~AnonymousPipe();
 
   /**
@@ -97,6 +98,8 @@ private:
   LocalMutex m_hPipeMutex;
   WindowsEvent m_readEvent;
   WindowsEvent m_writeEvent;
+
+  LogWriter *m_log;
 };
 
 #endif // __ANONYMOUSPIPE_H__

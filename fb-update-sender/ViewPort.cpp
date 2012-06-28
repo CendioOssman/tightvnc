@@ -24,17 +24,18 @@
 
 #include "ViewPort.h"
 #include "thread/AutoLock.h"
-#include "log-server/Log.h"
 #include "util/BrokenHandleException.h"
 
-ViewPort::ViewPort()
-: m_desktop(0)
+ViewPort::ViewPort(LogWriter *log)
+: m_desktop(0),
+  m_log(log)
 {
 }
 
-ViewPort::ViewPort(const ViewPortState *viewPortState)
+ViewPort::ViewPort(const ViewPortState *viewPortState, LogWriter *log)
 : m_desktop(0),
-  m_state(*viewPortState)
+  m_state(*viewPortState),
+  m_log(log)
 {
 }
 
@@ -80,7 +81,7 @@ void ViewPort::update(const Dimension *fbDimension)
       try {
         m_desktop->getWindowCoords(m_state.m_hwnd, &rect);
       } catch (BrokenHandleException &e) {
-        Log::error(_T("%s"), e.getMessage());
+        m_log->error(_T("%s"), e.getMessage());
         // Now hwnd is broken. This should be reflected in the viewport state.
         m_state.unresolveHwnd();
       }
@@ -90,14 +91,14 @@ void ViewPort::update(const Dimension *fbDimension)
     rect = m_state.m_arbitraryRect;
     break;
   }
-  Log::debug(_T("View port coordinates: (%d, %d %dx%d)"),
+  m_log->debug(_T("View port coordinates: (%d, %d %dx%d)"),
     rect.left, rect.top, rect.getWidth(), rect.getHeight());
   // Constrain and save
   m_rect = rect.intersection(&fbDimension->getRect());
   if (m_rect.getWidth() < 0 || m_rect.getHeight() < 0) {
     m_rect.clear();
   }
-  Log::debug(_T("Constrained (to the FrameBuffer dimension) view port coordinates: (%d, %d %dx%d)"),
+  m_log->debug(_T("Constrained (to the FrameBuffer dimension) view port coordinates: (%d, %d %dx%d)"),
     rect.left, rect.top, rect.getWidth(), rect.getHeight());
 }
 
