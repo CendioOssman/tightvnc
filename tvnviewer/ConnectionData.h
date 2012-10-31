@@ -28,24 +28,59 @@
 #include "util/StringStorage.h"
 #include "rfb/HostPath.h"
 
-class ConnectionData : private HostPath
+class ConnectionData
 {
 public:
   ConnectionData();
+  ConnectionData(const ConnectionData &connectionData);
 
+  //
+  // This methods is setter and getter of hostname or pair of hostname and port.
+  //
   void setHost(const StringStorage *host);
+  StringStorage getHost() const;
+
+  //
+  // This method return hostname without port.
+  //
+  void getReducedHost(StringStorage *strHost) const;
+
+  //
+  // This method return port.
+  //
+  int getPort() const;
+
+  //
+  // This method return true, if hostname isn't set.
+  //
   bool isEmpty() const;
-  const StringStorage *getDefaultPassword() const;
+
+  //
+  // This methods is setter and getters of password.
+  //
+  StringStorage getPlainPassword() const;
+  StringStorage getCryptedPassword() const;
   void setPlainPassword(const StringStorage *password);
   void setCryptedPassword(const StringStorage *password);
-  void getCryptedPassword(StringStorage *hidePassword) const;
-  void getHost(StringStorage *strHost) const;
-  const StringStorage getHost() const;
-  void getReducedHost(StringStorage *strHost) const;
-  int getPort() const;
-  
+  bool isSetPassword() const;
+  void resetPassword();
+
+  void setIncoming(bool isIncoming);
+  bool isIncoming() const;
+
 protected:
+  HostPath m_hostPath;
+
+  // This flag is true, if host isn't set.
   bool m_isEmpty;
+
+  // This flag is true, if password is set.
+  bool m_isSetPassword;
+
+  // This flag is true, if connection is incoming (e.g. listening mode).
+  bool m_isIncoming;
+
+  // Saved password is crypted.
   StringStorage m_defaultPassword;
 };
 

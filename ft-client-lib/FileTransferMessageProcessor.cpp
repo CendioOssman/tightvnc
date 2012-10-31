@@ -33,7 +33,8 @@ FileTransferMessageProcessor::~FileTransferMessageProcessor()
 {
 }
 
-void FileTransferMessageProcessor::processRfbMessage(UINT32 rfbMessage)
+void FileTransferMessageProcessor::processRfbMessage(DataInputStream *input,
+                                                     UINT32 rfbMessage)
      throw (IOException, ZLibException,
             OperationNotSupportedException,
             OperationNotPermittedException)
@@ -45,46 +46,46 @@ void FileTransferMessageProcessor::processRfbMessage(UINT32 rfbMessage)
 
     switch (rfbMessage) {
     case FTMessage::COMPRESSION_SUPPORT_REPLY:
-      listener->onCompressionSupportReply();
+      listener->onCompressionSupportReply(input);
       break;
     case FTMessage::FILE_LIST_REPLY:
-      listener->onFileListReply();
+      listener->onFileListReply(input);
       break;
     case FTMessage::DOWNLOAD_START_REPLY:
-      listener->onDownloadReply();
+      listener->onDownloadReply(input);
       break;
     case FTMessage::DOWNLOAD_DATA_REPLY:
-      listener->onDownloadDataReply();
+      listener->onDownloadDataReply(input);
       break;
     case FTMessage::DOWNLOAD_END_REPLY:
-      listener->onDownloadEndReply();
+      listener->onDownloadEndReply(input);
       break;
     case FTMessage::UPLOAD_START_REPLY:
-      listener->onUploadReply();
+      listener->onUploadReply(input);
       break;
     case FTMessage::UPLOAD_DATA_REPLY:
-      listener->onUploadDataReply();
+      listener->onUploadDataReply(input);
       break;
     case FTMessage::UPLOAD_END_REPLY:
-      listener->onUploadEndReply();
+      listener->onUploadEndReply(input);
       break;
     case FTMessage::MD5_REPLY:
-      listener->onMd5DataReply();
+      listener->onMd5DataReply(input);
       break;
     case FTMessage::DIRSIZE_REPLY:
-      listener->onDirSizeReply();
+      listener->onDirSizeReply(input);
       break;
     case FTMessage::RENAME_REPLY:
-      listener->onMvReply();
+      listener->onMvReply(input);
       break;
     case FTMessage::MKDIR_REPLY:
-      listener->onMkdirReply();
+      listener->onMkdirReply(input);
       break;
     case FTMessage::REMOVE_REPLY:
-      listener->onRmReply();
+      listener->onRmReply(input);
       break;
     case FTMessage::LAST_REQUEST_FAILED_REPLY:
-      listener->onLastRequestFailedReply();
+      listener->onLastRequestFailedReply(input);
       break;
     } // switch
   } // for

@@ -25,7 +25,8 @@
 #include <map>
 #include <vector>
 
-#include "util/CommonHeader.h"
+#include "thread/LocalMutex.h"
+#include "util/StringStorage.h"
 
 #ifndef _CAPS_CONTAINER_H_
 #define _CAPS_CONTAINER_H_
@@ -39,9 +40,9 @@ public:
   UINT32 code;                            // numeric identifier
   char vendorSignature[vendorSigSize];    // vendor identification
   char nameSignature[nameSigSize];        // abbreviated option name
-
 };
 
+// This class is thread-safe.
 class CapsContainer
 {
 public:
@@ -60,7 +61,7 @@ public:
   //
   // Check if a capability with the specified code was added earlier.
   //
-  bool isKnown(UINT32 code) const;
+  bool isAdded(UINT32 code) const;
 
   //
   // Fill in a rfbCapabilityInfo structure with contents corresponding to the
@@ -87,19 +88,39 @@ public:
   // Check if the specified capability is known and enabled.
   //
   bool isEnabled(UINT32 code) const;
-  size_t numEnabled() const { return m_plist.size(); }
+
+  //
+  // This function return count of enabled capabilities.
+  //
+  size_t numEnabled() const;
+  
   //
   // Return the capability code at the specified index.
+  // List of capabilities contained only enabled capability.
   // If the index is not valid, return 0.
   //
   UINT32 getByOrder(size_t idx);
 
+  //
+  // This method return list of enabled capabilities.
+  //
+  void getEnabledCapabilities(std::vector<UINT32> &codes) const;
+
 private:
+  //
+  // Check if a capability with the specified code was added earlier.
+  // This function isn't thread-safe.
+  //
+  bool isKnown(UINT32 code) const;
+
   std::map<UINT32, RfbCapabilityInfo> infoMap;
   std::map<UINT32, StringStorage> descMap;
   std::map<UINT32, bool> enableMap;
 
+  // List of enabled caps.
   std::vector<UINT32> m_plist;
+
+  mutable LocalMutex m_mapLock;
 };
 
 #endif

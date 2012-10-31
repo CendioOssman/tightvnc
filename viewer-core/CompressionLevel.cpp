@@ -25,24 +25,18 @@
 #include "CompressionLevel.h"
 
 CompressionLevel::CompressionLevel(LogWriter *logWriter, int compression)
-: Decoder(logWriter),
-  m_compression(compression)
+: PseudoDecoder(logWriter)
 {
+  m_encoding = levelToEncoding(compression);
 }
 
 CompressionLevel::~CompressionLevel()
 {
 }
 
-void CompressionLevel::decode(RfbInputGate *input,
-                              FrameBuffer *framebuffer,
-                              const Rect *dstRect)
+int CompressionLevel::levelToEncoding(int compressionLevel)
 {
-}
-
-int CompressionLevel::getCode() const
-{
-  switch (m_compression) {
+  switch (compressionLevel) {
   case 0: return PseudoEncDefs::COMPR_LEVEL_0;
   case 1: return PseudoEncDefs::COMPR_LEVEL_1;
   case 2: return PseudoEncDefs::COMPR_LEVEL_2;
@@ -55,7 +49,7 @@ int CompressionLevel::getCode() const
   case 9: return PseudoEncDefs::COMPR_LEVEL_9;
   default:
     StringStorage error;
-    error.format(_T("Compression level \"%d\" is not valid"), m_compression);
+    error.format(_T("Compression level \"%d\" is not valid"), compressionLevel);
     throw Exception(error.getString());
   }
 }

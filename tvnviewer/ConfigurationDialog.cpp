@@ -24,7 +24,9 @@
 
 #include "ConfigurationDialog.h"
 #include "NamingDefs.h"
+#include "resource.h"
 
+#include "file-lib/File.h"
 #include "win-system/Process.h"
 
 ConfigurationDialog::ConfigurationDialog()
@@ -36,17 +38,7 @@ BOOL ConfigurationDialog::onCommand(UINT controlID, UINT notificationID)
 {
   if (controlID == IDC_EVERBLVL) {
     if (notificationID == EN_CHANGE) {
-      StringStorage text;
-      int logLevel;
-      m_verbLvl.getText(&text);
-      StringParser::parseInt(text.getString(), &logLevel);
-      if (logLevel != 0) {
-        m_logging.setEnabled(true);
-        m_openLogDir.setEnabled(true);
-      } else {
-        m_logging.setEnabled(false);
-        m_openLogDir.setEnabled(false);
-      }
+      onLogLevelChange();
     }
   }
   if (controlID == IDOK) {
@@ -60,7 +52,6 @@ BOOL ConfigurationDialog::onCommand(UINT controlID, UINT notificationID)
   }
   if (controlID == IDC_BCLEAR_LIST) {
     ViewerConfig::getInstance()->getConnectionHistory()->clear();
-    m_historyWasCleared = true;
   }
   if (controlID == IDC_OPEN_LOG_FOLDER_BUTTON) {
     onOpenFolderButtonClick();
@@ -68,6 +59,34 @@ BOOL ConfigurationDialog::onCommand(UINT controlID, UINT notificationID)
   return FALSE;
 }
 
+void ConfigurationDialog::onLogLevelChange()
+{
+  StringStorage text;
+  int logLevel;
+  m_verbLvl.getText(&text);
+  StringParser::parseInt(text.getString(), &logLevel);
+  if (logLevel != 0) {
+    m_logging.setEnabled(true);
+
+    // If log-file is exist, then enable button "Locate...", else disable him.
+    StringStorage logDir;
+    ViewerConfig::getInstance()->getLogDir(&logDir);
+    StringStorage logFileName;
+    logFileName.format(_T("%s\\%s.log"),
+                       logDir.getString(),
+                       LogNames::VIEWER_LOG_FILE_STUB_NAME);
+
+    File logFile(logFileName.getString());
+    if (logFile.exists()) {
+      m_openLogDir.setEnabled(true);
+    } else {
+      m_openLogDir.setEnabled(false);
+    }
+  } else {
+    m_logging.setEnabled(false);
+    m_openLogDir.setEnabled(false);
+  }
+}
 void ConfigurationDialog::onOpenFolderButtonClick()
 {
   StringStorage logDir;
@@ -90,8 +109,6 @@ void ConfigurationDialog::onOpenFolderButtonClick()
 
 BOOL ConfigurationDialog::onInitDialog()
 {
-  m_historyWasCleared = false;
-
   setControlById(m_showToolBars, IDC_CSHOWTOOLBARS); 
   setControlById(m_warnAtSwitching, IDC_CWARNATSW);
   setControlById(m_numberConn, IDC_ENUMCON);
@@ -142,13 +159,13 @@ void ConfigurationDialog::updateControlValues()
 
 bool ConfigurationDialog::isInputValid()
 {
-  if (!testNum(&m_reverseConn, _T("Listen port"))) {
+  if (!testNum(&m_reverseConn, StringTable::getString(IDS_CONFIGURATION_LISTEN_PORT))) {
     return false;
   }
-  if (!testNum(&m_verbLvl, _T("Log level"))) {
+  if (!testNum(&m_verbLvl, StringTable::getString(IDS_CONFIGURATION_LOG_LEVEL))) {
     return false;
   }
-  if (!testNum(&m_numberConn, _T("History limit"))) {
+  if (!testNum(&m_numberConn, StringTable::getString(IDS_CONFIGURATION_HISTORY_LIMIT))) {
     return false;
   }
   return true;
@@ -164,10 +181,10 @@ bool ConfigurationDialog::testNum(TextBox *tb, const TCHAR *tbName)
   }
 
   StringStorage message;
-  message.format(_T("Value in field '%s' must be numeric"), tbName);
+  message.format(StringTable::getString(IDS_ERROR_VALUE_FIELD_ONLY_NUMERIC), tbName);
 
   MessageBox(m_ctrlThis.getWindow(), message.getString(),
-             _T("TightVNC Viewer Configuration"), MB_OK | MB_ICONWARNING);
+             StringTable::getString(IDS_CONFIGURATION_CAPTION), MB_OK | MB_ICONWARNING);
 
   tb->setFocus();
 

@@ -90,6 +90,11 @@ protected:
   // This function writes the log dump if it is presented and then zeroes and disables it.
   void writeLogDump();
 
+  // Returns true if log dumping is still enabled.
+  bool logDumpEnabled();
+
+  // Returns true if log head is still enabled.
+  bool logHeadEnabled();
 
 private:
   static const size_t MAX_LOG_HEADER_SIZE = 16;

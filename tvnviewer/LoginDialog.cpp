@@ -22,8 +22,6 @@
 //-------------------------------------------------------------------------
 //
 
-#include "AboutDialog.h"
-#include "ConfigurationDialog.h"
 #include "LoginDialog.h"
 #include "NamingDefs.h"
 #include "OptionsDialog.h"
@@ -102,16 +100,17 @@ void LoginDialog::onConnect()
   conHistory->addHost(m_serverHost.getString());
   conHistory->save();
 
+  if (!m_serverHost.isEmpty()) {
+    ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH, m_serverHost.getString());
+    m_connectionConfig.saveToStorage(&ccsm);
+  }
+
   m_viewer->newConnection(&m_serverHost, &m_connectionConfig);
 }
 
 void LoginDialog::onConfiguration()
 {
-  ConfigurationDialog dialog;
-
-  dialog.setParent(getControl());
-  dialog.showModal();
-  updateHistory();
+  m_viewer->postMessage(TvnViewer::WM_USER_CONFIGURATION);
 }
 
 BOOL LoginDialog::onOptions()
@@ -157,6 +156,11 @@ void LoginDialog::openUrl(const TCHAR *url)
 void LoginDialog::setListening(bool isListening)
 {
   m_isListening = isListening;
+  if (isListening) {
+    m_listening.setEnabled(false);
+  } else {
+    m_listening.setEnabled(true);
+  }
 }
 
 void LoginDialog::onListening()
@@ -171,24 +175,34 @@ void LoginDialog::onListening()
 
 void LoginDialog::onAbout()
 {
-  AboutDialog dlg;
-
-  dlg.setParent(&m_ctrlThis);
-  dlg.showModal();
+  m_viewer->postMessage(TvnViewer::WM_USER_ABOUT);
 }
 
 BOOL LoginDialog::onCommand(UINT controlID, UINT notificationID)
 {
   switch (controlID) {
   case IDC_CSERVER:
+    switch (notificationID) {
+    case CBN_DROPDOWN:
+      updateHistory();
+      break;
+
     // select item in ComboBox with list of history
-    if (notificationID == CBN_SELENDOK) {
-      StringStorage server;
-      m_server.getItemText(m_server.getSelectedItemIndex(), &server);
-      ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
-                              server.getString());
-      m_connectionConfig.loadFromStorage(&ccsm);
+    case CBN_SELENDOK:
+      {
+        int selectedItemIndex = m_server.getSelectedItemIndex();
+        if (selectedItemIndex < 0) {
+          return FALSE;
+        }
+        StringStorage server;
+        m_server.getItemText(selectedItemIndex, &server);
+        ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH,
+                                server.getString());
+        m_connectionConfig.loadFromStorage(&ccsm);
+        break;
+      }
     }
+
     enableConnect();
     break;
 
@@ -200,9 +214,6 @@ BOOL LoginDialog::onCommand(UINT controlID, UINT notificationID)
 
   // cancel connection
   case IDCANCEL:
-    if (!m_isListening && m_viewer->notConnected()) {
-      m_viewer->shutdown();
-    }
     kill(0);
     break;
 

@@ -222,15 +222,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AuthHandler.cpp" />
+    <ClCompile Include="CapabilitiesManager.cpp" />
     <ClCompile Include="CapsContainer.cpp" />
     <ClCompile Include="CoreEventsAdapter.cpp" />
     <ClCompile Include="CursorPainter.cpp" />
-    <ClCompile Include="ExtensionContainer.cpp" />
+    <ClCompile Include="DecoderOfRectangle.cpp" />
     <ClCompile Include="FbUpdateNotifier.cpp" />
     <ClCompile Include="FileTransferCapability.cpp" />
     <ClCompile Include="LastRectDecoder.cpp" />
-    <ClCompile Include="MsgCapability.cpp" />
-    <ClCompile Include="NoneAuthentication.cpp" />
+    <ClCompile Include="PseudoDecoder.cpp" />
+    <ClCompile Include="RawDecoder.cpp" />
     <ClCompile Include="RemoteViewerCore.cpp" />
     <ClCompile Include="RfbClientToServerMessage.cpp" />
     <ClCompile Include="RfbCutTextEventClientMessage.cpp" />
@@ -239,7 +240,6 @@
     <ClCompile Include="RfbPointerEventClientMessage.cpp" />
     <ClCompile Include="RfbSetEncodingsClientMessage.cpp" />
     <ClCompile Include="RfbSetPixelFormatClientMessage.cpp" />
-    <ClCompile Include="SecurityType.cpp" />
     <ClCompile Include="StandardPixelFormatFactory.cpp" />
     <ClCompile Include="TcpConnection.cpp" />
     <ClCompile Include="VncAuthentication.cpp" />
@@ -259,15 +259,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AuthHandler.h" />
+    <ClInclude Include="CapabilitiesManager.h" />
     <ClInclude Include="CapsContainer.h" />
     <ClInclude Include="CoreEventsAdapter.h" />
     <ClInclude Include="CursorPainter.h" />
-    <ClInclude Include="ExtensionContainer.h" />
+    <ClInclude Include="DecoderOfRectangle.h" />
     <ClInclude Include="FbUpdateNotifier.h" />
     <ClInclude Include="FileTransferCapability.h" />
     <ClInclude Include="LastRectDecoder.h" />
-    <ClInclude Include="MsgCapability.h" />
-    <ClInclude Include="NoneAuthentication.h" />
+    <ClInclude Include="PseudoDecoder.h" />
+    <ClInclude Include="RawDecoder.h" />
     <ClInclude Include="RemoteViewerCore.h" />
     <ClInclude Include="RfbClientToServerMessage.h" />
     <ClInclude Include="RfbCutTextEventClientMessage.h" />
@@ -276,7 +277,6 @@
     <ClInclude Include="RfbPointerEventClientMessage.h" />
     <ClInclude Include="RfbSetEncodingsClientMessage.h" />
     <ClInclude Include="RfbSetPixelFormatClientMessage.h" />
-    <ClInclude Include="SecurityType.h" />
     <ClInclude Include="StandardPixelFormatFactory.h" />
     <ClInclude Include="TcpConnection.h" />
     <ClInclude Include="VncAuthentication.h" />

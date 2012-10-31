@@ -461,37 +461,38 @@ void ControlApplication::checkServicePasswords()
 
   bool askToChangeRfbAuth = !config->isUsingAuthentication() || !config->hasPrimaryPassword();
   bool askToChangeAdmAuth = !config->isControlAuthEnabled() || !config->hasControlPassword();
-  if (askToChangeRfbAuth || askToChangeAdmAuth) {
-    SetPasswordsDialog dialog(askToChangeRfbAuth, askToChangeAdmAuth);
-    if (dialog.showModal() == IDOK) {
-      UINT8 cryptedPass[8];
-      bool useRfbAuth = dialog.getUseRfbPass();
-      bool dontUseRfbAuth = dialog.getRfbPassForClear();
-      // Note: The state !useRfbAuth && !dontUseRfbAuth is valid and means "do not change
-      // the auth settings".
-      if (useRfbAuth || dontUseRfbAuth) {
-        StringStorage pass;
-        if (useRfbAuth) {
-          dialog.getRfbPass(&pass);
-        } // else the password will be zeroed
-        getCryptedPassword(cryptedPass, pass.getString());
-        config->setPrimaryPassword(cryptedPass);
-        config->useAuthentication(!dontUseRfbAuth);
-      }
-      bool useAdmAuth = dialog.getUseAdmPass();
-      bool dontUseAdmAuth = dialog.getAdmPassForClear();
-      if (useAdmAuth || dontUseAdmAuth) {
-        StringStorage pass;
-        if (useAdmAuth) {
-          dialog.getAdmPass(&pass);
-        }
-        getCryptedPassword(cryptedPass, pass.getString());
-        config->setControlPassword(cryptedPass);
-        config->useControlAuth(!dontUseAdmAuth);
-      }
-      Configurator::getInstance()->save();
-      reloadConfig();
+  SetPasswordsDialog dialog(askToChangeRfbAuth, askToChangeAdmAuth);
+  if (dialog.showModal() == IDOK) {
+    UINT8 cryptedPass[8];
+    bool useRfbAuth = dialog.getUseRfbPass();
+    bool dontUseRfbAuth = dialog.getRfbPassForClear();
+    // Note: The state !useRfbAuth && !dontUseRfbAuth is valid and means "do not change
+    // the auth settings".
+    if (useRfbAuth) {
+      StringStorage pass;
+      dialog.getRfbPass(&pass);
+      getCryptedPassword(cryptedPass, pass.getString());
+      config->setPrimaryPassword(cryptedPass);
+      config->useAuthentication(true);
+    } else if (dontUseRfbAuth) {
+      config->deletePrimaryPassword();
+      config->deleteReadOnlyPassword();
+      config->useAuthentication(false);
     }
+    bool useAdmAuth = dialog.getUseAdmPass();
+    bool dontUseAdmAuth = dialog.getAdmPassForClear();
+    if (useAdmAuth) {
+      StringStorage pass;
+      dialog.getAdmPass(&pass);
+      getCryptedPassword(cryptedPass, pass.getString());
+      config->setControlPassword(cryptedPass);
+      config->useControlAuth(true);
+    } else if (dontUseAdmAuth) {
+      config->deleteControlPassword();
+      config->useControlAuth(false);
+    }
+    Configurator::getInstance()->save();
+    reloadConfig();
   }
 }
 

@@ -127,7 +127,7 @@ void ControlTrayIcon::onRightButtonUp()
     onAboutViewer();
     break;
   case IDS_CLOSE:
-    onCloseViewer();
+    onCloseListeningDaemon();
     break;
   default:
     _ASSERT(true);
@@ -164,10 +164,7 @@ void ControlTrayIcon::onAboutViewer()
   m_application->showAboutViewer();
 }
 
-void ControlTrayIcon::onCloseViewer()
+void ControlTrayIcon::onCloseListeningDaemon()
 {
   m_application->stopListening();
-  if (m_application->notConnected() && !m_application->isVisibleLoginDialog()) {
-    PostQuitMessage(0);
-  }
 }

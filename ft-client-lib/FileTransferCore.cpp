@@ -82,7 +82,7 @@ void FileTransferCore::setInterface(FileTransferInterface *ftInterface)
   m_ftInterface = ftInterface;
 }
 
-const OperationSupport FileTransferCore::getSupportedOps()
+const OperationSupport &FileTransferCore::getSupportedOps()
 { 
   return m_supportedOps;
 }
@@ -104,10 +104,10 @@ vector<FileInfo> *FileTransferCore::getListRemoteFolder()
   return &m_remoteFilesInfo;
 }
 
-void FileTransferCore::updateSupportedOperations(const CapsContainer *clientCaps,
-                                                 const CapsContainer *serverCaps)
+void FileTransferCore::updateSupportedOperations(const vector<UINT32> *clientCaps,
+                                                 const vector<UINT32> *serverCaps)
 {
-  m_supportedOps = OperationSupport(clientCaps, serverCaps);
+  m_supportedOps = OperationSupport(*clientCaps, *serverCaps);
 }
 
 void FileTransferCore::ftOpStarted(FileTransferOperation *sender)

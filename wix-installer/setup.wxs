@@ -78,6 +78,7 @@
     <!--<WixVariable Id="WixUIDialogBmp" Value="\dialog.bmp" />-->
     <!--<WixVariable Id="WixUIExclamationIco" Value="tvnserver.ico" />-->
     <WixVariable Id="WixUIInfoIco" Value="tvnserver.ico" />
+    <Property Id="ARPPRODUCTICON" Value="tvnserver.ico" />
 
     <!-- Run custom actions during the install -->
     <InstallExecuteSequence>

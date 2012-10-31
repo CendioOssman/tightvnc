@@ -48,6 +48,7 @@ public:
                                   StringStorage *userName);
   virtual void getDisplayNumberCoords(Rect *rect,
                                       unsigned char dispNumber);
+  virtual void getNormalizedRect(Rect *rect);
   virtual void getPrimaryDisplayCoords(Rect *rect);
   virtual void getWindowCoords(HWND hwnd, Rect *rect);
   virtual HWND getWindowHandleByName(const StringStorage *windowName);
@@ -55,6 +56,8 @@ public:
   virtual void initKeyFlag(UINT8 initValue) { m_prevKeyFlag = initValue; }
 
 protected:
+  void toFbCoordinates(Rect *rect);
+
   WindowsClipboard *m_clipboard;
   WindowsDisplays m_winDisplays;
 

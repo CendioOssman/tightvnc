@@ -35,10 +35,10 @@ public:
   AuthenticationDialog();
 
   // this function returns the password entered by user
-  const StringStorage *getPassw();
+  const StringStorage *getPassword();
 
   // this function returns sets the name of host in dialog
-  void setHostName(const StringStorage * strHost);
+  void setHostName(const StringStorage *hostname);
 
 protected:
   BOOL onCommand(UINT controlID, UINT notificationID);
@@ -46,7 +46,7 @@ protected:
 
   TextBox m_password;
   TextBox m_hostname;
-  StringStorage m_strPassw;
+  StringStorage m_strPassword;
   StringStorage m_strHost;
 };
 

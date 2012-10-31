@@ -25,21 +25,13 @@
 #ifndef _RICH_CURSOR_DECODER_H_
 #define _RICH_CURSOR_DECODER_H_
 
-#include <vector>
+#include "PseudoDecoder.h"
 
-#include "Decoder.h"
-
-class RichCursorDecoder : public Decoder
+class RichCursorDecoder : public PseudoDecoder
 {
 public:
   RichCursorDecoder(LogWriter *logWriter);
-  ~RichCursorDecoder();
-
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
+  virtual ~RichCursorDecoder();
 };
 
 #endif

@@ -93,9 +93,16 @@ void TcpConnection::connect()
     // need create to socket
     if (m_socket == 0) {
       if (!m_host.isEmpty() && m_port != 0) {
-        m_logWriter->detail(_T("Connecting to the host \"%s:%hd\"..."), m_host.getString(), m_port);
+        SocketAddressIPv4 ipAddress(m_host.getString(), m_port);
+
+        StringStorage ipAddressString;
+        ipAddress.toString(&ipAddressString);
+        m_logWriter->detail(_T("Connecting to the host \"%s:%hd\" (%s:%hd)..."),
+                            m_host.getString(), m_port,
+                            ipAddressString.getString(), m_port);
+
         m_socket = new SocketIPv4;
-        m_socket->connect(SocketAddressIPv4(m_host.getString(), m_port));
+        m_socket->connect(ipAddress);
         m_socket->enableNaggleAlgorithm(false);
       } else {
         throw Exception(_T("Connection parameters (host, port, socket, gates) is empty."));

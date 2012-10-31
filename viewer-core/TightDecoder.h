@@ -29,19 +29,19 @@
 
 #include "util/Inflater.h"
 
-#include "Decoder.h"
+#include "DecoderOfRectangle.h"
 #include "JpegDecompressor.h"
 
-class TightDecoder : public Decoder
+class TightDecoder : public DecoderOfRectangle
 {
 public:
   TightDecoder(LogWriter *logWriter);
   virtual ~TightDecoder();
-  void decode(RfbInputGate *input,
-              FrameBuffer *frameBuffer,
-              const Rect *dstRect);
 
-  int getCode() const;
+protected:
+  virtual void decode(RfbInputGate *input,
+                      FrameBuffer *frameBuffer,
+                      const Rect *dstRect);
 
 private:
   void reset();

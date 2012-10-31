@@ -32,6 +32,8 @@
 FileInfoListView::FileInfoListView()
 : m_smallImageList(0)
 {
+  // By default, file list is sorted by file name.
+  sort(0);
 }
 
 FileInfoListView::~FileInfoListView()
@@ -49,9 +51,9 @@ void FileInfoListView::setWindow(HWND hwnd)
 {
   ListView::setWindow(hwnd);
 
-  ListView::addColumn(0, _T("Filename"), 135);
+  ListView::addColumn(0, _T("Name"), 135);
   ListView::addColumn(1, _T("Size"), 80, LVCFMT_RIGHT);
-  ListView::addColumn(2, _T("Modification time"), 115);
+  ListView::addColumn(2, _T("Modified"), 115);
 
   setFullRowSelectStyle(true);
 
@@ -105,6 +107,7 @@ void FileInfoListView::addItem(int index, FileInfo *fileInfo)
 
   ListView::setSubItemText(index, 1, sizeString.getString());
   ListView::setSubItemText(index, 2, modTimeString.getString());
+  ListView::sort();
 }
 
 void FileInfoListView::addRange(FileInfo **filesInfo, size_t count)
@@ -128,6 +131,8 @@ void FileInfoListView::addRange(FileInfo **filesInfo, size_t count)
       addItem(index++, fi);
     } // if not directory
   } // for all files info
+
+  ListView::sort();
 } // void
 
 FileInfo *FileInfoListView::getSelectedFileInfo()
@@ -167,6 +172,85 @@ void FileInfoListView::loadImages()
   _ASSERT(icon != NULL);
   ImageList_AddIcon(m_smallImageList, icon);
   DestroyIcon(icon);
+}
+
+void FileInfoListView::sort(int columnIndex)
+{
+  ListView::sort(columnIndex, compareItem);
+}
+
+int FileInfoListView::compareUInt64(UINT64 first, UINT64 second)
+{
+  if (first < second) {
+    return -1;
+  }
+  if (first > second) {
+    return 1;
+  }
+  return 0;
+}
+
+int FileInfoListView::compareItem(LPARAM lParam1,
+                                   LPARAM lParam2,
+                                   LPARAM lParamSort)
+{
+  FileInfo *firstItem = reinterpret_cast<FileInfo *>(lParam1);
+  FileInfo *secondItem = reinterpret_cast<FileInfo *>(lParam2);
+
+
+  // Fake directory ".." should be into top list.
+  if (_tcscmp(firstItem->getFileName(), _T("..")) == 0) {
+    return -1;
+  }
+
+  if (_tcscmp(secondItem->getFileName(), _T("..")) == 0) {
+    return 1;
+  }
+
+  // Directories should be upper, than files.
+  if (firstItem->isDirectory() && !secondItem->isDirectory()) {
+    return -1;
+  }
+  if (!firstItem->isDirectory() && secondItem->isDirectory()) {
+    return 1;
+  }
+
+  int columnIndex = static_cast<int>(lParamSort);
+ 
+  switch (lParamSort) {
+  // It's column "FileName".
+  case 0:
+    return _tcscmp(firstItem->getFileName(), secondItem->getFileName());
+
+  // It's column "FileSize".
+  case 1:
+    {
+      // Size of directory is 0. Sort him by name.
+      if (firstItem->isDirectory()) {
+        return compareItem(lParam1, lParam2, 0);
+      }
+      int compareSize = compareUInt64(firstItem->getSize(), secondItem->getSize());
+      // Sort by name, if sizes is equal.
+      if (compareSize == 0) {
+        return compareItem(lParam1, lParam2, 0);
+      }
+      return compareSize;
+    }
+  // It's column "Last modified".
+  case 2:
+    {
+      int compareTime = compareUInt64(firstItem->lastModified(), secondItem->lastModified());
+      // Sort by name, if time stamps is equal.
+      if (compareTime == 0) {
+        return compareItem(lParam1, lParam2, 0);
+      }
+      return compareTime;
+    }
+  // It's unknown column.
+  default:
+    _ASSERT(false);
+    return 0;
+  }
 }
 
 LRESULT CALLBACK FileInfoListView::s_newWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

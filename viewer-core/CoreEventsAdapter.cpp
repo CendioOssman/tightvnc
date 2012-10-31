@@ -42,7 +42,7 @@ void CoreEventsAdapter::onEstablished()
 {
 }
 
-void CoreEventsAdapter::onConnected()
+void CoreEventsAdapter::onConnected(RfbOutputGate *output)
 {
 }
 
@@ -52,6 +52,7 @@ void CoreEventsAdapter::onDisconnect(const StringStorage *message)
 
 void CoreEventsAdapter::onAuthError(const AuthException *exception)
 {
+  onError(exception);
 }
 
 void CoreEventsAdapter::onError(const Exception *exception)
@@ -65,12 +66,4 @@ void CoreEventsAdapter::onFrameBufferUpdate(const FrameBuffer *fb,
 
 void CoreEventsAdapter::onFrameBufferPropChange(const FrameBuffer *fb)
 {
-}
-
-void CoreEventsAdapter::doAuthenticate(const int securityType,
-                                       RfbInputGate *input,
-                                       RfbOutputGate *output)
-{
-  if (securityType != SecurityDefs::NONE)
-    throw AuthUnknownException();
 }

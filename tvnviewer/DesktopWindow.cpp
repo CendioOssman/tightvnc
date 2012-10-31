@@ -34,7 +34,11 @@ DesktopWindow::DesktopWindow(LogWriter *logWriter, ConnectionConfig *conConf)
   m_winResize(false),
   m_conConf(conConf),
   m_brush(RGB(0, 0, 0)),
-  m_pViewerCore(0),
+  m_viewerCore(0),
+  m_ctrlDown(false),
+  m_altDown(false),
+  m_previousMousePos(-1, -1),
+  m_previousMouseState(0),
   m_isBackgroundDirty(false),
   m_isFullScreen(false)
 {
@@ -51,9 +55,14 @@ void DesktopWindow::setFullScreen(bool isFullScreen)
   m_sbar.setVirtualScroll(m_isFullScreen);
 }
 
-void DesktopWindow::setViewerCore(RemoteViewerCore *pViewerCore)
+void DesktopWindow::setConnected()
 {
-  m_pViewerCore = pViewerCore;
+  m_isConnected = true;
+}
+
+void DesktopWindow::setViewerCore(RemoteViewerCore *viewerCore)
+{
+  m_viewerCore = viewerCore;
 }
 
 bool DesktopWindow::onCreate(LPCREATESTRUCT pcs)
@@ -65,11 +74,11 @@ bool DesktopWindow::onCreate(LPCREATESTRUCT pcs)
 
 void DesktopWindow::onPaint(DeviceContext *dc, PAINTSTRUCT *paintStruct)
 {
-  AutoLock al(&m_bufferLock);
   Rect paintRect(&paintStruct->rcPaint);
 
   if (paintRect.area() != 0) {
     try {
+      AutoLock al(&m_bufferLock);
       m_framebuffer.setTargetDC(paintStruct->hdc);
       if (!m_clientArea.isEmpty()) {
         doDraw(dc);
@@ -112,6 +121,8 @@ bool DesktopWindow::onMessage(UINT message, WPARAM wParam, LPARAM lParam)
       m_rfbKeySym->processFocusRestoration();
       return true;
     case WM_KILLFOCUS:
+      m_ctrlDown = false;
+      m_altDown = false;
       m_rfbKeySym->processFocusLoss();
       return true;
   }
@@ -178,54 +189,60 @@ bool DesktopWindow::onVScroll(WPARAM wParam, LPARAM lParam)
   return true;
 }
 
-bool DesktopWindow::onMouse(unsigned char msg, unsigned short wspeed, POINTS pt) 
+bool DesktopWindow::onMouse(unsigned char mouseButtons, unsigned short wheelSpeed, POINT position)
 {
-  POINT p;
-
-  p.x = pt.x;
-  p.y = pt.y;
+  // If mode is "view-only", then skip event.
   if (m_conConf->isViewOnly()) {
     return true;
   }
 
-  if (m_conConf->isMouseSwapEnabled() && msg) {
-    bool bSecond = !!(msg & (1 << 1));
-    bool bThird  = !!(msg & (1 << 2));
-    msg &= ~((1 << 1) | (1 << 2));
+  // If viewer isn't connected with server, then skip event.
+  if (!m_isConnected) {
+    return true;
+  }
+
+  // If swap of mouse button is enabled, then swap button.
+  if (m_conConf->isMouseSwapEnabled() && mouseButtons) {
+    bool bSecond = !!(mouseButtons & MOUSE_MDOWN);
+    bool bThird  = !!(mouseButtons & MOUSE_RDOWN);
+    mouseButtons &= ~(MOUSE_MDOWN | MOUSE_RDOWN);
     if (bSecond) {  
-      msg |= 1 << 2;
+      mouseButtons |= MOUSE_RDOWN;
     }
     if (bThird) {
-      msg |= 1 << 1;
+      mouseButtons |= MOUSE_MDOWN;
     }
   }
 
-  int mask = MOUSE_WUP | MOUSE_WDOWN;
-  // we need to translate screen coordinate to client
-  if (msg & mask) { 
-    if (!ScreenToClient(getHWnd(), &p)) {
-      p.x = -1; 
-      p.y = -1;
-    } 
-  }
-  POINTS mousePos = getViewerCoord(p.x, p.y); 
+  // Translate coordinates from the Viewer Window to Desktop Window.
+  POINTS mousePos = getViewerCoord(position.x, position.y);
   Point pos;
   pos.x = mousePos.x;
   pos.y = mousePos.y;
-  if (pos.y >= 0 && pos.x >= 0) {
-     UINT8 keys;
-     
-     keys = msg;
-     m_pViewerCore->sendPointerEvent(keys, &pos);
-     if (msg & mask) {
-        int i;
 
-        m_pViewerCore->sendPointerEvent(keys & ~mask, &pos);
-        for (i=0; i< wspeed-1; i++) {
-          m_pViewerCore->sendPointerEvent(keys, &pos);
-          m_pViewerCore->sendPointerEvent(keys & ~mask, &pos); 
+  // If coordinats of point is invalid, then skip event.
+  if (pos.x >= 0 && pos.y >= 0) {
+    UINT8 buttons = mouseButtons;
+
+    // If posititon of mouse isn't change, then don't send event to server.
+    if (buttons != m_previousMouseState || !pos.isEqualTo(&m_previousMousePos)) {
+      int wheelMask = MOUSE_WUP | MOUSE_WDOWN;
+
+      // Update previously position of mouse.
+      m_previousMouseState = buttons & ~wheelMask;
+      m_previousMousePos = pos;
+
+      if ((buttons & wheelMask) == 0) {
+        // Send position of cursor and state of buttons one time.
+        m_viewerCore->sendPointerEvent(buttons, &pos);
+      } else {
+        // Send position of cursor and state of buttons wheelSpeed times.
+        for (int i = 0; i < wheelSpeed; i++) {
+          m_viewerCore->sendPointerEvent(buttons, &pos);
+          m_viewerCore->sendPointerEvent(buttons & ~wheelMask, &pos);
         }
-     }
+      } // wheel
+    }
   }
   return true;
 }
@@ -233,8 +250,21 @@ bool DesktopWindow::onMouse(unsigned char msg, unsigned short wspeed, POINTS pt)
 bool DesktopWindow::onKey(WPARAM wParam, LPARAM lParam) 
 {
   if (!m_conConf->isViewOnly()) {
-    m_rfbKeySym->processKeyEvent(static_cast<unsigned short>(wParam), 
-                                 static_cast<unsigned int>(lParam));   
+    unsigned short virtualKey = static_cast<unsigned short>(wParam);
+    unsigned int additionalInfo = static_cast<unsigned int>(lParam);
+    static const unsigned int DOWN_FLAG = 0x80000000;
+    bool isDown = (additionalInfo & DOWN_FLAG) == 0;
+
+    if (virtualKey == VK_CONTROL) {
+      m_ctrlDown = isDown;
+    }
+
+    if (virtualKey == VK_MENU) {
+      m_altDown = isDown;
+    }
+
+    m_rfbKeySym->processKeyEvent(virtualKey,
+                                 additionalInfo);
   }
   return true;
 }
@@ -267,7 +297,7 @@ bool DesktopWindow::onDrawClipboard()
       return true;
     }
     m_strClipboard = _T("");
-    m_pViewerCore->sendCutTextEvent(&clipboardString);
+    m_viewerCore->sendCutTextEvent(&clipboardString);
   }
   return true;
 }
@@ -452,15 +482,19 @@ bool DesktopWindow::onDestroy()
 void DesktopWindow::updateFramebuffer(const FrameBuffer *framebuffer,
                                      const Rect *dstRect)
 {
-  {
-    // FIXME: Nested locks should not be used.
-    AutoLock al(&m_bufferLock);
+  // This code doesn't require blocking of m_framebuffer.
+  //
+  // If in this moment Windows paint frame buffer to screen,
+  // then image on viewer is not valid, but next update fix this
+  // It is not critical.
+  //
+  // Size of framebuffer can not changed, because onFrameBufferUpdate()
+  // and onFrameBufferPropChange() may be called only from one thread.
 
-    if (!m_framebuffer.copyFrom(dstRect, framebuffer, dstRect->left, dstRect->top)) {
-      m_logWriter->error(_T("Possible invalide region. (%d, %d), (%d, %d)"),
-                         dstRect->left, dstRect->top, dstRect->right, dstRect->bottom);
-      m_logWriter->interror(_T("Error in updateFramebuffer (ViewerWindow)"));
-    }
+  if (!m_framebuffer.copyFrom(dstRect, framebuffer, dstRect->left, dstRect->top)) {
+    m_logWriter->error(_T("Possible invalide region. (%d, %d), (%d, %d)"),
+                       dstRect->left, dstRect->top, dstRect->right, dstRect->bottom);
+    m_logWriter->interror(_T("Error in updateFramebuffer (ViewerWindow)"));
   }
   repaint(dstRect);
 }
@@ -488,6 +522,10 @@ void DesktopWindow::setNewFramebuffer(const FrameBuffer *framebuffer)
                                   getHWnd());
       m_framebuffer.setColor(0, 0, 0);
       m_scManager.setScreenResolution(dimension.width, dimension.height);
+    } else {
+      // If size of remote frame buffer is (0, 0), then fill viewer.
+      // Otherwise user might think that everything hangs.
+      m_framebuffer.setColor(0, 0, 0);
     }
   }
   if (dimension.isEmpty()) {
@@ -580,14 +618,34 @@ void DesktopWindow::getServerGeometry(int *width, int *height, int *pixelsize)
 
 void DesktopWindow::onRfbKeySymEvent(unsigned int rfbKeySym, bool down)
 {
-  if (m_pViewerCore) {
-    m_pViewerCore->sendKeyboardEvent(down, rfbKeySym);
+  if (m_viewerCore) {
+    m_viewerCore->sendKeyboardEvent(down, rfbKeySym);
   }
+}
+
+void DesktopWindow::setCtrlState(const bool ctrlState)
+{
+  m_ctrlDown = ctrlState;
+}
+
+void DesktopWindow::setAltState(const bool altState)
+{
+  m_altDown = altState;
+}
+
+bool DesktopWindow::getCtrlState() const
+{
+  return m_ctrlDown;
+}
+
+bool DesktopWindow::getAltState() const
+{
+  return m_altDown;
 }
 
 void DesktopWindow::sendKey(WCHAR key, bool pressed)
 {
-  m_rfbKeySym->sendModifier(static_cast<unsigned char>(key), pressed); 
+  m_rfbKeySym->sendModifier(static_cast<unsigned char>(key), pressed);
 }
 
 void DesktopWindow::sendCtrlAltDel()

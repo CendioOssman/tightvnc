@@ -29,7 +29,7 @@
 
 #include "region/Rect.h"
 
-// many help of jpeg-lib in /usr/share/doc/jpeg-8c-r1/example.c.bz2
+// More help of jpeg-lib in /usr/share/doc/jpeg-8c-r1/example.c.bz2
 extern "C" {
   #include <libjpeg/jpeglib.h>
 }

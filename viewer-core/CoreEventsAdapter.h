@@ -25,7 +25,9 @@
 #ifndef _CORE_EVENTS_ADAPTER_H_
 #define _CORE_EVENTS_ADAPTER_H_
 
-#include "network/RfbInputGate.h"
+#include "io-lib/DataInputStream.h"
+#include "io-lib/DataOutputStream.h"
+#include "io-lib/IOException.h"
 #include "network/RfbOutputGate.h"
 #include "rfb/FrameBuffer.h"
 #include "region/Rect.h"
@@ -41,8 +43,6 @@
 // interested in. For example, if all you need is to show the contents of the
 // remote screen, then you should override two functions: onFrameBufferUpdate()
 // and onFrameBufferPropChange().
-//
-// In addition, override doAuthenticate() to implement authentication.
 //
 
 class CoreEventsAdapter
@@ -72,15 +72,19 @@ public:
   // Protocol has entered the normal interactive phase (in other words,
   // protocol initialization has been completed).
   //
-  virtual void onConnected();
+  // FIXME: document it.
+  // Output need for capability, e.g. FT.
+  virtual void onConnected(RfbOutputGate *output);
 
   //
-  // RemoteViewerCore has been disconnected by calling stop().
+  // RemoteViewerCore has been disconnected by calling stop()
+  // or connection with server is disconnected.
   //
   virtual void onDisconnect(const StringStorage *message);
 
   //
   // Authentication has been failed.
+  // By default, onAuthError() call onError(exception).
   //
   virtual void onAuthError(const AuthException *exception);
 
@@ -106,15 +110,6 @@ public:
   // notification will be called on initial frame buffer allocation as well.
   //
   virtual void onFrameBufferPropChange(const FrameBuffer *fb);
-
-  //
-  // Override this function to implement authentication.
-  // NOTE: This interface for authentication is subject to change.
-  //
-  virtual void doAuthenticate(const int securityType,
-                              RfbInputGate *input,
-                              RfbOutputGate *output) 
-                              throw (AuthUnknownException, AuthCanceledException);
 };
 
 #endif

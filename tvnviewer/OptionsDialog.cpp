@@ -43,8 +43,9 @@ void OptionsDialog::setConnected()
 BOOL OptionsDialog::onCommand(UINT controlID, UINT notificationID)
 {
   if (controlID == IDOK) {
-    apply();
-    kill(1);
+    if (onOkPressed()) {
+      kill(1);
+    }
     return TRUE;
   }
   if (controlID == IDCANCEL) {
@@ -371,17 +372,35 @@ bool OptionsDialog::isInputValid()
   }
 
   if (!StringParser::parseInt(scaleText.getString(), &scaleInt)) {
-    MessageBox(m_ctrlThis.getWindow(), _T("Scale paratemer must be numeric."),
-               _T("Input Data"), MB_OK | MB_ICONWARNING);
+    StringStorage error;
+    error.format(StringTable::getString(IDS_ERROR_VALUE_FIELD_ONLY_NUMERIC),
+                 StringTable::getString(IDS_OPTIONS_SCALE));
+    MessageBox(m_ctrlThis.getWindow(),
+               error.getString(),
+               StringTable::getString(IDS_OPTIONS_CAPTION),
+               MB_OK | MB_ICONWARNING);
     return false;
   }
 
   if (scaleInt < 0) {
-    MessageBox(m_ctrlThis.getWindow(), _T("Scale paratemer must be a positive number."),
-               _T("Input Data"), MB_OK | MB_ICONWARNING);
+    StringStorage error;
+    error.format(StringTable::getString(IDS_ERROR_VALUE_FIELD_ONLY_POSITIVE_NUMERIC),
+                 StringTable::getString(IDS_OPTIONS_SCALE));
+    MessageBox(m_ctrlThis.getWindow(),
+               error.getString(),
+               StringTable::getString(IDS_OPTIONS_CAPTION),
+               MB_OK | MB_ICONWARNING);
     return false;
   }
 
+  return true;
+}
+
+bool OptionsDialog::onOkPressed()
+{
+  if (!isInputValid())
+    return false;
+  apply();
   return true;
 }
 
@@ -389,8 +408,13 @@ void OptionsDialog::apply()
 {
   // Preferred encoding
   int pesii = m_useEnc.getSelectedItemIndex();
-  int preferredEncoding = reinterpret_cast<int>(m_useEnc.getItemData(pesii));
-  m_conConfig->setPreferredEncoding(preferredEncoding);
+  if (pesii >= 0) {
+    int preferredEncoding = reinterpret_cast<int>(m_useEnc.getItemData(pesii));
+    m_conConfig->setPreferredEncoding(preferredEncoding);
+  } else {
+    _ASSERT(pesii >= 0);
+    m_conConfig->setPreferredEncoding(EncodingDefs::TIGHT);
+  }
 
   if (m_compLvl.isChecked()) {
     int level = static_cast<int>(m_tcompLvl.getPos());

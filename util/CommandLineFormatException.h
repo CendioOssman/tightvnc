@@ -30,8 +30,7 @@
 class CommandLineFormatException : public Exception
 {
 public:
-  CommandLineFormatException(const TCHAR *message = _T("Invalid command line format.")
-                                                    _T(" Type \"tvnviewer -help\" to help."));
+  CommandLineFormatException(const TCHAR *message = _T("Invalid command line format."));
   virtual ~CommandLineFormatException();
 };
 

@@ -25,24 +25,19 @@
 #ifndef _COMPRESSION_LEVEL_H_
 #define _COMPRESSION_LEVEL_H_
 
-#include "Decoder.h"
+#include "PseudoDecoder.h"
 
-class CompressionLevel : public Decoder
+class CompressionLevel : public PseudoDecoder
 {
 public:
   CompressionLevel(LogWriter *logWriter, int compression);
   virtual ~CompressionLevel();
 
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
+public:
+  static int levelToEncoding(int compressionLevel);
 
   static const int COMPRESSION_LEVEL_MIN = 0;
   static const int COMPRESSION_LEVEL_MAX = 9;
-private:
-  int m_compression;
 };
 
 #endif

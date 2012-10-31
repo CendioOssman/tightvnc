@@ -25,26 +25,17 @@
 #ifndef _VIEWER_COLLECTOR_H_
 #define _VIEWER_COLLECTOR_H_
 
-#include "thread/Thread.h"
 #include "thread/LocalMutex.h"
-#include "win-system/WindowsEvent.h"
 #include <list>
 #include "ViewerInstance.h"
-#include "TvnViewer.h"
 
-using namespace std;
-
-class TvnViewer;
-
-typedef list<ViewerInstance *> InstanceList;
+typedef std::list<ViewerInstance *> InstanceList;
 
 // Collector instances.
-// ViewerCollector has it's own instance which deletes in infinity loop not
-// active intances.
-class ViewerCollector : private Thread
+class ViewerCollector
 {
 public:
-  ViewerCollector(TvnViewer *viewer);
+  ViewerCollector();
   virtual ~ViewerCollector();
 
   // Adds instance to a self list.
@@ -54,21 +45,22 @@ public:
   // delete them from memory and thread list.
   void destroyAllInstances();
 
+  // This function decrease counter of connection, requires reconnect.
+  void decreaseToReconnect();
+
   // Return true, if and only if m_instances is empty()
   bool empty() const;
-
-protected:
-  virtual void execute();
 
   // Deletes all stopped instances from memory and removes them from self list.
   void deleteDeadInstances();
 
 protected:
-  InstanceList m_instances;
   mutable LocalMutex m_lockObj;
-  WindowsEvent m_timer;
+  InstanceList m_instances;
 
-  TvnViewer *m_viewer;
+  // This variable contain count of instance, when need to reconnect.
+  // If this count isn't 0, shutdown application is denied.
+  int m_countToReconnect;
 };
 
 #endif

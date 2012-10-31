@@ -24,6 +24,12 @@
 
 #include "ListView.h"
 
+ListView::ListView()
+{
+  m_sortColumnIndex = -1;
+  m_compareItem = 0;
+}
+
 void ListView::addColumn(int index, const TCHAR *caption, int width, int fmt)
 {
   //
@@ -246,7 +252,41 @@ void ListView::getSelectedItemsIndexes(int *indexes)
   }
 }
 
-void ListView::setExStyle(DWORD style) 
+void ListView::sort(int columnIndex, PFNLVCOMPARE compareItem)
+{
+  // Update parameters of sorting.
+  int oldSortColumnIndex = m_sortColumnIndex;
+  m_sortColumnIndex = columnIndex;
+  m_compareItem = compareItem;
+
+  // Update arrow in header.
+  HWND hHeader = ListView_GetHeader(m_hwnd);
+  if (hHeader != 0) {
+    HDITEM hdrItem = { 0 };
+    hdrItem.mask = HDI_FORMAT;
+
+    if (Header_GetItem(hHeader, oldSortColumnIndex, &hdrItem)) {
+      hdrItem.fmt = hdrItem.fmt & ~HDF_SORTUP;
+      Header_SetItem(hHeader, oldSortColumnIndex, &hdrItem);
+    }
+
+    if (Header_GetItem(hHeader, m_sortColumnIndex, &hdrItem)) {
+      hdrItem.fmt = hdrItem.fmt | HDF_SORTUP;
+      Header_SetItem(hHeader, m_sortColumnIndex, &hdrItem);
+    }
+  }
+  // Sort list of item.
+  sort();
+}
+
+void ListView::sort()
+{
+  if (m_sortColumnIndex >= 0 && m_compareItem != 0) {
+    ListView_SortItems(m_hwnd, m_compareItem, m_sortColumnIndex);
+  }
+}
+
+void ListView::setExStyle(DWORD style)
 {
   ::SendMessage(m_hwnd, LVM_SETEXTENDEDLISTVIEWSTYLE, 0, (LPARAM)style); 
 }

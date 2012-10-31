@@ -27,9 +27,6 @@
 #include "util/ResourceLoader.h"
 #include "viewer-core/StandardPixelFormatFactory.h"
 
-#include "AboutDialog.h"
-#include "AuthenticationDialog.h"
-#include "ConfigurationDialog.h"
 #include "FsWarningDialog.h"
 #include "NamingDefs.h"
 #include "TvnViewer.h"
@@ -47,12 +44,13 @@ ViewerWindow::ViewerWindow(WindowsApplication *application,
   m_scale(100),
   m_isFullScr(false),
   m_ftDialog(0),
-  m_pViewerCore(0),
+  m_viewerCore(0),
   m_fileTransfer(0),
   m_conData(conData),
   m_dsktWnd(&m_logWriter, conConf),
   m_isConnected(false),
   m_sizeIsChanged(false),
+  m_requiresReconnect(false),
   m_stopped(false)
 {
   m_standardScale.push_back(10);
@@ -75,12 +73,18 @@ ViewerWindow::ViewerWindow(WindowsApplication *application,
 
   m_dsktWnd.setClass(&windowClass);
   m_dsktWnd.createWindow(&subTitleName, WS_VISIBLE | WS_CLIPSIBLINGS | WS_CHILD, getHWnd());
+
+  SetTimer(m_hWnd, TIMER_DESKTOP_STATE, TIMER_DESKTOP_STATE_DELAY, (TIMERPROC)NULL);
 }
 
 ViewerWindow::~ViewerWindow()
 {
   if (m_ftDialog != 0) {
-    delete m_ftDialog;
+    try {
+      delete m_ftDialog;
+    } catch (...) {
+    }
+    m_ftDialog = 0;
   }
 }
 
@@ -91,7 +95,7 @@ void ViewerWindow::setFileTransfer(FileTransferCapability *ft)
 
 void ViewerWindow::setRemoteViewerCore(RemoteViewerCore *pCore)
 {
-  m_pViewerCore = pCore;
+  m_viewerCore = pCore;
   m_dsktWnd.setViewerCore(pCore);
   applySettings();
 }
@@ -157,7 +161,7 @@ void ViewerWindow::enableUserElements()
 
 bool ViewerWindow::viewerCoreSettings()
 {
-  if (!m_pViewerCore) {
+  if (!m_viewerCore) {
     return false;
   }
 
@@ -167,22 +171,22 @@ bool ViewerWindow::viewerCoreSettings()
   UINT enableMenu = static_cast<UINT>(!(bFileTransfer && !m_conConf->isViewOnly()));
   m_menu.enableMenuItem(IDS_TB_TRANSFER, enableMenu);
 
-  m_pViewerCore->allowCopyRect(m_conConf->isCopyRectAllowed());
-  m_pViewerCore->setPreferredEncoding(m_conConf->getPreferredEncoding());
+  m_viewerCore->allowCopyRect(m_conConf->isCopyRectAllowed());
+  m_viewerCore->setPreferredEncoding(m_conConf->getPreferredEncoding());
 
-  m_pViewerCore->ignoreCursorShapeUpdates(m_conConf->isIgnoringShapeUpdates());
-  m_pViewerCore->enableCursorShapeUpdates(m_conConf->isRequestingShapeUpdates());
+  m_viewerCore->ignoreCursorShapeUpdates(m_conConf->isIgnoringShapeUpdates());
+  m_viewerCore->enableCursorShapeUpdates(m_conConf->isRequestingShapeUpdates());
 
   // set -1, if compression is disabled
-  m_pViewerCore->setCompressionLevel(m_conConf->getCustomCompressionLevel());
+  m_viewerCore->setCompressionLevel(m_conConf->getCustomCompressionLevel());
 
   // set -1, if jpeg-compression is disabled
-  m_pViewerCore->setJpegQualityLevel(m_conConf->getJpegCompressionLevel());
+  m_viewerCore->setJpegQualityLevel(m_conConf->getJpegCompressionLevel());
 
   if (m_conConf->isUsing8BitColor()) {
-    m_pViewerCore->setPixelFormat(&StandardPixelFormatFactory::create8bppPixelFormat());
+    m_viewerCore->setPixelFormat(&StandardPixelFormatFactory::create8bppPixelFormat());
   } else {
-    m_pViewerCore->setPixelFormat(&StandardPixelFormatFactory::create32bppPixelFormat());
+    m_viewerCore->setPixelFormat(&StandardPixelFormatFactory::create32bppPixelFormat());
   }
   return true;
 }
@@ -260,18 +264,26 @@ bool ViewerWindow::onMessage(UINT message, WPARAM wParam, LPARAM lParam)
     return onFsWarning();
   case WM_CLOSE:
     return onClose();
+  case WM_DESTROY:
+    return onDestroy();
   case WM_CREATE:
     return onCreate((LPCREATESTRUCT) lParam);
   case WM_SIZE:
     return onSize(wParam, lParam);
+  case WM_USER_AUTH_ERROR:
+    return onAuthError(wParam);
   case WM_USER_ERROR:
-    return onError(wParam);
+    return onError();
+  case WM_USER_DISCONNECT:
+    return onDisconnect();
   case WM_SETFOCUS:
     return onFocus(wParam);
   case WM_ERASEBKGND:
     return onEraseBackground((HDC)wParam);
   case WM_KILLFOCUS:
     return onKillFocus(wParam);
+  case WM_TIMER:
+    return onTimer(wParam);
   }
   return false;
 }
@@ -290,6 +302,18 @@ bool ViewerWindow::onKillFocus(WPARAM wParam)
   return true;
 }
 
+bool ViewerWindow::onTimer(WPARAM idTimer)
+{
+  switch (idTimer) {
+  case TIMER_DESKTOP_STATE:
+    desktopStateUpdate();
+    return true;
+  default:
+    _ASSERT(false);
+    return false;
+  }
+}
+
 void ViewerWindow::dialogConnectionOptions() 
 {
   OptionsDialog dialog;
@@ -299,6 +323,7 @@ void ViewerWindow::dialogConnectionOptions()
   // FIXME: Removed Control from this code and another
   Control control = getHWnd();
   dialog.setParent(&control);
+
   if (dialog.showModal() == 1) {
     m_conConf->saveToStorage(&m_ccsm);
     applySettings();
@@ -307,9 +332,7 @@ void ViewerWindow::dialogConnectionOptions()
 
 void ViewerWindow::dialogConnectionInfo() 
 {
-  StringStorage str, strHost;
-
-  m_conData->getHost(&strHost);
+  StringStorage host = m_conData->getHost();
   std::vector<TCHAR> kbdName;
   kbdName.resize(KL_NAMELENGTH);
   memset(&kbdName[0], 0, sizeof(TCHAR) * KL_NAMELENGTH);
@@ -321,17 +344,18 @@ void ViewerWindow::dialogConnectionInfo()
 
   int width, height, pixel;
   m_dsktWnd.getServerGeometry(&width, &height, &pixel);
-  str.format(_T("Host: %s\nDesktop: %s\nProtocol: %s\nResolution: %ix%i %i bits\nKeyboard layout: %s"),
-             strHost.getString(),
-             m_pViewerCore->getRemoteDesktopName().getString(),
-             m_pViewerCore->getProtocolString().getString(),
+  StringStorage str;
+  str.format(StringTable::getString(IDS_CONNECTION_INFO_FORMAT),
+             host.getString(),
+             m_viewerCore->getRemoteDesktopName().getString(),
+             m_viewerCore->getProtocolString().getString(),
              width,
              height,
              pixel,
              &kbdName[0]);
-  MessageBox(getHWnd(), 
-             str.getString(), 
-             _T("Connection Information"), 
+  MessageBox(getHWnd(),
+             str.getString(),
+             StringTable::getString(IDS_CONNECTION_INFO_CAPTION),
              MB_OK | MB_ICONINFORMATION);
 }
 
@@ -346,11 +370,16 @@ void ViewerWindow::switchFullScreenMode()
 
 void ViewerWindow::dialogConfiguration() 
 {
-  ConfigurationDialog dialog;
+  m_application->postMessage(TvnViewer::WM_USER_CONFIGURATION);
+}
 
-  Control control = getHWnd(); 
-  dialog.setParent(&control);
-  dialog.showModal();
+void ViewerWindow::desktopStateUpdate()
+{
+  // Adjust window of viewer to size of remote desktop.
+  adjustWindowSize();
+
+  // Update state of toolbar-buttons (Ctrl, Alt) to hardware-button state.
+  updateKeyState();
 }
 
 void ViewerWindow::commandCtrlAltDel() 
@@ -379,10 +408,12 @@ void ViewerWindow::commandCtrl()
     if (iState == TBSTATE_ENABLED) {
       m_menu.checkedMenuItem(IDS_TB_CTRL, true);
       m_toolbar.checkButton(IDS_TB_CTRL,  true);
+      m_dsktWnd.setCtrlState(true);
       m_dsktWnd.sendKey(VK_LCONTROL,      true);
     } else {
       m_menu.checkedMenuItem(IDS_TB_CTRL, false);
       m_toolbar.checkButton(IDS_TB_CTRL,  false);
+      m_dsktWnd.setCtrlState(false);
       m_dsktWnd.sendKey(VK_LCONTROL,      false);
     }
   }
@@ -395,10 +426,12 @@ void ViewerWindow::commandAlt()
     if (iState == TBSTATE_ENABLED) {
       m_menu.checkedMenuItem(IDS_TB_ALT, true);
       m_toolbar.checkButton(IDS_TB_ALT,  true);
+      m_dsktWnd.setAltState(true);
       m_dsktWnd.sendKey(VK_LMENU,        true);
     } else {
       m_menu.checkedMenuItem(IDS_TB_ALT, false);
       m_toolbar.checkButton(IDS_TB_ALT,  false);
+      m_dsktWnd.setAltState(false);
       m_dsktWnd.sendKey(VK_LMENU,        false);
     }
   }
@@ -410,10 +443,10 @@ void ViewerWindow::commandPause()
   if (iState) {
     if (iState == TBSTATE_ENABLED) {
       m_toolbar.checkButton(IDS_TB_PAUSE, true);
-      m_pViewerCore->stopUpdating(true);
+      m_viewerCore->stopUpdating(true);
     } else {
       m_toolbar.checkButton(IDS_TB_PAUSE, false);
-      m_pViewerCore->stopUpdating(false);
+      m_viewerCore->stopUpdating(false);
     }
   }
 }
@@ -421,15 +454,13 @@ void ViewerWindow::commandPause()
 void ViewerWindow::commandToolBar()
 {
   if (m_toolbar.isVisible()) {
-    m_menu.checkedMenuItem(IDS_TB_TOOLBAR,   false);
+    m_menu.checkedMenuItem(IDS_TB_TOOLBAR, false);
     m_toolbar.hide();
-    adjustWindowSize();
     doSize();
   } else {
     if (!m_isFullScr) {
       m_menu.checkedMenuItem(IDS_TB_TOOLBAR, true);
       m_toolbar.show();
-      adjustWindowSize();
       doSize();
     }
   }
@@ -437,28 +468,42 @@ void ViewerWindow::commandToolBar()
 
 void ViewerWindow::commandNewConnection()
 {
-  m_application->postMessage(TvnViewer::WM_USER_NEW_CONNECTION);
+  m_application->postMessage(TvnViewer::WM_USER_SHOW_LOGIN_DIALOG);
 }
 
-void ViewerWindow::commandSaveConnection()
+void ViewerWindow::commandSaveSession()
 {
   TCHAR fileName[MAX_PATH] = _T("");
+
+  StringStorage filterVncFiles(StringTable::getString(IDS_SAVE_SESSION_FILTER_VNC_FILES));
+  StringStorage filterAllFiles(StringTable::getString(IDS_SAVE_SESSION_FILTER_ALL_FILES));
+  TCHAR vncMask[] = _T("*.vnc");
+  TCHAR allMask[] = _T("*.*");
+
+
+  vector<TCHAR> filter;
+  filter.insert(filter.end(), filterVncFiles.getString(), filterVncFiles.getString() + filterVncFiles.getLength() + 1);
+  filter.insert(filter.end(), vncMask, vncMask + sizeof(vncMask) / sizeof(TCHAR) - 1);
+  filter.push_back(_T(';'));
+  filter.push_back(_T('\0'));
+
+  filter.insert(filter.end(), filterAllFiles.getString(), filterAllFiles.getString() + filterAllFiles.getLength() + 1);
+  filter.insert(filter.end(), allMask, allMask + sizeof(allMask) / sizeof(TCHAR) - 1);
+  filter.push_back(_T('\0'));
+  filter.push_back(_T('\0'));
+
 
   OPENFILENAME ofn;
   ZeroMemory(&ofn, sizeof(ofn));
   ofn.lStructSize = sizeof(ofn);
   ofn.hwndOwner = m_hWnd;
-  ofn.lpstrFilter = _T("VNC-configuration files (*.vnc)\0*.vnc;")
-                    _T("All files (*.*)\0*.*\0");
+  ofn.lpstrFilter = &filter.front();
   ofn.lpstrDefExt = _T("vnc");
   ofn.lpstrFile= fileName;
   ofn.nMaxFile = MAX_PATH;
   ofn.Flags = OFN_OVERWRITEPROMPT;
   try {
     if (GetSaveFileName(&ofn)) {
-      TCHAR passMsg[] = _T("Do you want to save the password in this file?\r\n")
-                        _T("If you save \"Yes\", anyone with access to this file could access ")
-                        _T("your session and (potentially) discover your connection-password.");
       DeleteFile(fileName);
       IniFileSettingsManager sm(fileName);
       sm.setApplicationName(_T("connection"));
@@ -467,25 +512,23 @@ void ViewerWindow::commandSaveConnection()
       m_conData->getReducedHost(&host);
       sm.setString(_T("host"), host.getString());
       sm.setUINT(_T("port"), m_conData->getPort());
-      StringStorage plainPassword = *(m_conData->getDefaultPassword());
-      int whetherToSavePass = IDNO;
-      if (!plainPassword.isEmpty()) {
-        StringStorage password;
-        m_conData->getCryptedPassword(&password);
-        whetherToSavePass = MessageBox(m_hWnd, passMsg, _T("Security Warning"), MB_YESNO);
-      }
 
-      if (whetherToSavePass == IDYES) {
-        StringStorage password;
-        m_conData->getCryptedPassword(&password);
-        sm.setString(_T("password"), password.getString());
+      if (m_conData->isSetPassword()) {
+        int whetherToSavePass = MessageBox(m_hWnd,
+          StringTable::getString(IDS_QUESTION_SAVE_PASSWORD),
+          StringTable::getString(IDS_SECURITY_WARNING_CAPTION),
+          MB_YESNO);
+        if (whetherToSavePass == IDYES) {
+          StringStorage password = m_conData->getCryptedPassword();
+          sm.setString(_T("password"), password.getString());
+        }
       }
 
       sm.setApplicationName(_T("options"));
       m_conConf->saveToStorage(&sm);
     }
   } catch (...) {
-    m_logWriter.error(_T("Unknown error in save connection"));
+    m_logWriter.error(_T("Error in save connection"));
   }
 }
 
@@ -603,11 +646,7 @@ int ViewerWindow::translateAccelToTB(int val)
 
 void ViewerWindow::onAbout()
 {
-  AboutDialog dlg;
-
-  Control control = getHWnd(); 
-  dlg.setParent(&control);
-  dlg.showModal();
+  m_application->postMessage(TvnViewer::WM_USER_ABOUT);
 }
 
 bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
@@ -633,7 +672,7 @@ bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
       commandPause();
       return true;
     case IDS_TB_REFRESH:
-      m_pViewerCore->refreshFrameBuffer();
+      m_viewerCore->refreshFrameBuffer();
       return true;
     case IDS_TB_CTRLALTDEL:
       commandCtrlAltDel();
@@ -656,8 +695,8 @@ bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
     case IDS_TB_NEWCONNECTION:
       commandNewConnection();
       return true;
-    case IDS_TB_SAVECONNECTION:
-      commandSaveConnection();
+    case IDS_TB_SAVESESSION:
+      commandSaveSession();
       return true;
     case IDS_TB_SCALEIN:
       commandScaleIn();
@@ -685,16 +724,17 @@ void ViewerWindow::showFileTransferDialog()
 {
   LRESULT iState = m_toolbar.getState(IDS_TB_TRANSFER);
   if (iState) {
-    if (m_ftDialog) {
+    // FIXME: FT check it
+    if (m_ftDialog != 0) {
       if (!m_ftDialog->isCreated()) {
-        m_ftDialog->setParent(&m_control);
         m_fileTransfer->setInterface(0);
         delete m_ftDialog;
         m_ftDialog = 0;
       }
     }
-    if (!m_ftDialog) {
+    if (m_ftDialog == 0) {
       m_ftDialog = new FileTransferMainDialog(m_fileTransfer->getCore());
+      m_ftDialog->setParent(&m_control);
       m_fileTransfer->setInterface(m_ftDialog);
     }
     m_ftDialog->show();
@@ -720,7 +760,7 @@ void ViewerWindow::doFullScr()
   m_conConf->saveToStorage(&m_ccsm);
 
   ViewerConfig *config = ViewerConfig::getInstance();
-  GetWindowRect(getHWnd(), &m_rcNormal);
+  GetWindowRect(getHWnd(), &m_rcNormal.toWindowsRect());
   m_bToolBar = m_toolbar.isVisible();
   m_toolbar.hide();
 
@@ -800,6 +840,12 @@ bool ViewerWindow::onClose()
   return true;
 }
 
+bool ViewerWindow::onDestroy()
+{
+  KillTimer(m_hWnd, TIMER_DESKTOP_STATE);
+  return true;
+}
+
 void ViewerWindow::doSize()
 {
   postMessage(WM_SIZE);
@@ -839,19 +885,57 @@ void ViewerWindow::showWindow()
 {
   show();
 
-  StringStorage str = m_pViewerCore->getRemoteDesktopName();
-  if (str.getLength() > 0) {
-    setWindowText(&str);
-    m_dsktWnd.setWindowText(&str);
-  }
+  StringStorage windowName = formatWindowName();
+  setWindowText(&windowName);
+  m_dsktWnd.setWindowText(&windowName);
+
 }
 
-bool ViewerWindow::onError(WPARAM wParam)
+bool ViewerWindow::onDisconnect()
 {
+  MessageBox(getHWnd(),
+             m_disconnectMessage.getString(),
+             formatWindowName().getString(),
+             MB_OK);
+
+  destroyWindow();
+  return true;
+}
+
+bool ViewerWindow::onAuthError(WPARAM wParam)
+{
+  // If authentication is canceled, then do quiet exit, else show error-message.
   if (wParam != AuthException::AUTH_CANCELED) {
     StringStorage error = m_error.getMessage();
-    MessageBox(getHWnd(), error.getString(), _T("Error"), MB_OK | MB_ICONERROR);
+    int result = MessageBox(0,
+                            error.getString(),
+                            formatWindowName().getString(),
+                            MB_RETRYCANCEL | MB_ICONERROR);
+    if (result == IDRETRY) {
+      if (!m_conData->isIncoming()) {
+        // Retry connect to remote host.
+        m_requiresReconnect = true;
+        ConnectionData *connectionData = new ConnectionData(*m_conData);
+        connectionData->resetPassword();
+        ConnectionConfig *connectionConfig = new ConnectionConfig(*m_conConf);
+        m_application->postMessage(TvnViewer::WM_USER_RECONNECT,
+                                   (WPARAM)connectionData,
+                                   (LPARAM)connectionConfig);
+      }
+    }
   }
+  destroyWindow();
+  return true;
+}
+
+bool ViewerWindow::onError()
+{
+  StringStorage error;
+  error.format(_T("Error in %s: %s"), ProductNames::VIEWER_PRODUCT_NAME, m_error.getMessage());
+  MessageBox(getHWnd(),
+             error.getString(),
+             formatWindowName().getString(),
+             MB_OK | MB_ICONERROR);
   destroyWindow();
   return true;
 }
@@ -910,27 +994,47 @@ Rect ViewerWindow::calculateDefaultSize()
   return defaultRect;
 }
 
-void ViewerWindow::onConnected()
+void ViewerWindow::onConnected(RfbOutputGate *output)
 {
+  // Set flags.
   m_isConnected = true;
+  m_sizeIsChanged = false;
+  m_dsktWnd.setConnected();
 
+  // Set output for client-to-server messages in file transfer.
+  m_fileTransfer->setOutput(output);
+
+  // Update list of supported operation for file transfer.
+  vector<UINT32> clientMsgCodes;
+  m_viewerCore->getEnabledClientMsgCapabilities(&clientMsgCodes);
+
+  vector<UINT32> serverMsgCodes;
+  m_viewerCore->getEnabledServerMsgCapabilities(&serverMsgCodes);
+
+  m_fileTransfer->getCore()->updateSupportedOperations(&clientMsgCodes, &serverMsgCodes);
+
+  // Start viewer window and applying settings.
   showWindow();
   setForegroundWindow();
   applySettings();
-
-  m_sizeIsChanged = false;
-  adjustWindowSize();
 }
 
 void ViewerWindow::onDisconnect(const StringStorage *message)
 {
+  m_logWriter.info(_T("onDisconnect: %s"), message->getString());
+  m_disconnectMessage = *message;
+  if (!m_stopped) {
+    postMessage(WM_USER_DISCONNECT);
+  }
 }
 
 void ViewerWindow::onAuthError(const AuthException *exception)
 {
-  int authCode = exception->getAuthCode(); 
+  m_logWriter.info(_T("onAuthError (%d): %s"),
+                   exception->getAuthCode(), exception->getMessage());
+  int authCode = exception->getAuthCode();
   m_error = *exception;
-  postMessage(WM_USER_ERROR, authCode);
+  postMessage(WM_USER_AUTH_ERROR, authCode);
 }
 
 void ViewerWindow::onError(const Exception *exception)
@@ -947,49 +1051,6 @@ void ViewerWindow::onFrameBufferUpdate(const FrameBuffer *fb, const Rect *rect)
 void ViewerWindow::onFrameBufferPropChange(const FrameBuffer *fb)
 {
   m_dsktWnd.setNewFramebuffer(fb);
-  adjustWindowSize();
-}
-
-void ViewerWindow::getPassword(StringStorage *strPassw)
-{
-  if (!m_conData->getDefaultPassword()->isEmpty()) {
-    *strPassw = *m_conData->getDefaultPassword();
-  } else {
-    AuthenticationDialog passDialog;
-    StringStorage strHost;
-
-    m_conData->getHost(&strHost);
-    passDialog.setHostName(&strHost);
-    if (passDialog.showModal()) {
-      *strPassw = *passDialog.getPassw();
-      m_conData->setPlainPassword(strPassw);
-    } else {
-      throw AuthCanceledException();
-    }
-  }
-}
-
-void ViewerWindow::doAuthenticate(const int securityType,
-                      RfbInputGate *input,
-                      RfbOutputGate *output)
-{
-  switch (securityType) {
-    case SecurityDefs::NONE:
-      break;
-    case SecurityDefs::VNC:
-      {
-        VncAuthentication authHandler;
-        StringStorage strPassw;
-
-        getPassword(&strPassw);
-        authHandler.authenticate(input, 
-                                 output, 
-                                 &strPassw);
-      }
-      break;
-    default:
-      throw AuthUnknownException(_T("Unknown type of authentification in adapter"));
-  }
 }
 
 void ViewerWindow::onCutText(const StringStorage *cutText)
@@ -1002,6 +1063,11 @@ void ViewerWindow::doCommand(int iCommand)
   postMessage(WM_COMMAND, iCommand);
 }
 
+bool ViewerWindow::requiresReconnect() const
+{
+  return m_requiresReconnect;
+}
+
 bool ViewerWindow::isStopped() const
 {
   return m_stopped;
@@ -1009,10 +1075,40 @@ bool ViewerWindow::isStopped() const
 
 void ViewerWindow::adjustWindowSize()
 {
-  Rect defaultSize = calculateDefaultSize();
-  m_rcNormal = defaultSize.toWindowsRect();
   if (!m_isFullScr && !m_sizeIsChanged && !m_isMaximized) {
-    setPosition(defaultSize.left, defaultSize.top);
-    setSize(defaultSize.getWidth(), defaultSize.getHeight());
+    Rect defaultSize = calculateDefaultSize();
+    if (!defaultSize.isEqualTo(&m_rcNormal)) {
+      m_rcNormal = defaultSize;
+      setPosition(defaultSize.left, defaultSize.top);
+      setSize(defaultSize.getWidth(), defaultSize.getHeight());
+    }
   }
+}
+
+void ViewerWindow::updateKeyState()
+{
+  LRESULT ctrlState = m_toolbar.getState(IDS_TB_CTRL);
+  if (ctrlState != 0) {
+    m_toolbar.checkButton(IDS_TB_CTRL, m_dsktWnd.getCtrlState());
+  }
+
+  LRESULT altState = m_toolbar.getState(IDS_TB_ALT);
+  if (altState != 0) {
+    m_toolbar.checkButton(IDS_TB_ALT, m_dsktWnd.getAltState());
+  }
+}
+
+StringStorage ViewerWindow::formatWindowName() const
+{
+  StringStorage desktopName = m_viewerCore->getRemoteDesktopName();
+  if (desktopName.isEmpty() && !m_conData->getHost().isEmpty()) {
+    desktopName = m_conData->getHost();
+  }
+  StringStorage windowName;
+  if (!desktopName.isEmpty()) {
+    windowName.format(_T("%s - %s"), desktopName.getString(), ProductNames::VIEWER_PRODUCT_NAME);
+  } else {
+    windowName.format(_T("%s"), ProductNames::VIEWER_PRODUCT_NAME);
+  }
+  return windowName;
 }

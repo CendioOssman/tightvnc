@@ -30,9 +30,6 @@
     <ClCompile Include="CursorPainter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="NoneAuthentication.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RemoteViewerCore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -55,9 +52,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RfbSetPixelFormatClientMessage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SecurityType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="StandardPixelFormatFactory.cpp">
@@ -114,14 +108,20 @@
     <ClCompile Include="FbUpdateNotifier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CapabilitiesManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DecoderOfRectangle.cpp">
+      <Filter>Decoders</Filter>
+    </ClCompile>
+    <ClCompile Include="RawDecoder.cpp">
+      <Filter>Decoders</Filter>
+    </ClCompile>
+    <ClCompile Include="PseudoDecoder.cpp">
+      <Filter>Decoders</Filter>
+    </ClCompile>
     <ClCompile Include="LastRectDecoder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ExtensionContainer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MsgCapability.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Decoders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -135,9 +135,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CursorPainter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="NoneAuthentication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RemoteViewerCore.h">
@@ -162,9 +159,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RfbSetPixelFormatClientMessage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SecurityType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StandardPixelFormatFactory.h">
@@ -221,14 +215,20 @@
     <ClInclude Include="FbUpdateNotifier.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CapabilitiesManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RawDecoder.h">
+      <Filter>Decoders</Filter>
+    </ClInclude>
+    <ClInclude Include="PseudoDecoder.h">
+      <Filter>Decoders</Filter>
+    </ClInclude>
     <ClInclude Include="LastRectDecoder.h">
-      <Filter>Header Files</Filter>
+      <Filter>Decoders</Filter>
     </ClInclude>
-    <ClInclude Include="ExtensionContainer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MsgCapability.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="DecoderOfRectangle.h">
+      <Filter>Decoders</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -27,7 +27,7 @@
 #include "thread/AutoLock.h"
 #include <crtdbg.h>
 
-FileTransferReplyBuffer::FileTransferReplyBuffer(LogWriter *logWriter, RfbInputGate *input)
+FileTransferReplyBuffer::FileTransferReplyBuffer(LogWriter *logWriter)
 : m_logWriter(logWriter),
   m_isCompressionSupported(false),
   m_filesInfoCount(0), m_filesInfo(NULL),
@@ -36,8 +36,6 @@ FileTransferReplyBuffer::FileTransferReplyBuffer(LogWriter *logWriter, RfbInputG
   m_dirSize(0)
 {
   m_lastErrorMessage.setString(_T(""));
-
-  m_input = input;
 }
 
 FileTransferReplyBuffer::~FileTransferReplyBuffer()
@@ -92,15 +90,15 @@ vector<UINT8> FileTransferReplyBuffer::getDownloadBuffer()
   return m_downloadBuffer;
 }
 
-void FileTransferReplyBuffer::onCompressionSupportReply()
+void FileTransferReplyBuffer::onCompressionSupportReply(DataInputStream *input)
 {
-  m_isCompressionSupported = (m_input->readUInt8() == 1);
+  m_isCompressionSupported = (input->readUInt8() == 1);
 
   m_logWriter->info(_T("Received compression support reply: %s\n"),
                     m_isCompressionSupported ? _T("supported") : _T("not supported"));
 }
 
-void FileTransferReplyBuffer::onFileListReply()
+void FileTransferReplyBuffer::onFileListReply(DataInputStream *input)
 {
   UINT8 compressionLevel = 0;
   UINT32 compressedSize = 0;
@@ -109,11 +107,12 @@ void FileTransferReplyBuffer::onFileListReply()
   vector<UINT8> buffer;
 
   {
-    compressionLevel = m_input->readUInt8();
-    compressedSize = m_input->readUInt32();
-    uncompressedSize = m_input->readUInt32();
+    compressionLevel = input->readUInt8();
+    compressedSize = input->readUInt32();
+    uncompressedSize = input->readUInt32();
 
-    buffer = readCompressedDataBlock(compressedSize,
+    buffer = readCompressedDataBlock(input,
+                                     compressedSize,
                                      uncompressedSize,
                                      compressionLevel);
   }
@@ -150,38 +149,38 @@ void FileTransferReplyBuffer::onFileListReply()
 
 }
 
-void FileTransferReplyBuffer::onMd5DataReply()
+void FileTransferReplyBuffer::onMd5DataReply(DataInputStream *input)
 {
   throw OperationNotSupportedException();
 }
 
-void FileTransferReplyBuffer::onUploadReply()
+void FileTransferReplyBuffer::onUploadReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received upload reply\n"));
 }
 
-void FileTransferReplyBuffer::onUploadDataReply()
+void FileTransferReplyBuffer::onUploadDataReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received upload data reply\n"));
 }
 
-void FileTransferReplyBuffer::onUploadEndReply()
+void FileTransferReplyBuffer::onUploadEndReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received upload end reply\n"));
 }
 
-void FileTransferReplyBuffer::onDownloadReply()
+void FileTransferReplyBuffer::onDownloadReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received download reply\n"));
 }
 
-void FileTransferReplyBuffer::onDownloadDataReply()
+void FileTransferReplyBuffer::onDownloadDataReply(DataInputStream *input)
 {
-  UINT8 coLevel = m_input->readUInt8();
-  UINT32 coBufferSize = m_input->readUInt32();
-  UINT32 uncoBufferSize = m_input->readUInt32();
+  UINT8 coLevel = input->readUInt8();
+  UINT32 coBufferSize = input->readUInt32();
+  UINT32 uncoBufferSize = input->readUInt32();
 
-  m_downloadBuffer = readCompressedDataBlock(coBufferSize, uncoBufferSize, coLevel);
+  m_downloadBuffer = readCompressedDataBlock(input, coBufferSize, uncoBufferSize, coLevel);
   m_downloadBufferSize = uncoBufferSize;
 
   m_logWriter->info(_T("Received download data reply:\n")
@@ -191,10 +190,10 @@ void FileTransferReplyBuffer::onDownloadDataReply()
                     coBufferSize, uncoBufferSize, coLevel);
 }
 
-void FileTransferReplyBuffer::onDownloadEndReply()
+void FileTransferReplyBuffer::onDownloadEndReply(DataInputStream *input)
 {
-  m_downloadFileFlags = m_input->readUInt8();
-  m_downloadLastModified = m_input->readUInt64();
+  m_downloadFileFlags = input->readUInt8();
+  m_downloadLastModified = input->readUInt64();
 
   m_logWriter->info(_T("Received download end reply:\n")
                     _T("\tfile flags: %d\n")
@@ -202,38 +201,39 @@ void FileTransferReplyBuffer::onDownloadEndReply()
                     m_downloadFileFlags, m_downloadLastModified);
 }
 
-void FileTransferReplyBuffer::onMkdirReply()
+void FileTransferReplyBuffer::onMkdirReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received mkdir reply\n"));
 }
 
-void FileTransferReplyBuffer::onRmReply()
+void FileTransferReplyBuffer::onRmReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received rm reply\n"));
 }
 
-void FileTransferReplyBuffer::onMvReply()
+void FileTransferReplyBuffer::onMvReply(DataInputStream *input)
 {
   m_logWriter->info(_T("Received rename reply\n"));
 }
 
-void FileTransferReplyBuffer::onDirSizeReply()
+void FileTransferReplyBuffer::onDirSizeReply(DataInputStream *input)
 {
-  m_dirSize = m_input->readUInt64();
+  m_dirSize = input->readUInt64();
 
   m_logWriter->info(_T("Received dirsize reply\n"));
 }
 
-void FileTransferReplyBuffer::onLastRequestFailedReply()
+void FileTransferReplyBuffer::onLastRequestFailedReply(DataInputStream *input)
 {
-  m_input->readUTF8(&m_lastErrorMessage);
+  input->readUTF8(&m_lastErrorMessage);
 
   m_logWriter->info(_T("Received last request failed reply:\n")
                     _T("\terror message: %s\n"),
                     m_lastErrorMessage.getString());
 }
 
-vector<UINT8> FileTransferReplyBuffer::readCompressedDataBlock(UINT32 compressedSize,
+vector<UINT8> FileTransferReplyBuffer::readCompressedDataBlock(DataInputStream *input,
+                                                               UINT32 compressedSize,
                                                                UINT32 uncompressedSize,
                                                                UINT8 compressionLevel)
 {
@@ -251,7 +251,7 @@ vector<UINT8> FileTransferReplyBuffer::readCompressedDataBlock(UINT32 compressed
   // Read compressed data
   //
 
-  m_input->readFully(&coBuffer.front(), coSize);
+  input->readFully(&coBuffer.front(), coSize);
 
   if (compressionLevel == 0)
     return coBuffer;

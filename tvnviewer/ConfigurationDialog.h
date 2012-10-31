@@ -46,10 +46,9 @@ public:
 
 protected:
   BOOL onCommand(UINT controlID, UINT notificationID);
-  BOOL onInitDialog();
+  void onLogLevelChange();
   void onOpenFolderButtonClick();
-
-  bool m_historyWasCleared;
+  BOOL onInitDialog();
 
   CheckBox m_showToolBars;
   CheckBox m_warnAtSwitching;

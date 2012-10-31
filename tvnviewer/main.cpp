@@ -72,14 +72,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE,
       tvnViewer.showLoginDialog();
     }
     result = tvnViewer.run();
-  } catch (CommandLineFormatException &excep) {
-    StringStorage strError(excep.getMessage());
-    MessageBox(0, strError.getString(), _T("Error"), MB_OK | MB_ICONERROR);
+  } catch (CommandLineFormatException &exception) {
+    StringStorage strError(exception.getMessage());
+    MessageBox(0,
+               strError.getString(),
+               ProductNames::VIEWER_PRODUCT_NAME,
+               MB_OK | MB_ICONERROR);
     return 0;
   } catch (CommandLineFormatHelp &) {
     cmd.onHelp();
     return 0;
   } catch (Exception &excep) {
+    MessageBox(0,
+               StringTable::getString(IDS_UNKNOWN_ERROR_IN_VIEWER),
+               ProductNames::VIEWER_PRODUCT_NAME,
+               MB_OK | MB_ICONERROR);
     logWriter.debug(excep.getMessage());
   }
 

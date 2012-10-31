@@ -68,12 +68,12 @@ protected:
   // Inherited from FileTransferEventHandler
   //
 
-  virtual void onFileListReply() throw(IOException);
-  virtual void onDownloadReply() throw(IOException);
-  virtual void onDownloadDataReply() throw(IOException);
-  virtual void onDownloadEndReply() throw(IOException);
-  virtual void onLastRequestFailedReply() throw(IOException);
-  virtual void onDirSizeReply() throw(IOException);
+  virtual void onFileListReply(DataInputStream *input) throw(IOException);
+  virtual void onDownloadReply(DataInputStream *input) throw(IOException);
+  virtual void onDownloadDataReply(DataInputStream *input) throw(IOException);
+  virtual void onDownloadEndReply(DataInputStream *input) throw(IOException);
+  virtual void onLastRequestFailedReply(DataInputStream *input) throw(IOException);
+  virtual void onDirSizeReply(DataInputStream *input) throw(IOException);
 
 private:
 

@@ -72,15 +72,6 @@ public:
   //
   void showConfiguration();
 
-  // method return true, if login dialog is visible
-  bool isVisibleLoginDialog() const;
-
-  // method return true, if listening mode is started
-  bool isListening() const;
-
-  // method return true, if now isn't connection with remote server
-  bool notConnected() const;
-
   // newConnection(...) and startListening(...) always do copy of params (StringStorage,
   // ConnectionData and ConnectionConfig). After call this function can free memory
   // with hostName, connectionData, connectionConfig
@@ -97,8 +88,25 @@ public:
   int processMessages();
 
 public:
-    static const int WM_USER_NEW_LISTENING = WM_USER + 1;
-    static const int WM_USER_NEW_CONNECTION = WM_USER + 2;
+  // this message must sended after accepted new listening-connection
+  static const int WM_USER_NEW_LISTENING = WM_USER + 1;
+
+  // this message need send if you need show login dialog
+  static const int WM_USER_SHOW_LOGIN_DIALOG = WM_USER + 2;
+
+  // this message need send if you need show configuration dialog
+  static const int WM_USER_CONFIGURATION = WM_USER + 3;
+
+  // this message need send if you need show about dialog
+  static const int WM_USER_ABOUT = WM_USER + 4;
+
+  // This message need send if you need reconnect to host.
+  // LPARAM contained pointer to ConnectionData.
+  static const int WM_USER_RECONNECT = WM_USER + 5;
+
+  // This timer is used for deleting dead instances of viewer.
+  static const int TIMER_DELETE_DEAD_INSTANCE = 1;
+  static const int TIMER_DELETE_DEAD_INSTANCE_DELAY = 50;
 
 protected:
   void registerViewerWindowClass();
@@ -108,7 +116,12 @@ protected:
   void runInstance(ConnectionData *conData, const ConnectionConfig *config);
   void runInstance(const StringStorage *hostName, const ConnectionConfig *config);
 
-  ViewerCollector *m_instances;
+  // This method return true, if login dialog is visible.
+  bool isVisibleLoginDialog() const;
+
+  bool onTimer(WPARAM idTimer);
+
+  ViewerCollector m_instances;
 
   // class name of viewer-window
   StringStorage m_viewerWindowClassName;

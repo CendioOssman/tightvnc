@@ -54,6 +54,7 @@ public:
 
   FileInfo *getSelectedFileInfo();
 
+  void sort(int columnIndex);
 protected:
 
   //
@@ -61,6 +62,19 @@ protected:
   //
 
   void loadImages();
+
+  //
+  // This function compare two item with file-contex (file name, date, size).
+  //
+  static int CALLBACK compareItem(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
+
+  //
+  // This function return:
+  //   -1, if first < second
+  //   0, if first == second
+  //   1, if first > second
+  //
+  static int compareUInt64(UINT64 first, UINT64 second);
 
   HIMAGELIST m_smallImageList;
 

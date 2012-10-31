@@ -39,8 +39,10 @@
 #include "CoreEventsAdapter.h"
 #include "DecoderStore.h"
 #include "FbUpdateNotifier.h"
-#include "ExtensionContainer.h"
+#include "ServerMessageListener.h"
 #include "TcpConnection.h"
+
+#include <map>
 
 //
 // RemoteViewerCore implements a local representation of a live remote screen
@@ -65,7 +67,8 @@
 // Finally, each function of this class may throw exceptions, unless it's
 // explicitly stated that it will never do so.
 //
-class RemoteViewerCore : protected Thread
+class RemoteViewerCore : public CapabilitiesManager,
+                         protected Thread
 {
 public:
   //
@@ -356,9 +359,37 @@ public:
   void ignoreCursorShapeUpdates(bool ignored);
 
   //
-  // addExtension() is not documented yet and is subject to change.
+  // Work with capabilities is documented in interface CapabilitiesManager.
+  // Next methods is implements of CapabilitiesManager.
   //
-  void addExtension(MsgCapability *capability);
+
+  virtual void addAuthCapability(AuthHandler *authHandler,
+                                 UINT32 code,
+                                 const char *vendorSignature,
+                                 const char *nameSignature,
+                                 const StringStorage description = _T(""));
+
+  virtual void addServerMsgCapability(ServerMessageListener *listener,
+                                      UINT32 code,
+                                      const char *vendorSignature,
+                                      const char *nameSignature,
+                                      const StringStorage description = _T(""));
+
+  virtual void addClientMsgCapability(UINT32 code,
+                                      const char *vendorSignature,
+                                      const char *nameSignature,
+                                      const StringStorage description = _T(""));
+
+  virtual void addEncodingCapability(Decoder *decoder,
+                                     int priorityEncoding,
+                                     UINT32 code,
+                                     const char *vendorSignature,
+                                     const char *nameSignature,
+                                     const StringStorage description = _T(""));
+
+  virtual void getEnabledClientMsgCapabilities(vector<UINT32> *codes) const;
+  virtual void getEnabledServerMsgCapabilities(vector<UINT32> *codes) const;
+  virtual void getEnabledEncodingCapabilities(vector<UINT32> *codes) const;
 
 private:
   //
@@ -444,6 +475,10 @@ private:
   void authenticate();
   void clientAndServerInit();
   void readSecurityTypeList(vector<UINT32> *secTypes);
+  StringStorage getSecurityTypeName(UINT32 securityType) const;
+  StringStorage getAuthenticationTypeName(UINT32 authenticationType) const;
+  int selectSecurityType(const vector<UINT32> *secTypes,
+                         const map<UINT32, AuthHandler *> *authHandlers) const;
   void initTunnelling();
   int initAuthentication();
   void readCapabilities();
@@ -467,6 +502,21 @@ private:
   //
   bool updatePixelFormat();
 
+  //
+  // This method add pair <code, handler> to map m_authHandler.
+  //
+  void registerAuthHandler(const UINT32 code, AuthHandler *handler);
+
+  //
+  // This method add pair <code, listener> to map m_serverMsgHandlers.
+  //
+  void registerMessageListener(const UINT32 code, ServerMessageListener *listener);
+
+  //
+  // This method add pair <code, decoder> to map m_decoderHandlers.
+  //
+  void registerDecoderHandler(const UINT32 code, Decoder *decoder, int priority);
+
   LogWriter m_logWriter;
 
   // m_tcpConnection depends on m_logWriter and must be defined after it.
@@ -487,9 +537,15 @@ private:
   FbUpdateNotifier m_fbUpdateNotifier;
 
   CapsContainer m_authCaps;
-  CapsContainer m_encCaps;
+  map<UINT32, AuthHandler *> m_authHandlers;
 
-  ExtensionContainer m_extensions;
+  CapsContainer m_clientMsgCaps;
+  CapsContainer m_serverMsgCaps;
+  map<UINT32, ServerMessageListener *> m_serverMsgHandlers;
+
+  CapsContainer m_encodingCaps;
+  map<UINT32, Decoder *> m_decoderHandlers;
+  map<UINT32, int> m_decoderPriority;
 
   mutable LocalMutex m_startLock;
   bool m_wasStarted;
@@ -497,9 +553,22 @@ private:
   mutable LocalMutex m_connectLock;
   bool m_wasConnected;
 
+  // This is general frame buffer of RemoteViewerCore and local mutex to change him.
+  // This frame buffer contain actual state of remote desktop.
+  // Cursor painted on him before calling CoreEventsAdapter::onFrameBufferUpdate()
+  // and erased after (thread FbUpdateNotifier).
+  //
+  // Mutex m_fbLock must locked into only this thread, else may be deadlock.
   LocalMutex m_fbLock;
   FrameBuffer m_frameBuffer;
-  FrameBuffer rectangleFb;
+
+  // Decoder work with this framebuffer. It is not actual frame buffer,
+  // it only easy buffer, common to all decoders. In future this frame buffer 
+  // may be replaced small buffers (e.g. 64KB) into ever decoder.
+  //
+  // After finish of decoding Decoder copy data to m_frameBuffer.
+  // This buffer is not need to blocking: read information is one-thread.
+  FrameBuffer m_rectangleFb;
 
   LocalMutex m_pixelFormatLock;
   bool m_isNewPixelFormat;

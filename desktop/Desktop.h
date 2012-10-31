@@ -55,7 +55,7 @@ public:
   void getPrimaryDesktopCoords(Rect *rect);
   void getDisplayNumberCoords(Rect *rect,
                               unsigned char dispNumber);
-
+  virtual void getNormalizedRect(Rect *rect);
   void getWindowCoords(HWND hwnd, Rect *rect);
   virtual HWND getWindowHandleByName(const StringStorage *windowName);
 

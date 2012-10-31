@@ -63,6 +63,13 @@ public:
   // message.
   //
   virtual void print(int logLevel, const TCHAR *line) = 0;
+
+  //
+  // Implementations of this abstract function should return true if they ready
+  // to process a message with this logLevel. That is you can test messages for
+  // for accepting or declining before calling the print() function.
+  //
+  virtual bool acceptsLevel(int logLevel) = 0;
 };
 
 #endif // _LOGGER_H_

@@ -34,8 +34,10 @@
 class FileTransferRequestSender
 {
 public:
-  FileTransferRequestSender(LogWriter *logWriter, RfbOutputGate *outputStream);
+  FileTransferRequestSender(LogWriter *logWriter);
   ~FileTransferRequestSender();
+
+  void setOutput(RfbOutputGate *outputStream);
 
   void sendCompressionSupportRequest() throw(IOException);
   void sendFileListRequest(const TCHAR *fullPath, bool useCompression) throw(IOException);

@@ -36,6 +36,6 @@ const TCHAR ApplicationNames::WINDOW_CLASS_NAME[] =
   _T("TvnApplicationClass");
 
 const TCHAR WindowNames::TVN_WINDOW_CLASS_NAME[] = _T("TvnWindowClass");
-const TCHAR WindowNames::TVN_WINDOW_TITLE_NAME[] = _T("Viewer");
+const TCHAR WindowNames::TVN_WINDOW_TITLE_NAME[] = _T("TightVNC Viewer");
 const TCHAR WindowNames::TVN_SUB_WINDOW_TITLE_NAME[] = _T("Viewer");
 

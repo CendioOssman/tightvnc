@@ -100,6 +100,11 @@ void SasUserInput::getDisplayNumberCoords(Rect *rect,
   m_client->getDisplayNumberCoords(rect, dispNumber);
 }
 
+void SasUserInput::getNormalizedRect(Rect *rect)
+{
+  m_client->getNormalizedRect(rect);
+}
+
 void SasUserInput::getWindowCoords(HWND hwnd, Rect *rect)
 {
   m_client->getWindowCoords(hwnd, rect);

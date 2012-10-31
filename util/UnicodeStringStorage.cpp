@@ -100,19 +100,23 @@ void UnicodeStringStorage::fromStringStorage(const StringStorage *src)
 
 void UnicodeStringStorage::toStringStorage(StringStorage *dst)
 {
+  dst->setString(_T(""));
 #ifndef _UNICODE
   int symbolCount = (int)m_buffer.size();
   _ASSERT(symbolCount == m_buffer.size());
 
+  int dstBuffSize = WideCharToMultiByte(CP_ACP, 0, getString(), symbolCount, 0, 0, 0, 0);
+  if (dstBuffSize <= 0) {
+    return;
+  }
   // Allocate space for the requred size
-  std::vector<char> ansiBuffer(symbolCount);
+  std::vector<char> ansiBuffer(dstBuffSize);
 
   // Convert to ansi
-  int constrSize = (int)m_buffer.size();
-  _ASSERT(constrSize == m_buffer.size());
-  WideCharToMultiByte(CP_ACP, 0, getString(), symbolCount,
-                      &ansiBuffer.front(), symbolCount, NULL, NULL);
-  dst->setString(&ansiBuffer.front());
+  if (WideCharToMultiByte(CP_ACP, 0, getString(), symbolCount,
+                          &ansiBuffer.front(), dstBuffSize, 0, 0) != 0) {
+    dst->setString(&ansiBuffer.front());
+  }
 #else
   dst->setString(getString());
 #endif

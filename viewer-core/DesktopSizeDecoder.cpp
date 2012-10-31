@@ -25,21 +25,11 @@
 #include "DesktopSizeDecoder.h"
 
 DesktopSizeDecoder::DesktopSizeDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: PseudoDecoder(logWriter)
 {
+  m_encoding = PseudoEncDefs::DESKTOP_SIZE;
 }
 
 DesktopSizeDecoder::~DesktopSizeDecoder()
 {
-}
-
-void DesktopSizeDecoder::decode(RfbInputGate *input,
-                                FrameBuffer *framebuffer,
-                                const Rect *dstRect)
-{
-}
-
-int DesktopSizeDecoder::getCode() const
-{
-  return PseudoEncDefs::DESKTOP_SIZE;
 }

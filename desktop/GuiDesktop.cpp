@@ -92,6 +92,18 @@ void GuiDesktop::getDisplayNumberCoords(Rect *rect,
   }
 }
 
+void GuiDesktop::getNormalizedRect(Rect *rect)
+{
+  _ASSERT(m_userInput != 0);
+  _ASSERT(m_extDeskTermListener != 0);
+  m_log->info(_T("normilize a rect to frame buffer coordinates"));
+  try {
+    m_userInput->getNormalizedRect(rect);
+  } catch (...) {
+    m_extDeskTermListener->onAbnormalDesktopTerminate();
+  }
+}
+
 void GuiDesktop::getWindowCoords(HWND hwnd, Rect *rect)
 {
   _ASSERT(m_userInput != 0);

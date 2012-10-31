@@ -33,72 +33,72 @@ FileTransferEventAdapter::~FileTransferEventAdapter()
 {
 }
 
-void FileTransferEventAdapter::onCompressionSupportReply()
+void FileTransferEventAdapter::onCompressionSupportReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onFileListReply()
+void FileTransferEventAdapter::onFileListReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onMd5DataReply()
+void FileTransferEventAdapter::onMd5DataReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onUploadReply()
+void FileTransferEventAdapter::onUploadReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onUploadDataReply()
+void FileTransferEventAdapter::onUploadDataReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onUploadEndReply()
+void FileTransferEventAdapter::onUploadEndReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onDownloadReply()
+void FileTransferEventAdapter::onDownloadReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onDownloadDataReply()
+void FileTransferEventAdapter::onDownloadDataReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onDownloadEndReply()
+void FileTransferEventAdapter::onDownloadEndReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onMkdirReply()
+void FileTransferEventAdapter::onMkdirReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onRmReply()
+void FileTransferEventAdapter::onRmReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onMvReply()
+void FileTransferEventAdapter::onMvReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onDirSizeReply()
+void FileTransferEventAdapter::onDirSizeReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }
 
-void FileTransferEventAdapter::onLastRequestFailedReply()
+void FileTransferEventAdapter::onLastRequestFailedReply(DataInputStream *input)
 {
   throw OperationNotPermittedException();
 }

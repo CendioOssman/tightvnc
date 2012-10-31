@@ -25,19 +25,35 @@
 #ifndef _COPY_RECT_DECODER_H_
 #define _COPY_RECT_DECODER_H_
 
-#include "Decoder.h"
+#include "DecoderOfRectangle.h"
 
-class CopyRectDecoder : public Decoder
+#include "region/Point.h"
+
+class CopyRectDecoder : public DecoderOfRectangle
 {
 public:
   CopyRectDecoder(LogWriter *logWriter);
-  ~CopyRectDecoder();
+  virtual ~CopyRectDecoder();
 
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
+protected:
+  //
+  // This method inherited by DecoderOfRectangle.
+  //
+  virtual void decode(RfbInputGate *input,
+                      FrameBuffer *frameBuffer,
+                      const Rect *dstRect);
 
-  int getCode() const;
+  //
+  // This method inherited by DecoderOfRectangle.
+  //
+  virtual void copy(FrameBuffer *dstFrameBuffer,
+                    const FrameBuffer *srcFrameBuffer,
+                    const Rect *rect,
+                    LocalMutex *fbLock);
+
+private:
+  // This Point save left-top corner of copy-rectangle.
+  Point m_sourcePosition;
 };
 
 #endif

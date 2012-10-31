@@ -25,21 +25,11 @@
 #include "PointerPosDecoder.h"
 
 PointerPosDecoder::PointerPosDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: PseudoDecoder(logWriter)
 {
+  m_encoding = PseudoEncDefs::POINTER_POS;
 }
 
 PointerPosDecoder::~PointerPosDecoder()
 {
-}
-
-void PointerPosDecoder::decode(RfbInputGate *input,
-                               FrameBuffer *framebuffer,
-                               const Rect *dstRect)
-{
-}
-
-int PointerPosDecoder::getCode() const
-{
-  return PseudoEncDefs::POINTER_POS;
 }

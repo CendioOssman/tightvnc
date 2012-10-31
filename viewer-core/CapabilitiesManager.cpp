@@ -1,4 +1,4 @@
-// Copyright (C) 2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,18 +22,12 @@
 //-------------------------------------------------------------------------
 //
 
-#include "NoneAuthentication.h"
+#include "CapabilitiesManager.h"
 
-NoneAuthentication::NoneAuthentication()
-{
-  m_id = SecurityDefs::NONE;
-}
-
-NoneAuthentication::~NoneAuthentication()
+CapabilitiesManager::CapabilitiesManager()
 {
 }
 
-void NoneAuthentication::authenticate(RfbInputGate *input, RfbOutputGate *output,
-                                      const StringStorage *password)
+CapabilitiesManager::~CapabilitiesManager()
 {
 }

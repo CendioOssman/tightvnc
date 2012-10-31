@@ -25,8 +25,9 @@
 #include "CopyRectDecoder.h"
 
 CopyRectDecoder::CopyRectDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: DecoderOfRectangle(logWriter)
 {
+  m_encoding = EncodingDefs::COPYRECT;
 }
 
 CopyRectDecoder::~CopyRectDecoder()
@@ -34,15 +35,18 @@ CopyRectDecoder::~CopyRectDecoder()
 }
 
 void CopyRectDecoder::decode(RfbInputGate *input,
-                             FrameBuffer *framebuffer,
+                             FrameBuffer *frameBuffer,
                              const Rect *dstRect)
 {
-  int xSource = input->readInt16();
-  int ySource = input->readInt16();
-  framebuffer->move(dstRect, xSource, ySource);
+  m_sourcePosition.x = input->readInt16();
+  m_sourcePosition.y = input->readInt16();
 }
 
-int CopyRectDecoder::getCode() const
+void CopyRectDecoder::copy(FrameBuffer *dstFrameBuffer,
+                           const FrameBuffer *srcFrameBuffer,
+                           const Rect *rect,
+                           LocalMutex *fbLock)
 {
-  return EncodingDefs::COPYRECT;
+  AutoLock al(fbLock);
+  dstFrameBuffer->move(rect, m_sourcePosition.x, m_sourcePosition.y);
 }

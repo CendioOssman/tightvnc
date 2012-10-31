@@ -25,8 +25,9 @@
 #include "HexTileDecoder.h"
 
 HexTileDecoder::HexTileDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: DecoderOfRectangle(logWriter)
 {
+  m_encoding = EncodingDefs::HEXTILE;
 }
 
 HexTileDecoder::~HexTileDecoder()
@@ -45,10 +46,10 @@ void HexTileDecoder::decode(RfbInputGate *input,
 
   bool backgroundAccepted = false;
 
-  for (int y = dstRect->top; y < dstRect->bottom; y += TILE_SIZE) 
+  for (int y = dstRect->top; y < dstRect->bottom; y += TILE_SIZE) {
     for (int x = dstRect->left; x < dstRect->right; x += TILE_SIZE) {
       Rect tileRect(x,
-                    y, 
+                    y,
                     min(x + TILE_SIZE, dstRect->right),
                     min(y + TILE_SIZE, dstRect->bottom));
 
@@ -56,6 +57,7 @@ void HexTileDecoder::decode(RfbInputGate *input,
         throw Exception(_T("Error in protocol: incorrect size of tile in hextile-decoder"));
 
       UINT8 flags = input->readUInt8();
+      // If tile-coding is RAW.
       if (flags & 0x1) {
         for (int y = tileRect.top; y < tileRect.bottom; y++)
           input->readFully(framebuffer->getBufferPtr(tileRect.left, y),
@@ -95,11 +97,7 @@ void HexTileDecoder::decode(RfbInputGate *input,
           if (!backgroundAccepted)
             throw Exception(_T("Server error in HexTile encoding: background color not accepted"));
         }
-      } // not raw
-    } // for tiles
-}
-
-int HexTileDecoder::getCode() const
-{
-  return EncodingDefs::HEXTILE;
+      } // it tile is not RAW
+    } // for each tiles in line
+  } // for each line of tile
 }

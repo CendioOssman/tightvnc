@@ -145,6 +145,22 @@ void UserInputClient::getDisplayNumberCoords(Rect *rect,
   } while (!success);
 }
 
+void UserInputClient::getNormalizedRect(Rect *rect)
+{
+  AutoLock al(m_forwGate);
+  bool success = false;
+  do {
+    try {
+      // Send request
+      m_forwGate->writeUInt8(WINDOW_COORDS_REQ);
+      sendRect(rect, m_forwGate);
+      *rect = readRect(m_forwGate);
+      success = true;
+    } catch (ReconnectException &) {
+    }
+  } while (!success);
+}
+
 void UserInputClient::getWindowCoords(HWND hwnd, Rect *rect)
 {
   AutoLock al(m_forwGate);

@@ -33,30 +33,32 @@
 // FIXME: It can be renamed to FileTransferMessageListener
 //
 
+#include "io-lib/DataInputStream.h"
+
 class FileTransferEventHandler
 {
 public:
   FileTransferEventHandler();
   virtual ~FileTransferEventHandler();
 
-  virtual void onCompressionSupportReply() = 0;
-  virtual void onFileListReply() = 0;
-  virtual void onMd5DataReply() = 0;
+  virtual void onCompressionSupportReply(DataInputStream *input) = 0;
+  virtual void onFileListReply(DataInputStream *input) = 0;
+  virtual void onMd5DataReply(DataInputStream *input) = 0;
 
-  virtual void onUploadReply() = 0;
-  virtual void onUploadDataReply() = 0;
-  virtual void onUploadEndReply() = 0;
+  virtual void onUploadReply(DataInputStream *input) = 0;
+  virtual void onUploadDataReply(DataInputStream *input) = 0;
+  virtual void onUploadEndReply(DataInputStream *input) = 0;
 
-  virtual void onDownloadReply() = 0;
-  virtual void onDownloadDataReply() = 0;
-  virtual void onDownloadEndReply() = 0;
+  virtual void onDownloadReply(DataInputStream *input) = 0;
+  virtual void onDownloadDataReply(DataInputStream *input) = 0;
+  virtual void onDownloadEndReply(DataInputStream *input) = 0;
 
-  virtual void onMkdirReply() = 0;
-  virtual void onRmReply() = 0;
-  virtual void onMvReply() = 0;
+  virtual void onMkdirReply(DataInputStream *input) = 0;
+  virtual void onRmReply(DataInputStream *input) = 0;
+  virtual void onMvReply(DataInputStream *input) = 0;
 
-  virtual void onDirSizeReply() = 0;
-  virtual void onLastRequestFailedReply() = 0;
+  virtual void onDirSizeReply(DataInputStream *input) = 0;
+  virtual void onLastRequestFailedReply(DataInputStream *input) = 0;
 };
 
 #endif

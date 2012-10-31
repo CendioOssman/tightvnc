@@ -126,34 +126,31 @@ void ViewerCmdLine::parse()
   };
 
   if (!processCmdLine(&options[0], sizeof(options) / sizeof(CmdLineOption))) {
-    throw CommandLineFormatException();
+    throw CommandLineFormatException(StringTable::getString(IDS_ERROR_COMMAND_LINE));
   }
 
+  // If options "help" is present, then show "Help dialog" and exit.
   if (isHelpPresent()) {
     throw CommandLineFormatHelp();
   }
 
 
   if (m_wpcl.getArgumentsCount() > 2) {
-    throw CommandLineFormatException();
+    throw CommandLineFormatException(StringTable::getString(IDS_ERROR_COMMAND_LINE));
   }
 
   if (m_wpcl.getArgumentsCount() > 1) {
     if (isPresent(ViewerCmdLine::HOST)) {
-      throw CommandLineFormatException();
+      throw CommandLineFormatException(StringTable::getString(IDS_ERROR_COMMAND_LINE));
     }
   }
 
   if (isPresent(ViewerCmdLine::OPTIONS_FILE)) {
     parseOptionsFile();
-  } else {
-    if (isPresent(ViewerCmdLine::LISTEN)) {
+  } else if (isPresent(ViewerCmdLine::LISTEN)) {
       *m_isListening = true;
-    } else {
-      if (!parseHost()) {
-        throw CommandLineFormatException();
-      }
-    }
+  } else if (!parseHost()) {
+      throw CommandLineFormatException(StringTable::getString(IDS_ERROR_COMMAND_LINE));
   }
   parsePassword();
   parseEncoding();
@@ -217,7 +214,7 @@ void ViewerCmdLine::parseOptionsFile()
 
   StringStorage host;
   if (!sm.getString(_T("host"), &host)) {
-    throw CommandLineFormatException(_T("Could not read options file."));
+    throw CommandLineFormatException(StringTable::getString(IDS_ERROR_PARSE_OPTIONS_FILE));
   }
   StringStorage port;
   if (sm.getString(_T("port"), &port)) {

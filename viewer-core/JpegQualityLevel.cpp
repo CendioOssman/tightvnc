@@ -25,24 +25,18 @@
 #include "JpegQualityLevel.h"
 
 JpegQualityLevel::JpegQualityLevel(LogWriter *logWriter, int quality)
-: Decoder(logWriter),
-  m_quality(quality)
+: PseudoDecoder(logWriter)
 {
+  m_encoding = qualityToEncoding(quality);
 }
 
 JpegQualityLevel::~JpegQualityLevel()
 {
 }
 
-void JpegQualityLevel::decode(RfbInputGate *input,
-                             FrameBuffer *framebuffer,
-                             const Rect *dstRect)
+int JpegQualityLevel::qualityToEncoding(int qualityLevel)
 {
-}
-
-int JpegQualityLevel::getCode() const
-{
-  switch (m_quality) {
+  switch (qualityLevel) {
   case 0: return PseudoEncDefs::QUALITY_LEVEL_0;
   case 1: return PseudoEncDefs::QUALITY_LEVEL_1;
   case 2: return PseudoEncDefs::QUALITY_LEVEL_2;
@@ -55,7 +49,7 @@ int JpegQualityLevel::getCode() const
   case 9: return PseudoEncDefs::QUALITY_LEVEL_9;
   default:
     StringStorage error;
-    error.format(_T("Quality of jpeg \"%d\" is not valid"), m_quality);
+    error.format(_T("Quality of jpeg \"%d\" is not valid"), qualityLevel);
     throw Exception(error.getString());
   }
 }

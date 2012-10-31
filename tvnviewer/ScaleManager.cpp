@@ -37,11 +37,9 @@ ScaleManager::ScaleManager()
 {
 }
 
-int ScaleManager::sDiv(int x, int y, bool bIncr) const
+int ScaleManager::sDiv(int x, int y) const
 {
-  if (bIncr)
-    return (x + y - 1) / y;
-  return x/y;
+  return (x + y - 1) / y;
 }
 
 void ScaleManager::setScreenResolution(int maxWidth, int maxHeight)
@@ -102,10 +100,10 @@ Rect ScaleManager::calcScaled(const Rect *rcViewed, bool bCent)
       denomeratorScale = m_scrHeight;
     }
   }
-  rcScaled.left = sDiv(rcScaled.left * scale, denomeratorScale, false);
-  rcScaled.top = sDiv(rcScaled.top * scale, denomeratorScale, false);
-  rcScaled.right = sDiv(rcScaled.right * scale, denomeratorScale, true);
-  rcScaled.bottom = sDiv(rcScaled.bottom * scale, denomeratorScale, true);
+  rcScaled.left = rcScaled.left * scale / denomeratorScale;
+  rcScaled.top = rcScaled.top * scale / denomeratorScale;
+  rcScaled.right = sDiv(rcScaled.right * scale, denomeratorScale);
+  rcScaled.bottom = sDiv(rcScaled.bottom * scale, denomeratorScale);
 
   if (bCent) {
     if (m_rcWindow.getWidth() > rcScaled.getWidth()) {
@@ -127,8 +125,8 @@ bool ScaleManager::getVertPages(int iHeight) const
   if (m_scale == -1) {
     return false;
   }
-  int lenScr = sDiv(m_scrHeight * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
-  int result = sDiv(lenScr, iHeight, true);
+  int lenScr = sDiv(m_scrHeight * m_scale, DEFAULT_SCALE_DENOMERATOR);
+  int result = sDiv(lenScr, iHeight);
   if (result > 1) {
     return true;
   }
@@ -140,8 +138,8 @@ bool ScaleManager::getHorzPages(int iWidth) const
   if (m_scale == -1) {
     return false;
   }
-  int lenScr = sDiv(m_scrWidth * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
-  int result = sDiv(lenScr, iWidth, true);
+  int lenScr = sDiv(m_scrWidth * m_scale, DEFAULT_SCALE_DENOMERATOR);
+  int result = sDiv(lenScr, iWidth);
   if (result > 1) {
     return true;
   }
@@ -153,7 +151,7 @@ int ScaleManager::getVertPoints() const
   if (m_scale == -1) {
     return 0;
   }
-  return sDiv(m_scrHeight * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
+  return sDiv(m_scrHeight * m_scale, DEFAULT_SCALE_DENOMERATOR);
 }
 
 int ScaleManager::getHorzPoints() const
@@ -161,7 +159,7 @@ int ScaleManager::getHorzPoints() const
   if (m_scale == -1) {
     return 0;
   }
-  return sDiv(m_scrWidth * m_scale, DEFAULT_SCALE_DENOMERATOR, true);
+  return sDiv(m_scrWidth * m_scale, DEFAULT_SCALE_DENOMERATOR);
 }
 
 void ScaleManager::setStartPoint(int x, int y)
@@ -170,11 +168,11 @@ void ScaleManager::setStartPoint(int x, int y)
   int wndHeight = m_rcWindow.getHeight();
 
   if (m_scale != -1) {
-    x = sDiv(x * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
-    y = sDiv(y * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
+    x = x * DEFAULT_SCALE_DENOMERATOR / m_scale;
+    y = y * DEFAULT_SCALE_DENOMERATOR / m_scale;
 
-    wndWidth = sDiv(wndWidth * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
-    wndHeight = sDiv(wndHeight * DEFAULT_SCALE_DENOMERATOR, m_scale, false);
+    wndWidth = wndWidth * DEFAULT_SCALE_DENOMERATOR / m_scale;
+    wndHeight = wndHeight * DEFAULT_SCALE_DENOMERATOR / m_scale;
   } else {
     // scroll is off, is scale is Auto
     x = y = 0;
@@ -258,8 +256,8 @@ POINTS ScaleManager::transformDispToScr(int xPoint, int yPoint) const
     }
   }
 
-  xPoint = sDiv(xPoint * denomeratorScale, scale, false);
-  yPoint = sDiv(yPoint * denomeratorScale, scale, false);
+  xPoint = xPoint * denomeratorScale / scale;
+  yPoint = yPoint * denomeratorScale / scale;
 
   POINTS pt;
   pt.x = static_cast<SHORT>(xPoint + m_rcViewed.left);

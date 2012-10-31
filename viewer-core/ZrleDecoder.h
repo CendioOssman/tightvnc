@@ -27,20 +27,18 @@
 
 #include "util/Inflater.h"
 
-#include "Decoder.h"
+#include "DecoderOfRectangle.h"
 
-class ZrleDecoder : public Decoder
+class ZrleDecoder : public DecoderOfRectangle
 {
 public:
   ZrleDecoder(LogWriter *logWriter);
   virtual ~ZrleDecoder();
 
-  void decode(RfbInputGate *input,
-              FrameBuffer *frameBuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
-
+protected:
+  virtual void decode(RfbInputGate *input,
+                      FrameBuffer *frameBuffer,
+                      const Rect *dstRect);
 private:
   typedef vector<unsigned int> Palette;
 

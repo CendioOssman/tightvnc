@@ -76,7 +76,7 @@ protected:
   // Stopping of listening daemon after click
   // "Close listening daemon" in pop-up menu of tray icon
   //
-  virtual void onCloseViewer();
+  virtual void onCloseListeningDaemon();
 
   //
   // Show login-dialog after click on tray icon

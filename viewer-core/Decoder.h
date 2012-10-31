@@ -38,17 +38,26 @@ class Decoder
 public:
   Decoder(LogWriter *logWriter);
   virtual ~Decoder();
-  virtual void decode(RfbInputGate *input,
-                      FrameBuffer *framebuffer,
-                      const Rect *dstRect);
+
+  //
+  // This method return encoding of this Decoder.
+  //
   virtual int getCode() const;
 
-  // return true, if decoder decoding pseudo encoding
+  //
+  // This method return true, if decoder responsible for pseudo encoding.
+  //
   virtual bool isPseudo() const;
+
+  //
+  // This static method return true, if "encoding" is pseudo encoding.
+  //
   static bool isPseudo(int encoding);
 
 protected:
   LogWriter *m_logWriter;
+
+  int m_encoding;
 };
 
 #endif

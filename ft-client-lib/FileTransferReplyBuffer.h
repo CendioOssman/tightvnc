@@ -27,7 +27,7 @@
 
 #include "FileTransferEventHandler.h"
 
-#include "network/RfbInputGate.h"
+#include "io-lib/DataInputStream.h"
 
 #include "ft-common/FileInfo.h"
 #include "util/Inflater.h"
@@ -40,7 +40,7 @@
 class FileTransferReplyBuffer : public FileTransferEventHandler
 {
 public:
-  FileTransferReplyBuffer(LogWriter *logWriter, RfbInputGate *input);
+  FileTransferReplyBuffer(LogWriter *logWriter);
   virtual ~FileTransferReplyBuffer();
 
   void getLastErrorMessage(StringStorage *storage);
@@ -62,49 +62,43 @@ public:
   // Inherited from FileTransferEventHandler abstract class
   //
 
-  virtual void onCompressionSupportReply() throw(IOException);
-  virtual void onFileListReply() throw(IOException, ZLibException);
-  virtual void onMd5DataReply() throw(IOException, OperationNotSupportedException);
+  virtual void onCompressionSupportReply(DataInputStream *input) throw(IOException);
+  virtual void onFileListReply(DataInputStream *input) throw(IOException, ZLibException);
+  virtual void onMd5DataReply(DataInputStream *input) throw(IOException, OperationNotSupportedException);
 
-  virtual void onUploadReply() throw(IOException);
-  virtual void onUploadDataReply() throw(IOException);
-  virtual void onUploadEndReply() throw(IOException);
+  virtual void onUploadReply(DataInputStream *input) throw(IOException);
+  virtual void onUploadDataReply(DataInputStream *input) throw(IOException);
+  virtual void onUploadEndReply(DataInputStream *input) throw(IOException);
 
-  virtual void onDownloadReply() throw(IOException);
-  virtual void onDownloadDataReply() throw(IOException, ZLibException);
-  virtual void onDownloadEndReply() throw(IOException);
+  virtual void onDownloadReply(DataInputStream *input) throw(IOException);
+  virtual void onDownloadDataReply(DataInputStream *input) throw(IOException, ZLibException);
+  virtual void onDownloadEndReply(DataInputStream *input) throw(IOException);
 
-  virtual void onMkdirReply() throw(IOException);
-  virtual void onRmReply() throw(IOException);
-  virtual void onMvReply() throw(IOException);
+  virtual void onMkdirReply(DataInputStream *input) throw(IOException);
+  virtual void onRmReply(DataInputStream *input) throw(IOException);
+  virtual void onMvReply(DataInputStream *input) throw(IOException);
 
-  virtual void onDirSizeReply() throw(IOException);
-  virtual void onLastRequestFailedReply() throw(IOException);
+  virtual void onDirSizeReply(DataInputStream *input) throw(IOException);
+  virtual void onLastRequestFailedReply(DataInputStream *input) throw(IOException);
 
 private:
 
-  vector<UINT8> readCompressedDataBlock(UINT32 compressedSize,
+  vector<UINT8> readCompressedDataBlock(DataInputStream *input,
+                                        UINT32 compressedSize,
                                         UINT32 uncompressedSize,
                                         UINT8 compressionLevel)
                 throw(IOException, ZLibException);
 
 protected:
-  //
-  // Base stream for reading byte data
-  //
-
-  RfbInputGate *m_input;
 
   //
   // Interface of log writer for log data
   //
-
   LogWriter *m_logWriter;
 
   //
   // ZLib stream for decompression of compressed data
   //
-
   Inflater m_inflater;
 
   //

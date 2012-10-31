@@ -39,15 +39,15 @@ BOOL AuthenticationDialog::onInitDialog()
   return FALSE;
 }
 
-void AuthenticationDialog::setHostName(const StringStorage * strHost)
+void AuthenticationDialog::setHostName(const StringStorage *hostname)
 {
-  m_strHost = *strHost;
+  m_strHost = *hostname;
 }
 
 BOOL AuthenticationDialog::onCommand(UINT controlID, UINT notificationID)
 {
   if (controlID == IDOK) {
-    m_password.getText(&m_strPassw);
+    m_password.getText(&m_strPassword);
     kill(1);
     return TRUE;
   }
@@ -58,7 +58,7 @@ BOOL AuthenticationDialog::onCommand(UINT controlID, UINT notificationID)
   return FALSE;
 }
 
-const StringStorage *AuthenticationDialog::getPassw()
+const StringStorage *AuthenticationDialog::getPassword()
 {
-  return &m_strPassw;
+  return &m_strPassword;
 }

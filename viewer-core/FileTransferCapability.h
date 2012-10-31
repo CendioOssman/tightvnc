@@ -32,35 +32,47 @@
 
 #include "log-writer/LogWriter.h"
 
-#include "CapsContainer.h"
-#include "MsgCapability.h"
+#include "ServerMessageListener.h"
+#include "CapabilitiesManager.h"
 
-class FileTransferCapability : public MsgCapability
+class FileTransferCapability : public ServerMessageListener
 {
 public:
   FileTransferCapability(Logger *logger = 0);
   virtual ~FileTransferCapability();
 
+  //
+  // This method return true, if server support File Transfer.
+  //
   virtual bool isEnabled();
-  virtual void bind(RfbInputGate *input, RfbOutputGate *output);
-  virtual void listenerMessage(RfbInputGate *input, INT32 msgType);
+
+  //
+  // This method must called from event onConnected() in CoreEventsAdapter.
+  //
+  void setOutput(RfbOutputGate *output);
+
+  //
+  // Overrides MessageListener::onRequest().
+  //
+  virtual void onServerMessage(UINT32 code, DataInputStream *input);
 
   virtual FileTransferCore *getCore();
   virtual void setInterface(FileTransferInterface *ftInterface);
 
-protected:
-  virtual void addClientCaps();
-  virtual void addServerCaps();
-  virtual void addServerCapability(UINT32 code, const char *vendor, const char *name,
-                                   const StringStorage desc);
+  //
+  // This method must be called before call RemoteViewerCore::start(),
+  // otherwise FT will no worked.
+  //
+  virtual void addCapabilities(CapabilitiesManager *capabilitiesManager);
 
+protected:
   LogWriter m_logWriter;
 
-  FileTransferRequestSender *m_ftRequestSender;
-  FileTransferReplyBuffer *m_ftReplyBuffer;
+  FileTransferRequestSender m_ftRequestSender;
+  FileTransferReplyBuffer m_ftReplyBuffer;
+  FileTransferMessageProcessor m_ftMessageProcessor;
 
-  FileTransferMessageProcessor *m_ftMessageProcessor;
-  FileTransferCore *m_ftCore;
+  FileTransferCore m_ftCore;
 };
 
 #endif

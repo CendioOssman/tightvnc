@@ -25,19 +25,18 @@
 #ifndef _RRE_DECODER_H_
 #define _RRE_DECODER_H_
 
-#include "Decoder.h"
+#include "DecoderOfRectangle.h"
 
-class RreDecoder : public Decoder
+class RreDecoder : public DecoderOfRectangle
 {
 public:
   RreDecoder(LogWriter *logWriter);
-  ~RreDecoder();
-  
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
+  virtual ~RreDecoder();
 
-  int getCode() const;
+protected:
+  virtual void decode(RfbInputGate *input,
+                      FrameBuffer *framebuffer,
+                      const Rect *dstRect);
 };
 
 #endif

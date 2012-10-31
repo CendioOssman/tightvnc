@@ -89,6 +89,9 @@
     <Property Id='SET_SAVELOGTOALLUSERSPATH'> 0 </Property>
     <Property Id='VALUE_OF_SAVELOGTOALLUSERSPATH'> 0 </Property>
 
+    <Property Id='SET_USEMIRRORDRIVER'> 0 </Property>
+    <Property Id='VALUE_OF_USEMIRRORDRIVER'> 1 </Property>
+
     <Property Id='SET_USECONTROLAUTHENTICATION'> 0 </Property>
     <Property Id='VALUE_OF_USECONTROLAUTHENTICATION'> 0 </Property>
 
@@ -497,6 +500,21 @@
         <Condition> SET_SAVELOGTOALLUSERSPATH = -1 </Condition>
       </Component>
 
+      <Component Id='UseMirrorDriver_Property_Component' Feature='Server' Guid='{8E5345C9-C778-4c2f-87E1-869952BB2B03}' Permanent='yes'>
+        <RegistryValue Id='UseMirrorDriver_RegValue' Action='write'
+                       Root='HKLM' Key='Software\TightVNC\Server'
+                       Name='UseMirrorDriver' Value='[VALUE_OF_USEMIRRORDRIVER]' Type='integer'>
+          <Permission GenericAll='yes' User='System'/>
+          <Permission GenericAll='yes' User='Administrators'/>
+        </RegistryValue>
+        <Condition> SET_USEMIRRORDRIVER = 1 </Condition>
+      </Component>
+      <Component Id='UseMirrorDriver_Delete_Component' Feature='Server' Guid='{1A2F9735-A9C3-4aff-91B1-B7386121C5CE}' Permanent='yes'>
+        <RemoveRegistryValue Id="UseMirrorDriver_Delete_RegValue" Root="HKLM" Key="Software\TightVNC\Server"
+                             Name="UseMirrorDriver" />
+        <Condition> SET_USEMIRRORDRIVER = -1 </Condition>
+      </Component>
+
       <Component Id='UseControlAuthentication_Property_Component' Feature='Server' Guid='6d878d9a-f60f-47c3-ad71-4db2b216db03' Permanent='yes'>
         <RegistryValue Id='UseControlAuthentication_RegValue' Action='write'
                        Root='HKLM' Key='Software\TightVNC\Server'
@@ -510,6 +528,12 @@
         <RemoveRegistryValue Id="UseControlAuthentication_Delete_RegValue" Root="HKLM" Key="Software\TightVNC\Server"
                              Name="UseControlAuthentication" />
         <Condition> SET_USECONTROLAUTHENTICATION = -1 </Condition>
+      </Component>
+
+      <Component Id='ControlPassword_Delete_Component' Feature='Server' Guid='{C9B5796A-30DB-489e-B886-5DF997342974}' Permanent='yes'>
+        <RemoveRegistryValue Id="ControlPassword_Delete_RegValue" Root="HKLM" Key="Software\TightVNC\Server"
+                             Name="ControlPassword" />
+        <Condition> SET_CONTROLPASSWORD = -1 </Condition>
       </Component>
 
       <Component Id='UseVncAuthentication_Property_Component' Feature='Server' Guid='dcaabbae-4572-4f5e-8a61-a0c589404439' Permanent='yes'>
@@ -526,7 +550,19 @@
                              Name="UseVncAuthentication" />
         <Condition> SET_USEVNCAUTHENTICATION = -1 </Condition>
       </Component>
-    </DirectoryRef>
 
+      <Component Id='Password_Delete_Component' Feature='Server' Guid='{8CD5E4C6-D825-4972-A404-06C923C2D522}' Permanent='yes'>
+        <RemoveRegistryValue Id="Password_Delete_RegValue" Root="HKLM" Key="Software\TightVNC\Server"
+                             Name="Password" />
+        <Condition> SET_PASSWORD = -1 </Condition>
+      </Component>
+
+      <Component Id='PasswordViewOnly_Delete_Component' Feature='Server' Guid='{20D2968F-9CD0-42c4-BDA5-43E3D32B5C8D}' Permanent='yes'>
+        <RemoveRegistryValue Id="PasswordViewOnly_Delete_RegValue" Root="HKLM" Key="Software\TightVNC\Server"
+                             Name="PasswordViewOnly" />
+        <Condition> SET_VIEWONLYPASSWORD = -1 </Condition>
+      </Component>
+
+    </DirectoryRef>
   </Fragment>
 </Wix>

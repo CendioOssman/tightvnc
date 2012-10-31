@@ -184,6 +184,17 @@ void WindowsUserInput::getDisplayNumberCoords(Rect *rect,
   m_winDisplays.getDisplayCoordinates(dispNumber, rect);
 }
 
+void WindowsUserInput::getNormalizedRect(Rect *rect)
+{
+  toFbCoordinates(rect);
+}
+
+void WindowsUserInput::toFbCoordinates(Rect *rect)
+{
+  rect->move(-GetSystemMetrics(SM_XVIRTUALSCREEN),
+             -GetSystemMetrics(SM_YVIRTUALSCREEN));
+}
+
 void WindowsUserInput::getWindowCoords(HWND hwnd, Rect *rect)
 {
   rect->clear();

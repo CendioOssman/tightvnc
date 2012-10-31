@@ -25,19 +25,13 @@
 #ifndef _CURSOR_POS_DECODER_H_
 #define _CURSOR_POS_DECODER_H_
 
-#include "Decoder.h"
+#include "PseudoDecoder.h"
 
-class PointerPosDecoder : public Decoder
+class PointerPosDecoder : public PseudoDecoder
 {
 public:
   PointerPosDecoder(LogWriter *logWriter);
-  ~PointerPosDecoder();
-
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
+  virtual ~PointerPosDecoder();
 };
 
 #endif

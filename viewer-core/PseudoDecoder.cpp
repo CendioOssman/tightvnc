@@ -22,31 +22,18 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef _EXTENSION_CONTAINER_H_
-#define _EXTENSION_CONTAINER_H_
+#include "PseudoDecoder.h"
 
-#include "MsgCapability.h"
-
-#include <set>
-
-class ExtensionContainer
+PseudoDecoder::PseudoDecoder(LogWriter *logWriter)
+: Decoder(logWriter)
 {
-public:
-  ExtensionContainer();
-  virtual ~ExtensionContainer();
+}
 
-  virtual void add(MsgCapability *capability);
-  
-  virtual void bind(RfbInputGate *input, RfbOutputGate *output);
-  virtual void listenerMessage(RfbInputGate *input, INT32 msgType);
+PseudoDecoder::~PseudoDecoder()
+{
+}
 
-  virtual bool isMsgSupported(INT32 msg);
-
-  virtual void enableClientMsg(const RfbCapabilityInfo *capability);
-  virtual void enableServerMsg(const RfbCapabilityInfo *capability);
-protected:
-  typedef set<MsgCapability *>::iterator ExtensionIter;
-  set<MsgCapability *> m_extensions;
-};
-
-#endif
+bool PseudoDecoder::isPseudo() const
+{
+  return true;
+}

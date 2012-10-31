@@ -171,7 +171,9 @@ void MirrorScreenDriver::execute()
           for (unsigned long i = m_lastCounter; i != currentCounter;
                i++, i%= MAXCHANGES_BUF) {
             changedRect.fromWindowsRect(&changesBuf->pointrect[i].rect);
-            changedRegion.addRect(&changedRect);
+            if (changedRect.isValid()) {
+              changedRegion.addRect(&changedRect);
+            }
           }
 
           m_updateKeeper->addChangedRegion(&changedRegion);

@@ -43,6 +43,8 @@ public:
   virtual void getFrameBufferProperties(Dimension *dim, PixelFormat *pf) = 0;
 
   virtual void getPrimaryDesktopCoords(Rect *rect) = 0;
+  // Returns a rect that is normilized from "virtual desktop" to frame buffer coordinates.
+  virtual void getNormalizedRect(Rect *rect) = 0;
   virtual void getDisplayNumberCoords(Rect *rect,
                                       unsigned char dispNumber) = 0;
   virtual void getWindowCoords(HWND hwnd, Rect *rect) = 0;

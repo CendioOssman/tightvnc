@@ -109,6 +109,10 @@ BOOL ServerConfigDialog::onCommand(UINT controlID, UINT notificationID)
     case IDC_GRAB_TRANSPARENT:
       onGrabTransparentWindowsChanged();
       break;
+    case IDC_USE_MIRROR_DRIVER:
+      // FIXME: For high quality code is needed to use a function.
+      ((ConfigDialog *)m_parentDialog)->updateApplyButtonState();
+      break;
     case IDC_SHOW_TVNCONTROL_ICON_CHECKBOX:
       onShowTrayIconCheckBoxClick();
       break;

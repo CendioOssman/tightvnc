@@ -65,9 +65,9 @@ public:
   // File transfer message(accepted by this operation) handlers
   //
 
-  void onFileListReply() throw(IOException);
-  void onRmReply() throw(IOException);
-  void onLastRequestFailedReply() throw(IOException);
+  void onFileListReply(DataInputStream *input) throw(IOException);
+  void onRmReply(DataInputStream *input) throw(IOException);
+  void onLastRequestFailedReply(DataInputStream *input) throw(IOException);
 
 private:
 

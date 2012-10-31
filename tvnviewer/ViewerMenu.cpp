@@ -56,7 +56,7 @@ void ViewerMenu::loadMenu()
   menu_item menu_items[] = {
     {SEPARATOR, 0},
     {MENU_ITEM, IDS_TB_NEWCONNECTION},
-    {MENU_ITEM, IDS_TB_SAVECONNECTION},
+    {MENU_ITEM, IDS_TB_SAVESESSION},
     {MENU_ITEM, IDS_TB_CONNOPTIONS},
     {MENU_ITEM, IDS_TB_CONNINFO},
     {SEPARATOR, 0},

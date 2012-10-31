@@ -101,12 +101,14 @@ bool BaseWindow::destroyWindow()
   return false;
 }
 
-void BaseWindow::show() {
+void BaseWindow::show()
+{
   _ASSERT(m_hWnd != 0);
   ShowWindow(m_hWnd, SW_SHOW);
 }
 
-void BaseWindow::hide() {
+void BaseWindow::hide()
+{
   _ASSERT(m_hWnd != 0);
   ShowWindow(m_hWnd, SW_HIDE);
 }
@@ -229,22 +231,38 @@ bool BaseWindow::wndProc(UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEWHEEL:
     case WM_MOUSEMOVE:
     {
-      int wheelspeed = static_cast<signed short>(HIWORD(wParam))/120;
-      if (wheelspeed < 0) {
-        wheelspeed = -wheelspeed;
+      int wheelSpeed = static_cast<signed short>(HIWORD(wParam))/120;
+      if (wheelSpeed < 0) {
+        wheelSpeed = -wheelSpeed;
       }
-      unsigned char msg = 0;
+      unsigned char mouseButtons = 0;
       if (message == WM_MOUSEWHEEL) {
         if ((signed short)HIWORD(wParam) < 0) {
-          msg |= MOUSE_WDOWN;
+          mouseButtons |= MOUSE_WDOWN;
         } else {
-          msg |=  MOUSE_WUP;
+          mouseButtons |= MOUSE_WUP;
         }
       }
-      msg |= LOWORD(wParam) & MK_RBUTTON ? MOUSE_RDOWN : 0;
-      msg |= LOWORD(wParam) & MK_MBUTTON ? MOUSE_MDOWN : 0;
-      msg |= LOWORD(wParam) & MK_LBUTTON ? MOUSE_LDOWN : 0;
-      return onMouse(msg, static_cast<unsigned short>(wheelspeed), MAKEPOINTS(lParam)); 
+      mouseButtons |= LOWORD(wParam) & MK_RBUTTON ? MOUSE_RDOWN : 0;
+      mouseButtons |= LOWORD(wParam) & MK_MBUTTON ? MOUSE_MDOWN : 0;
+      mouseButtons |= LOWORD(wParam) & MK_LBUTTON ? MOUSE_LDOWN : 0;
+
+      // Translate position from LPARAM to POINT.
+      POINTS points = MAKEPOINTS(lParam);
+      POINT point;
+      point.x = points.x;
+      point.y = points.y;
+
+      // If windows-message is WHEEL, then need to translate screen coordinate to client.
+      if (message == WM_MOUSEWHEEL) { 
+        if (!ScreenToClient(getHWnd(), &point)) {
+          point.x = -1;
+          point.y = -1;
+        }
+      }
+
+      // Notify window about mouse-event.
+      return onMouse(mouseButtons, static_cast<unsigned short>(wheelSpeed), point);
     }
   }
   return onMessage(message, wParam, lParam);
@@ -270,14 +288,14 @@ void BaseWindow::redraw(const RECT *rcArea)
 {
   _ASSERT(m_hWnd != 0);
 
-  if (!rcArea) {
+  if (rcArea == 0) {
      InvalidateRect(m_hWnd, NULL, TRUE);
   } else {
      InvalidateRect(m_hWnd, rcArea, FALSE);
   }
 }
 
-bool BaseWindow::onMouse(unsigned char msg, unsigned short wspeed, POINTS pt)
+bool BaseWindow::onMouse(unsigned char msg, unsigned short wspeed, POINT pt)
 {
   return false;
 }

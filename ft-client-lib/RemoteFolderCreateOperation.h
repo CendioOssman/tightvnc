@@ -43,8 +43,8 @@ public:
   virtual void start() throw(IOException);
 
 protected:
-  virtual void onMkdirReply();
-  virtual void onLastRequestFailedReply();
+  virtual void onMkdirReply(DataInputStream *input);
+  virtual void onLastRequestFailedReply(DataInputStream *input);
 
 protected:
   StringStorage m_pathToTargetFile;

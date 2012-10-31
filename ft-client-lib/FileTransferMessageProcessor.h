@@ -26,6 +26,8 @@
 #define _FILE_TRANSFER_MESSAGE_PROCESSOR_H_
 
 #include "io-lib/IOException.h"
+#include "io-lib/DataInputStream.h"
+
 #include "util/inttypes.h"
 #include "util/ListenerContainer.h"
 #include "util/ZLibException.h"
@@ -41,7 +43,7 @@ public:
   FileTransferMessageProcessor();
   ~FileTransferMessageProcessor();
 
-  void processRfbMessage(UINT32 rfbMessage)
+  void processRfbMessage(DataInputStream *input, UINT32 rfbMessage)
        throw (IOException, ZLibException,
               OperationNotSupportedException,
               OperationNotPermittedException);

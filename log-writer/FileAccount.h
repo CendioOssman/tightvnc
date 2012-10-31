@@ -89,6 +89,8 @@ public:
                      int level,
                      const TCHAR *message);
 
+  virtual bool acceptsLevel(int logLevel);
+
 protected:
   virtual void flush(unsigned int processId,
                      unsigned int threadId,
@@ -127,6 +129,8 @@ private:
 
   // Prints self message the same log file (if it's possible)
   void print(int level, const TCHAR *message);
+
+  bool printsLine(int level);
 
   void updateLogDirPath();
 

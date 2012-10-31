@@ -62,13 +62,13 @@ void RemoteFolderCreateOperation::start()
   m_sender->sendMkDirRequest(m_pathToTargetFile.getString());
 }
 
-void RemoteFolderCreateOperation::onMkdirReply()
+void RemoteFolderCreateOperation::onMkdirReply(DataInputStream *input)
 {
   // Notify all that operation have ended
   notifyFinish();
 }
 
-void RemoteFolderCreateOperation::onLastRequestFailedReply()
+void RemoteFolderCreateOperation::onLastRequestFailedReply(DataInputStream *input)
 {
   // Logging
   StringStorage message;

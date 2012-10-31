@@ -80,6 +80,11 @@ void Desktop::getDisplayNumberCoords(Rect *rect,
   m_guiDesktop->getDisplayNumberCoords(rect, dispNumber);
 }
 
+void Desktop::getNormalizedRect(Rect *rect)
+{
+  m_guiDesktop->getNormalizedRect(rect);
+}
+
 void Desktop::getWindowCoords(HWND hwnd, Rect *rect)
 {
   m_guiDesktop->getWindowCoords(hwnd, rect);

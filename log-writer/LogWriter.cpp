@@ -37,70 +37,77 @@ LogWriter::~LogWriter()
 
 void LogWriter::interror(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_INTERR;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_INTERR, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }
 
 void LogWriter::error(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_ERR;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_ERR, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }
 
 void LogWriter::warning(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_WARN;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_WARN, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }
 
 void LogWriter::message(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_MSG;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_MSG, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }
 
 void LogWriter::info(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_INFO;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_INFO, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }
 
 void LogWriter::detail(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_DETAIL;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_DETAIL, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }
 
 void LogWriter::debug(const TCHAR *fmt, ...)
 {
-  if (m_logger != 0) {
+  int level = LOG_DEBUG;
+  if (m_logger != 0 && m_logger->acceptsLevel(level)) {
     va_list vl;
     va_start(vl, fmt);
-    vprintLog(LOG_DEBUG, fmt, vl);
+    vprintLog(level, fmt, vl);
     va_end(vl);
   }
 }

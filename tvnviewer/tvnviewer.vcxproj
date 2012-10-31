@@ -312,6 +312,7 @@
     <ClCompile Include="ViewerInstance.cpp" />
     <ClCompile Include="ViewerMenu.cpp" />
     <ClCompile Include="ViewerWindow.cpp" />
+    <ClCompile Include="VncAuthenticationHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AboutDialog.h" />
@@ -342,6 +343,7 @@
     <ClInclude Include="ViewerInstance.h" />
     <ClInclude Include="ViewerMenu.h" />
     <ClInclude Include="ViewerWindow.h" />
+    <ClInclude Include="VncAuthenticationHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\appicon.ico" />

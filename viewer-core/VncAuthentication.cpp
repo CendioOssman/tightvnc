@@ -27,24 +27,15 @@
 #include "util/AnsiStringStorage.h"
 #include "util/DesCrypt.h"
 
-VncAuthentication::VncAuthentication()
-{
-  m_id = SecurityDefs::VNC;
-}
-
-VncAuthentication::~VncAuthentication()
-{
-}
-
-void VncAuthentication::authenticate(RfbInputGate *input, 
-                                     RfbOutputGate *output,
-                                     const StringStorage *password)
+void VncAuthentication::vncAuthenticate(DataInputStream *input,
+                                        DataOutputStream *output,
+                                        const StringStorage *password)
 {
   // TODO: removed duplicate code: ControlAuth.cpp
 
   // Prepare data for authentication.
-  StringStorage truncatedPass(*password);
-  truncatedPass.getSubstring(&truncatedPass, 0, VNC_PASSWORD_SIZE - 1);
+  StringStorage truncatedPass;
+  password->getSubstring(&truncatedPass, 0, VNC_PASSWORD_SIZE - 1);
 
   AnsiStringStorage passwordAnsi(&truncatedPass);
 

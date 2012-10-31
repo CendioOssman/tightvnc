@@ -167,7 +167,7 @@ public:
   // Serialize to storage this ConnectionConfig object.
   // Return true if was no errors during serializing,
   // false otherwise.
-  bool saveToStorage(SettingsManager *sm);
+  bool saveToStorage(SettingsManager *sm) const;
   // Deserialize connection configuration from storage.
   // Return true if was no errors during deserializing,
   // false otherwise.

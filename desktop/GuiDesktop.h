@@ -57,6 +57,7 @@ public:
   virtual void getPrimaryDesktopCoords(Rect *rect);
   virtual void getDisplayNumberCoords(Rect *rect,
                                       unsigned char dispNumber);
+  virtual void getNormalizedRect(Rect *rect);
   virtual void getWindowCoords(HWND hwnd, Rect *rect);
   virtual HWND getWindowHandleByName(const StringStorage *windowName);
   virtual void setKeyboardEvent(UINT32 keySym, bool down);

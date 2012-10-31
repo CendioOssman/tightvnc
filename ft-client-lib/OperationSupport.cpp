@@ -26,7 +26,7 @@
 
 #include "ft-common/FTMessage.h"
 
-#include "viewer-core/CapsContainer.h"
+#include <algorithm>
 
 OperationSupport::OperationSupport()
 {
@@ -41,44 +41,44 @@ OperationSupport::OperationSupport()
   m_isDownloadSupported = false;
 }
 
-OperationSupport::OperationSupport(const CapsContainer *clientCaps,
-                                   const CapsContainer *serverCaps)
+OperationSupport::OperationSupport(const std::vector<UINT32> &clientCodes,
+                                   const std::vector<UINT32> &serverCodes)
 {
-  m_isFileListSupported = ((clientCaps->isEnabled(FTMessage::FILE_LIST_REQUEST)) &&
-                           (serverCaps->isEnabled(FTMessage::FILE_LIST_REPLY)));
+  m_isFileListSupported = isSupport(clientCodes, FTMessage::FILE_LIST_REQUEST) &&
+                          isSupport(serverCodes, FTMessage::FILE_LIST_REPLY);
 
-  m_isRenameSupported = ((clientCaps->isEnabled(FTMessage::RENAME_REQUEST)) &&
-                         (serverCaps->isEnabled(FTMessage::RENAME_REPLY)));
+  m_isRenameSupported = isSupport(clientCodes, FTMessage::RENAME_REQUEST) &&
+                         isSupport(serverCodes, FTMessage::RENAME_REPLY);
 
-  m_isRemoveSupported = ((clientCaps->isEnabled(FTMessage::REMOVE_REQUEST)) &&
-                         (serverCaps->isEnabled(FTMessage::REMOVE_REPLY)) &&
-                         (m_isFileListSupported));
+  m_isRemoveSupported = isSupport(clientCodes, FTMessage::REMOVE_REQUEST) &&
+                         isSupport(serverCodes, FTMessage::REMOVE_REPLY) &&
+                         m_isFileListSupported;
 
-  m_isMkDirSupported = ((clientCaps->isEnabled(FTMessage::MKDIR_REQUEST)) &&
-                        (serverCaps->isEnabled(FTMessage::MKDIR_REPLY)));
+  m_isMkDirSupported = isSupport(clientCodes, FTMessage::MKDIR_REQUEST) &&
+                        isSupport(serverCodes, FTMessage::MKDIR_REPLY);
 
-  m_isCompressionSupported = ((clientCaps->isEnabled(FTMessage::COMPRESSION_SUPPORT_REQUEST)) &&
-                              (serverCaps->isEnabled(FTMessage::COMPRESSION_SUPPORT_REPLY)));
+  m_isCompressionSupported = isSupport(clientCodes, FTMessage::COMPRESSION_SUPPORT_REQUEST) &&
+                              isSupport(serverCodes, FTMessage::COMPRESSION_SUPPORT_REPLY);
 
-  m_isMD5Supported = ((clientCaps->isEnabled(FTMessage::MD5_REQUEST)) &&
-                      (serverCaps->isEnabled(FTMessage::MD5_REPLY)));
+  m_isMD5Supported = isSupport(clientCodes, FTMessage::MD5_REQUEST) &&
+                      isSupport(serverCodes, FTMessage::MD5_REPLY);
 
-  m_isDirSizeSupported = ((clientCaps->isEnabled(FTMessage::DIRSIZE_REQUEST)) &&
-                          (serverCaps->isEnabled(FTMessage::DIRSIZE_REPLY)));
+  m_isDirSizeSupported = isSupport(clientCodes, FTMessage::DIRSIZE_REQUEST) &&
+                          isSupport(serverCodes, FTMessage::DIRSIZE_REPLY);
 
-  m_isUploadSupported = ((clientCaps->isEnabled(FTMessage::UPLOAD_START_REQUEST)) &&
-                         (clientCaps->isEnabled(FTMessage::UPLOAD_DATA_REQUEST)) &&
-                         (clientCaps->isEnabled(FTMessage::UPLOAD_END_REQUEST)) &&
-                         (serverCaps->isEnabled(FTMessage::UPLOAD_START_REPLY)) &&
-                         (serverCaps->isEnabled(FTMessage::UPLOAD_DATA_REPLY)) &&
-                         (serverCaps->isEnabled(FTMessage::UPLOAD_END_REPLY)) &&
-                         m_isMkDirSupported && m_isFileListSupported);
+  m_isUploadSupported = isSupport(clientCodes, FTMessage::UPLOAD_START_REQUEST) &&
+                         isSupport(clientCodes, FTMessage::UPLOAD_DATA_REQUEST) &&
+                         isSupport(clientCodes, FTMessage::UPLOAD_END_REQUEST) &&
+                         isSupport(serverCodes, FTMessage::UPLOAD_START_REPLY) &&
+                         isSupport(serverCodes, FTMessage::UPLOAD_DATA_REPLY) &&
+                         isSupport(serverCodes, FTMessage::UPLOAD_END_REPLY) &&
+                         m_isMkDirSupported && m_isFileListSupported;
 
-  m_isDownloadSupported = ((clientCaps->isEnabled(FTMessage::DOWNLOAD_START_REQUEST)) &&
-                           (clientCaps->isEnabled(FTMessage::DOWNLOAD_DATA_REQUEST)) &&
-                           (serverCaps->isEnabled(FTMessage::DOWNLOAD_START_REPLY)) &&
-                           (serverCaps->isEnabled(FTMessage::DOWNLOAD_DATA_REPLY)) &&
-                           (serverCaps->isEnabled(FTMessage::DOWNLOAD_END_REPLY)) &&
+  m_isDownloadSupported = (isSupport(clientCodes, FTMessage::DOWNLOAD_START_REQUEST) &&
+                           isSupport(clientCodes, FTMessage::DOWNLOAD_DATA_REQUEST) &&
+                           isSupport(serverCodes, FTMessage::DOWNLOAD_START_REPLY) &&
+                           isSupport(serverCodes, FTMessage::DOWNLOAD_DATA_REPLY) &&
+                           isSupport(serverCodes, FTMessage::DOWNLOAD_END_REPLY) &&
                            m_isFileListSupported && m_isDirSizeSupported);
 }
 
@@ -129,4 +129,9 @@ bool OperationSupport::isMD5Supported() const
 bool OperationSupport::isDirSizeSupported() const
 {
   return m_isDirSizeSupported;
+}
+
+bool OperationSupport::isSupport(const std::vector<UINT32> &codes, UINT32 code)
+{
+  return std::find(codes.begin(), codes.end(), code) != codes.end();
 }

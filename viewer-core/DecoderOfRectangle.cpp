@@ -22,40 +22,47 @@
 //-------------------------------------------------------------------------
 //
 
-#include "MsgCapability.h"
+#include "DecoderOfRectangle.h"
 
-MsgCapability::MsgCapability()
-: m_input(0),
-  m_output(0)
+#include "FbUpdateNotifier.h"
+
+DecoderOfRectangle::DecoderOfRectangle(LogWriter *logWriter)
+: Decoder(logWriter)
 {
 }
 
-MsgCapability::~MsgCapability()
+DecoderOfRectangle::~DecoderOfRectangle()
 {
 }
 
-bool MsgCapability::isEnabled()
+void DecoderOfRectangle::process(RfbInputGate *input,
+                     FrameBuffer *frameBuffer,
+                     FrameBuffer *secondFrameBuffer,
+                     const Rect *rect,
+                     LocalMutex *fbLock,
+                     FbUpdateNotifier *fbNotifier)
+{
+  decode(input, secondFrameBuffer, rect);
+  copy(frameBuffer, secondFrameBuffer, rect, fbLock);
+  notify(fbNotifier, rect);
+}
+
+void DecoderOfRectangle::copy(FrameBuffer *dstFrameBuffer,
+                   const FrameBuffer *srcFrameBuffer,
+                   const Rect *rect,
+                   LocalMutex *fbLock)
+{
+  AutoLock al(fbLock);
+  dstFrameBuffer->copyFrom(rect, srcFrameBuffer, rect->left, rect->top);
+}
+
+void DecoderOfRectangle::notify(FbUpdateNotifier *fbNotifier,
+                     const Rect *rect)
+{
+  fbNotifier->onUpdate(rect);
+}
+
+bool DecoderOfRectangle::isPseudo() const
 {
   return false;
-}
-
-void MsgCapability::bind(RfbInputGate *input, RfbOutputGate *output)
-{
-  m_input = input;
-  m_output = output;
-}
-
-bool MsgCapability::isMsgSupported(INT32 msg)
-{
-  return m_availableServerMsg[msg];
-}
-
-void MsgCapability::enableClientMsg(const RfbCapabilityInfo *capability)
-{
-  m_clientMsgCaps.enable(capability);
-}
-
-void MsgCapability::enableServerMsg(const RfbCapabilityInfo *capability)
-{
-  m_serverMsgCaps.enable(capability);
 }

@@ -56,7 +56,8 @@ void DesktopServerProto::checkRectangle(const Rect *rect)
   if (abs(rect->left)   > 32000 ||
       abs(rect->top)    > 32000 ||
       abs(rect->right)  > 32000 ||
-      abs(rect->bottom) > 32000) {
+      abs(rect->bottom) > 32000 ||
+      !rect->isValid()) {
     errMess.format(_T("Wrong rectangle (%d, %d, %d, %d)"), rect->left,
                                                            rect->top,
                                                            rect->right,
@@ -176,7 +177,9 @@ void DesktopServerProto::readRegion(Region *region, BlockingGate *gate)
   unsigned int rectCount = gate->readUInt32();
   for (unsigned int i = 0; i < rectCount; i++) {
     Rect r = readRect(gate);
-    region->addRect(&r);
+    if (r.isValid()) {
+      region->addRect(&r);
+    }
   }
 }
 

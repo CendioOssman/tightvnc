@@ -156,7 +156,7 @@ void HooksUpdateDetector::execute()
       if (msg.message == HookDefinitions::SPEC_IPC_CODE) {
         Rect rect((INT16)(msg.wParam >> 16), (INT16)(msg.wParam & 0xffff),
                   (INT16)(msg.lParam >> 16), (INT16)(msg.lParam & 0xffff));
-        if (!rect.isEmpty()) {
+        if (!rect.isEmpty() && rect.isValid()) {
           m_updateKeeper->addChangedRect(&rect);
           m_updateTimer.sear();
         }

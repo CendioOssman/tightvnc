@@ -25,19 +25,13 @@
 #ifndef _DESKTOP_SIZE_DECODER_H_
 #define _DESKTOP_SIZE_DECODER_H_
 
-#include "decoder.h"
+#include "PseudoDecoder.h"
 
-class DesktopSizeDecoder : public Decoder
+class DesktopSizeDecoder : public PseudoDecoder
 {
 public:
   DesktopSizeDecoder(LogWriter *logWriter);
-  ~DesktopSizeDecoder();
-
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
+  virtual ~DesktopSizeDecoder();
 };
 
 #endif

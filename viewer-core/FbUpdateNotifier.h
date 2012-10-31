@@ -27,14 +27,16 @@
 
 #include "log-writer/LogWriter.h"
 #include "rfb/FrameBuffer.h"
+#include "region/Point.h"
 #include "region/Rect.h"
 #include "region/Region.h"
 #include "thread/LocalMutex.h"
 #include "thread/Thread.h"
 #include "win-system/WindowsEvent.h"
 
-#include "CoreEventsAdapter.h"
 #include "CursorPainter.h"
+
+class CoreEventsAdapter;
 
 class FbUpdateNotifier : public Thread
 {
@@ -43,7 +45,7 @@ public:
   virtual ~FbUpdateNotifier();
   void setAdapter(CoreEventsAdapter *adapter);
 
-  void onUpdate(Rect *rect);
+  void onUpdate(const Rect *rect);
   void onPropertiesFb();
 
   void updatePointerPos(const Point *position);
@@ -68,9 +70,16 @@ protected:
 
   LogWriter *m_logWriter;
 
+  // In this region added all updates of frame buffer and cursor updates.
   Region m_update;
+
+  // This rectangle save position of cursor.
   Rect m_oldPosition;
+
+  // This flag is true after call onPropertiesFb().
   bool m_isNewSize;
+
+  // This flag is true after set new cursor or update position.
   bool m_isCursorChange;
 
 private:

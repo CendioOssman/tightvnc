@@ -108,6 +108,7 @@ private:
 
   PixelFormat m_pixelFormat;
   Dimension m_dimension;
+  Point m_leftTopCorner;
   Screen m_screen;
 
   LogWriter *m_log;

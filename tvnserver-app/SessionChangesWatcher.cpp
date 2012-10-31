@@ -49,9 +49,9 @@ void SessionChangesWatcher::execute()
   while (!isTerminating()) {
     DWORD currSessionId = WTS::getActiveConsoleSessionId(m_log);
     bool sessionChanged = prevSession != currSessionId;
-    DesktopSelector::getCurrentDesktopName(&currDeskName);
+    bool desktopInfoIsAvailable = DesktopSelector::getCurrentDesktopName(&currDeskName);
     bool desktopChanged = !currDeskName.isEqualTo(&prevDeskName);
-    if (sessionChanged || desktopChanged) {
+    if (sessionChanged || desktopChanged || !desktopInfoIsAvailable) {
       m_log->debug(_T("Session or desktop has been changed.")
                    _T(" The process session = %u, current session = %u")
                    _T(" The process desktop = %s, current desktop = %s"),

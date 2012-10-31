@@ -25,14 +25,16 @@
 #ifndef _OPERATION_SUPPORT_H_
 #define _OPERATION_SUPPORT_H_
 
-class CapsContainer;
+#include "util/inttypes.h"
+
+#include <vector>
 
 class OperationSupport
 {
 public:
   OperationSupport();
-  OperationSupport(const CapsContainer *clientCaps,
-                   const CapsContainer *serverCaps);
+  OperationSupport(const std::vector<UINT32> &clientCodes,
+                   const std::vector<UINT32> &serverCodes);
   virtual ~OperationSupport();
 
   bool isFileListSupported() const;
@@ -46,6 +48,8 @@ public:
   bool isDirSizeSupported() const;
 
 protected:
+  static bool isSupport(const std::vector<UINT32> &codes, UINT32 code);
+
   bool m_isFileListSupported;
   bool m_isUploadSupported;
   bool m_isDownloadSupported;

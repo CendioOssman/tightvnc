@@ -25,28 +25,14 @@
 #include "ViewerCollector.h"
 #include "thread/AutoLock.h"
 
-ViewerCollector::ViewerCollector(TvnViewer *viewer)
-: m_viewer(viewer)
+ViewerCollector::ViewerCollector()
+: m_countToReconnect(0)
 {
-  resume();
 }
 
 ViewerCollector::~ViewerCollector()
 {
-  if (isActive()) {
-    terminate();
-    m_timer.notify();
-    wait();
-  }
   destroyAllInstances();
-}
-
-void ViewerCollector::execute()
-{
-  while (!isTerminating()) {
-    deleteDeadInstances();
-    m_timer.waitForEvent(50);
-  }
 }
 
 void ViewerCollector::addInstance(ViewerInstance *viewerInstance)
@@ -63,16 +49,14 @@ void ViewerCollector::deleteDeadInstances()
   while (iter != m_instances.end()) {
     ViewerInstance *instance = *iter;
     if (instance->isStopped()) {
+      if (instance->requiresReconnect()) {
+        ++m_countToReconnect;
+      }
       delete instance;
       iter = m_instances.erase(iter);
     } else {
       iter++;
     }
-  }
-  if (m_instances.empty() && 
-      !m_viewer->isVisibleLoginDialog()
-      && !m_viewer->isListening()) {
-    m_viewer->shutdown();
   }
 }
 
@@ -91,9 +75,18 @@ void ViewerCollector::destroyAllInstances()
   deleteDeadInstances();
 }
 
+void ViewerCollector::decreaseToReconnect()
+{
+  AutoLock l(&m_lockObj);
+
+  --m_countToReconnect;
+}
+
 bool ViewerCollector::empty() const
 {
   AutoLock l(&m_lockObj);
 
-  return m_instances.empty();
+  // If not active instance and count wait to reconnect is 0,
+  // then return true and false otherwise.
+  return m_instances.empty() && (m_countToReconnect == 0);
 }

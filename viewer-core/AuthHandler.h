@@ -25,11 +25,17 @@
 #ifndef _AUTH_HANDLER_H_
 #define _AUTH_HANDLER_H_
 
-#include "network/RfbInputGate.h"
-#include "network/RfbOutputGate.h"
+#include "io-lib/DataInputStream.h"
+#include "io-lib/DataOutputStream.h"
 #include "rfb/AuthDefs.h"
 #include "util/Exception.h"
 
+#include "CapabilitiesManager.h"
+
+//
+// This exception is raised when connection is valid, but it's invalid
+// from authentication client-logic, or authentication is failure.
+//
 class AuthException : public Exception
 {
 public:
@@ -54,6 +60,9 @@ public:
   virtual ~AuthUnknownException();
 };
 
+//
+// This exception is raised when process of authentication is canceled by user.
+//
 class AuthCanceledException : public AuthException
 {
 public:
@@ -64,14 +73,24 @@ public:
 class AuthHandler
 {
 public:
-  AuthHandler();
   virtual ~AuthHandler();
 
-  virtual void authenticate(RfbInputGate *input, RfbOutputGate *output, 
-                            const StringStorage *password) = 0;
-  int getType() const;
+  //
+  // This abstract method that performs the authentication.
+  // Use "input" and "output" outside authenticate() is prohibited.
+  //
+  // FIXME: AUTH: document throwing AuthCanceledException
+  virtual void authenticate(DataInputStream *input, DataOutputStream *output) = 0;
 
-  static const UINT32 AUTH_RESULT_OK = 0;
+  //
+  // This abstract method that add auth-capability in RemoveViewerCore.
+  //
+  virtual void addAuthCapability(CapabilitiesManager *capabilitiesManager) = 0;
+
+  //
+  // This method return type of authentication (m_id).
+  //
+  virtual int getType() const;
 
 protected:
   int m_id;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="viewer-core"
 	ProjectGUID="{3EA91983-D9EB-4369-8167-130122BFDF07}"
 	RootNamespace="viewercore"
@@ -532,6 +532,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CapabilitiesManager.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CapsContainer.cpp"
 				>
 			</File>
@@ -544,23 +548,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ExtensionContainer.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\FbUpdateNotifier.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\FileTransferCapability.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\MsgCapability.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\NoneAuthentication.cpp"
 				>
 			</File>
 			<File
@@ -596,10 +588,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\SecurityType.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\StandardPixelFormatFactory.cpp"
 				>
 			</File>
@@ -622,6 +610,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CapabilitiesManager.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CapsContainer.h"
 				>
 			</File>
@@ -634,23 +626,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ExtensionContainer.h"
-				>
-			</File>
-			<File
 				RelativePath=".\FbUpdateNotifier.h"
 				>
 			</File>
 			<File
 				RelativePath=".\FileTransferCapability.h"
-				>
-			</File>
-			<File
-				RelativePath=".\MsgCapability.h"
-				>
-			</File>
-			<File
-				RelativePath=".\NoneAuthentication.h"
 				>
 			</File>
 			<File
@@ -686,7 +666,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\SecurityType.h"
+				RelativePath=".\ServerMessageListener.h"
 				>
 			</File>
 			<File
@@ -733,6 +713,14 @@
 			</File>
 			<File
 				RelativePath=".\Decoder.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DecoderOfRectangle.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DecoderOfRectangle.h"
 				>
 			</File>
 			<File
@@ -789,6 +777,22 @@
 			</File>
 			<File
 				RelativePath=".\PointerPosDecoder.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PseudoDecoder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PseudoDecoder.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RawDecoder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RawDecoder.h"
 				>
 			</File>
 			<File

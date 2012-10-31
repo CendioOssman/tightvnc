@@ -33,22 +33,9 @@ Decoder::~Decoder()
 {
 }
 
-void Decoder::decode(RfbInputGate *input,
-                     FrameBuffer *framebuffer,
-                     const Rect *dstRect)
-{
-  size_t bytesPerPixel = framebuffer->getPixelFormat().bitsPerPixel / 8;
-  size_t bytesPerLine = bytesPerPixel * dstRect->getWidth();
-
-  if (!framebuffer->getDimension().getRect().intersection(dstRect).isEqualTo(dstRect))
-    throw Exception(_T("Error in protocol: incorrect size of rectangle"));
-  for (int y = dstRect->top; y < dstRect->bottom; y++)
-    input->readFully(framebuffer->getBufferPtr(dstRect->left, y), bytesPerLine);
-}
-
 int Decoder::getCode() const
 {
-  return EncodingDefs::RAW;
+  return m_encoding;
 }
 
 bool Decoder::isPseudo() const

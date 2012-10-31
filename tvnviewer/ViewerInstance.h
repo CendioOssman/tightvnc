@@ -28,6 +28,8 @@
 #include "ViewerWindow.h"
 #include "network/socket/SocketIPv4.h"
 
+#include "VncAuthenticationHandler.h"
+
 class ViewerInstance
 {
 public:
@@ -44,6 +46,7 @@ public:
 
   virtual ~ViewerInstance();
 
+  bool requiresReconnect() const;
   bool isStopped() const;
   void start();
   void stop();
@@ -55,8 +58,9 @@ protected:
   ConnectionData m_condata;
   ConnectionConfig m_conConf;
 
-  ViewerWindow *m_viewerWnd;
+  ViewerWindow m_viewerWnd;
   RemoteViewerCore m_viewerCore;
+  VncAuthenticationHandler m_vncAuthHandler;
   FileTransferCapability m_fileTransfer;
   SocketIPv4 *m_socket;
 };

@@ -1,4 +1,4 @@
-// Copyright (C) 2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,43 +22,22 @@
 //-------------------------------------------------------------------------
 //
 
-#include "SecurityType.h"
+#ifndef _SERVER_MESSAGE_LISTENER_H_
+#define _SERVER_MESSAGE_LISTENER_H_
 
-#include "rfb/AuthDefs.h"
-#include "util/Exception.h"
+#include "io-lib/DataInputStream.h"
 
-int SecurityType::selectAuthHandler(const vector<UINT32> *secTypes)
+// FIXME: document it.
+class ServerMessageListener
 {
-  for (vector<UINT32>::const_iterator i = secTypes->begin();
-       i != secTypes->end();
-       i++) {
-         if (*i == SecurityDefs::TIGHT)
-    return SecurityDefs::TIGHT;
-  }
+public:
+  virtual ~ServerMessageListener() {};
 
-  for (vector<UINT32>::const_iterator i = secTypes->begin();
-       i != secTypes->end();
-       i++) {
-    if (*i == SecurityDefs::NONE || *i == SecurityDefs::VNC)
-      return *i;
-  }
+  //
+  // This method is called, if received server message with code "msgCode".
+  // Use "input" outside onRequest() is prohibited.
+  //
+  virtual void onServerMessage(UINT32 msgCode, DataInputStream *input) = 0;
+};
 
-  throw Exception(_T("No security types supported. ")
-                  _T("Server sent security types, ")
-                  _T("but we do not support any of their."));
-}
-
-StringStorage SecurityType::getSecurityTypeName(int securityType)
-{
-  switch (securityType) {
-  case SecurityDefs::NONE:
-    return _T("None");
-  case SecurityDefs::VNC:
-    return _T("VNC");
-  case SecurityDefs::TIGHT:
-    return _T("Tight");
-  default:
-    return _T("unknown type");
-  }
-}
-
+#endif

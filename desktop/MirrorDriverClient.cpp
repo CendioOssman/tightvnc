@@ -232,8 +232,8 @@ void MirrorDriverClient::load()
     m_deviceMode.dmPelsWidth = m_dimension.width;
     m_deviceMode.dmPelsHeight = m_dimension.height;
     m_deviceMode.dmBitsPerPel = m_pixelFormat.bitsPerPixel;
-    m_deviceMode.dmPosition.x = 0;
-    m_deviceMode.dmPosition.y = 0;
+    m_deviceMode.dmPosition.x = m_leftTopCorner.x;
+    m_deviceMode.dmPosition.y = m_leftTopCorner.y;
 
     m_deviceMode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH |
                             DM_PELSHEIGHT | DM_POSITION;
@@ -270,7 +270,9 @@ void MirrorDriverClient::initScreenPropertiesByCurrent()
   m_pixelFormat.blueShift = 0;
   m_pixelFormat.colorDepth = 24;
 
-  m_dimension = m_screen.getDesktopDimension();
+  Rect virtDeskRect = m_screen.getDesktopRect();
+  m_dimension.setDim(&virtDeskRect);
+  m_leftTopCorner.setPoint(virtDeskRect.left, virtDeskRect.top);
 }
 
 void MirrorDriverClient::setAttachToDesktop(bool value)

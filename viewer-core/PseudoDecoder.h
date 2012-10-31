@@ -1,4 +1,4 @@
-// Copyright (C) 2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,17 +22,18 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef _SECURITY_TYPE_H_
-#define _SECURITY_TYPE_H_
+#ifndef _PSEUDO_DECODER_H_
+#define _PSEUDO_DECODER_H_
 
-#include <vector>
+#include "Decoder.h"
 
-#include "util/CommonHeader.h"
-
-namespace SecurityType
+class PseudoDecoder : public Decoder
 {
-  StringStorage getSecurityTypeName(int securityType);
-  int selectAuthHandler(const vector<UINT32> *secTypes);
+public:
+  PseudoDecoder(LogWriter *logWriter);
+  virtual ~PseudoDecoder();
+
+  virtual bool isPseudo() const;
 };
 
 #endif

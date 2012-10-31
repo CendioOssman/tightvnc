@@ -71,6 +71,8 @@ public:
   // Stores a log line to the file.
   virtual void print(int logLevel, const TCHAR *line);
 
+  virtual bool acceptsLevel(int logLevel);
+
 private:
   FileAccount m_fileAccount;
 };

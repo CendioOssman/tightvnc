@@ -90,6 +90,7 @@ private:
   void onJpegCompressionLevelScroll();
   void onScaleKillFocus();
   bool isInputValid();
+  bool onOkPressed();
   void apply();
 
 };

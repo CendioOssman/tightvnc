@@ -188,6 +188,10 @@ void UpdateSender::addUpdateContainer(const UpdateContainer *updateContainer,
     AutoLock al(&m_reqRectLocMut);
     changedAndCopyRgns.add(&m_requestedFullReg);
   }
+
+  // Croping out of rectangles
+  changedAndCopyRgns.crop(&fbForReceive->getDimension().getRect());
+
   std::vector<Rect> rects;
   std::vector<Rect>::iterator iRect;
   changedAndCopyRgns.getRectVector(&rects);

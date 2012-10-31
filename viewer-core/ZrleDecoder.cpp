@@ -29,33 +29,13 @@
 typedef vector<unsigned int> Palette;
 
 ZrleDecoder::ZrleDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: DecoderOfRectangle(logWriter)
 {
+  m_encoding = EncodingDefs::ZRLE;
 }
 
 ZrleDecoder::~ZrleDecoder()
 {
-}
-
-void ZrleDecoder::inflate(RfbInputGate *input, size_t unpackedSize)
-{
-  UINT32 length = input->readUInt32();
-  std::vector<char> zlibData;
-  zlibData.resize(length);
-  input->readFully(&zlibData.front(), length);
-
-  m_inflater.setInput(&zlibData.front(), length);
-
-  m_inflater.setUnpackedSize(unpackedSize);
-  m_inflater.inflate();
-}
-
-size_t ZrleDecoder::getMaxSizeOfRectangle(const Rect *dstRect)
-{
-  size_t widthCount = (dstRect->getWidth() + TILE_SIZE - 1) / TILE_SIZE;
-  size_t heightCount = (dstRect->getHeight() + TILE_SIZE - 1) / TILE_SIZE;
-  size_t tileCount = widthCount * heightCount;
-  return TILE_LENGTH_SIZE + MAXIMAL_TILE_SIZE * tileCount;
 }
 
 void ZrleDecoder::decode(RfbInputGate *input,
@@ -66,8 +46,14 @@ void ZrleDecoder::decode(RfbInputGate *input,
   inflate(input, maxUnpackedSize);
 
   size_t outputSize = m_inflater.getOutputSize();
-  if (outputSize == 0)
-    throw Exception(_T("empty unpacked data (zrle-decoder)"));
+  if (outputSize == 0) {
+    m_logWriter->debug(_T("Empty unpacked data (zrle-decoder)"));
+    if (dstRect->area() != 0) {
+      m_logWriter->detail(_T("Corrupted data in zrle-decoder, rectangle is undefined."));
+      m_logWriter->detail(_T("Possible, data is corrupted or error in server"));
+    }
+    return;
+  }
   vector<unsigned char> out;
   out.resize(outputSize);
   out.assign(m_inflater.getOutput(), m_inflater.getOutput() + outputSize);
@@ -139,6 +125,30 @@ void ZrleDecoder::decode(RfbInputGate *input,
 
       drawTile(frameBuffer, &tileRect, &pixels);
     } // tile(x, y)
+}
+
+void ZrleDecoder::inflate(RfbInputGate *input, size_t unpackedSize)
+{
+  UINT32 length = input->readUInt32();
+  std::vector<char> zlibData;
+  zlibData.resize(length);
+  if (length == 0) {
+    zlibData.resize(1);
+  }
+  input->readFully(&zlibData.front(), length);
+
+  m_inflater.setInput(&zlibData.front(), length);
+
+  m_inflater.setUnpackedSize(unpackedSize);
+  m_inflater.inflate();
+}
+
+size_t ZrleDecoder::getMaxSizeOfRectangle(const Rect *dstRect)
+{
+  size_t widthCount = (dstRect->getWidth() + TILE_SIZE - 1) / TILE_SIZE;
+  size_t heightCount = (dstRect->getHeight() + TILE_SIZE - 1) / TILE_SIZE;
+  size_t tileCount = widthCount * heightCount;
+  return TILE_LENGTH_SIZE + MAXIMAL_TILE_SIZE * tileCount;
 }
 
 int ZrleDecoder::readType(const vector<unsigned char> &out,
@@ -338,9 +348,4 @@ void ZrleDecoder::drawTile(FrameBuffer *fb,
            &pixels->operator[](i * m_bytesPerPixel),
            m_bytesPerPixel);
   }
-}
-
-int ZrleDecoder::getCode() const
-{
-  return EncodingDefs::ZRLE;
 }

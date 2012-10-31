@@ -59,7 +59,7 @@ void RemoteFilesDeleteOperation::start()
   remove(false);
 }
 
-void RemoteFilesDeleteOperation::onFileListReply()
+void RemoteFilesDeleteOperation::onFileListReply(DataInputStream *input)
 {
   FileInfoList *current = m_toDelete;
 
@@ -88,13 +88,13 @@ void RemoteFilesDeleteOperation::onFileListReply()
   }
 }
 
-void RemoteFilesDeleteOperation::onRmReply()
+void RemoteFilesDeleteOperation::onRmReply(DataInputStream *input)
 {
   // Go to next file to delete it
   gotoNext();
 }
 
-void RemoteFilesDeleteOperation::onLastRequestFailedReply()
+void RemoteFilesDeleteOperation::onLastRequestFailedReply(DataInputStream *input)
 {
   //
   // Logging

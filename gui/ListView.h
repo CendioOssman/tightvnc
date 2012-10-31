@@ -48,6 +48,8 @@ class ListView : public Control
 {
 public:
 
+  ListView();
+
   //
   // Adds new column to list view
   //
@@ -165,6 +167,36 @@ protected:
 
   void addExStyle(DWORD style);
   void removeExStyle(DWORD style);
+
+  //
+  // This method sort list of item by column "columnIndex".
+  // For comparing elements using function compareItem().
+  //
+  // Pointer to compareItem() must be not 0.
+  // After add or changing elements, list may be not sorted.
+  //
+  // For example, you need to call this method, if user changed parameters of sorting.
+  //
+  void sort(int columnIndex, PFNLVCOMPARE compareItem);
+
+  //
+  // This method sort list of item by column m_sortColumIndex.
+  // After add and removing elements, list may be not sorted.
+  // For example, you need to call this method after add new element.
+  //
+  void sort();
+
+private:
+  //
+  // Is list view not sorted, then m_sortClumnIndex is negative,
+  // else him contained index of column.
+  //
+  int m_sortColumnIndex;
+
+  //
+  // This pointer to compareFunction. By default is 0.
+  //
+  PFNLVCOMPARE m_compareItem;
 };
 
 #endif

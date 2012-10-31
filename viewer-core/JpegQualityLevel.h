@@ -25,25 +25,19 @@
 #ifndef _JPEG_QUALITY_LEVEL_H_
 #define _JPEG_QUALITY_LEVEL_H_
 
-#include "Decoder.h"
+#include "PseudoDecoder.h"
 
-class JpegQualityLevel : public Decoder
+class JpegQualityLevel : public PseudoDecoder
 {
 public:
   JpegQualityLevel(LogWriter *logWriter, int quality);
   virtual ~JpegQualityLevel();
 
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
+public:
+  static int qualityToEncoding(int qualityLevel);
 
   static const int JPEG_QUALITY_LEVEL_MIN = 0;
   static const int JPEG_QUALITY_LEVEL_MAX = 9;
-
-private:
-  int m_quality;
 };
 
 #endif

@@ -59,7 +59,17 @@ public:
   // it returns the image width, height and number of bits per pixel
   void getServerGeometry(int *width, int *height, int *pixelsize);
 
-  void setViewerCore(RemoteViewerCore *pViewerCore);
+  void setConnected();
+  void setViewerCore(RemoteViewerCore *viewerCore);
+
+  // This function set state key "Ctrl", but not send data to server.
+  void setCtrlState(const bool ctrlState);
+  // This function set state key "Alt", but not send data to server.
+  void setAltState(const bool altState);
+  // This function return true, if key "Control" is pressed.
+  bool getCtrlState() const;
+  // This function return true, if key "Alt" is pressed.
+  bool getAltState() const;
 
   // this function sends to remote viewer core
   // key what is pressed or unpressed
@@ -82,7 +92,7 @@ protected:
   bool onVScroll(WPARAM wParam, LPARAM lParam);
   bool onKey(WPARAM wParam, LPARAM lParam);
   bool onChar(WPARAM wParam, LPARAM lParam);
-  bool onMouse(unsigned char msg, unsigned short wspeed, POINTS pt);
+  bool onMouse(unsigned char mouseKeys, unsigned short wheelSpeed, POINT position);
   bool onSize(WPARAM wParam, LPARAM lParam);
   bool onDestroy();
   POINTS getViewerCoord(long xPos, long yPos);
@@ -92,8 +102,15 @@ protected:
 
   LogWriter *m_logWriter;
 
+  // This variable is true after call CoreEventsAdapter::onConnected().
+  bool m_isConnected;
+
   // keyboard support
   std::auto_ptr<RfbKeySym> m_rfbKeySym;
+
+  // This variable contained previously state of mouse-button and position of cursor.
+  unsigned char m_previousMouseState;
+  Point m_previousMousePos;
 
   // scroll bars: vertical and horizontal
   ScrollBar m_sbar;
@@ -117,7 +134,10 @@ protected:
   WinClipboard m_clipboard;
   StringStorage m_strClipboard;
 
-  RemoteViewerCore *m_pViewerCore;
+  bool m_ctrlDown;
+  bool m_altDown;
+
+  RemoteViewerCore *m_viewerCore;
   ConnectionConfig *m_conConf;
   bool m_isBackgroundDirty;
   bool m_isFullScreen;

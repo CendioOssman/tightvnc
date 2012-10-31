@@ -46,15 +46,13 @@ TvnViewer::TvnViewer(HINSTANCE appInstance, const TCHAR *windowClassName,
 
   m_trayIcon = new ControlTrayIcon(this);
   m_loginDialog = new LoginDialog(this);
-  m_instances = new ViewerCollector(this);
 }
 
 TvnViewer::~TvnViewer()
 {
   m_logWriter.info(_T("Viewer collector: destroy all instances"));
-  m_instances->destroyAllInstances();
+  m_instances.destroyAllInstances();
 
-  delete m_instances;
   delete m_loginDialog;
   delete m_trayIcon;
 
@@ -75,9 +73,12 @@ void TvnViewer::startListening(const ConnectionConfig *conConf, const int listen
   try {
     m_conListener = new ConnectionListener(this, listeningPort);
     m_trayIcon->showIcon();
-  } catch (Exception &exception) {
+  } catch (Exception &) {
     m_isListening = false;
-    MessageBox(0, exception.getMessage(), _T("Application Error"), MB_OK | MB_ICONERROR);
+    MessageBox(0,
+               StringTable::getString(IDS_ERROR_START_LISTENING),
+               ProductNames::VIEWER_PRODUCT_NAME,
+               MB_OK | MB_ICONERROR);
   }
 }
 
@@ -90,12 +91,13 @@ void TvnViewer::stopListening()
     }
     m_trayIcon->hide();
     m_isListening = false;
+    m_loginDialog->setListening(false);
   }
 }
 
 void TvnViewer::addInstance(ViewerInstance *viewerInstance)
 {
-  m_instances->addInstance(viewerInstance);
+  m_instances.addInstance(viewerInstance);
 }
 
 void TvnViewer::runInstance(const StringStorage *hostName, const ConnectionConfig *config)
@@ -113,19 +115,9 @@ void TvnViewer::runInstance(ConnectionData *conData, const ConnectionConfig *con
   addInstance(viewerInst);
 }
 
-bool TvnViewer::notConnected() const
-{
-  return m_instances->empty();
-}
-
 bool TvnViewer::isVisibleLoginDialog() const
 {
   return !!m_loginDialog->getControl()->getWindow();
-}
-
-bool TvnViewer::isListening() const
-{
-  return m_isListening;
 }
 
 void TvnViewer::newConnection(const StringStorage *hostName, const ConnectionConfig *config)
@@ -137,11 +129,7 @@ void TvnViewer::newConnection(const StringStorage *hostName, const ConnectionCon
 
 void TvnViewer::newConnection(const ConnectionData *conData, const ConnectionConfig *config)
 {
-  ConnectionData *copyConData = new ConnectionData;
-  if (!conData->isEmpty()) {
-    copyConData->setHost(&conData->getHost());
-  }
-  copyConData->setPlainPassword(conData->getDefaultPassword());
+  ConnectionData *copyConData = new ConnectionData(*conData);
   runInstance(copyConData, config);
 }
 
@@ -157,6 +145,8 @@ void TvnViewer::createWindow(const TCHAR *className)
 {
   WindowsApplication::createWindow(className);
   SetWindowLongPtr(m_mainWindow, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+  SetTimer(m_mainWindow, TIMER_DELETE_DEAD_INSTANCE, TIMER_DELETE_DEAD_INSTANCE_DELAY, (TIMERPROC)NULL);
 }
 
 void TvnViewer::registerWindowClass(WNDCLASS *wndClass)
@@ -261,6 +251,7 @@ int TvnViewer::processMessages()
 void TvnViewer::newListeningConnection()
 {
   ConnectionData connectionData;
+  connectionData.setIncoming(true);
 
   ConnectionConfig connectionConfig;
   ConnectionConfigSM ccsm(RegistryPaths::VIEWER_PATH, _T(".listen"));
@@ -281,17 +272,53 @@ void TvnViewer::newListeningConnection()
   }
 }
 
+bool TvnViewer::onTimer(WPARAM idTimer)
+{
+  switch (idTimer) {
+  case TIMER_DELETE_DEAD_INSTANCE:
+    m_instances.deleteDeadInstances();
+    if (m_instances.empty() && 
+        !isVisibleLoginDialog() &&
+        !m_isListening) {
+      shutdown();
+    }
+    return true;
+  default:
+    _ASSERT(false);
+    return false;
+  }
+}
+
 LRESULT CALLBACK TvnViewer::wndProc(HWND hWnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-  if (msg >= WM_USER) {
+  if (msg >= WM_USER || msg == WM_TIMER) {
     TvnViewer *_this = reinterpret_cast<TvnViewer *>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
     if (_this != 0) {
       switch (msg) {
+      case WM_TIMER:
+        return _this->onTimer(wparam);
+
       case WM_USER_NEW_LISTENING:
         _this->newListeningConnection();
         break;
-      case WM_USER_NEW_CONNECTION:
+
+      case WM_USER_SHOW_LOGIN_DIALOG:
         _this->showLoginDialog();
+        break;
+
+      case WM_USER_CONFIGURATION:
+        _this->showConfiguration();
+        break;
+
+      case WM_USER_ABOUT:
+        _this->showAboutViewer();
+        break;
+
+      case WM_USER_RECONNECT:
+        ConnectionData *conData = reinterpret_cast<ConnectionData *>(wparam);
+        ConnectionConfig *conConfig = reinterpret_cast<ConnectionConfig *>(lparam);
+        _this->newConnection(conData, conConfig);
+        _this->m_instances.decreaseToReconnect();
         break;
       }
     }

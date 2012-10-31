@@ -116,6 +116,11 @@ void ClientLogger::print(int logLevel, const TCHAR *line)
   flush(processId, threadId, &DateTime::now(), logLevel, line);
 }
 
+bool ClientLogger::acceptsLevel(int logLevel)
+{
+  return logDumpEnabled() || m_logOutput != 0 && logLevel <= getLogBarrier();
+}
+
 void ClientLogger::flush(unsigned int processId,
                          unsigned int threadId,
                          const DateTime *dt,

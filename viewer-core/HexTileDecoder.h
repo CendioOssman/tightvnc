@@ -25,20 +25,18 @@
 #ifndef _HEX_TILE_DECODER_H_
 #define _HEX_TILE_DECODER_H_
 
-#include "Decoder.h"
+#include "DecoderOfRectangle.h"
 
-class HexTileDecoder : public Decoder
+class HexTileDecoder : public DecoderOfRectangle
 {
 public:
   HexTileDecoder(LogWriter *logWriter);
-  ~HexTileDecoder();
+  virtual ~HexTileDecoder();
 
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
-
+protected:
+  virtual void decode(RfbInputGate *input,
+                      FrameBuffer *framebuffer,
+                      const Rect *dstRect);
 private:
   static const int TILE_SIZE = 16;
 };

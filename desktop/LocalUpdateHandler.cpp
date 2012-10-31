@@ -204,9 +204,11 @@ void LocalUpdateHandler::updateVideoRegion()
         if (GetWindowInfo(videoHWND, &wi)) {
           Rect videoRect(wi.rcClient.left, wi.rcClient.top,
                          wi.rcClient.right, wi.rcClient.bottom);
-          videoRect.move(-GetSystemMetrics(SM_XVIRTUALSCREEN),
-                         -GetSystemMetrics(SM_YVIRTUALSCREEN));
-          m_vidRegion.addRect(&videoRect);
+          if (videoRect.isValid()) {
+            videoRect.move(-GetSystemMetrics(SM_XVIRTUALSCREEN),
+                           -GetSystemMetrics(SM_YVIRTUALSCREEN));
+            m_vidRegion.addRect(&videoRect);
+          }
         }
       }
     }

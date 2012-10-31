@@ -676,6 +676,7 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
 
   if (!sm->getBinaryData(_T("Password"), (void *)&buffer, &passSize)) {
     loadResult = false;
+    m_serverConfig.deletePrimaryPassword();
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.setPrimaryPassword(&buffer[0]);
@@ -683,6 +684,7 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   passSize = 8;
   if (!sm->getBinaryData(_T("PasswordViewOnly"), (void *)&buffer, &passSize)) {
     loadResult = false;
+    m_serverConfig.deleteReadOnlyPassword();
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.setReadOnlyPassword(&buffer[0]);
@@ -690,6 +692,7 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   passSize = 8;
   if (!sm->getBinaryData(_T("ControlPassword"), (void *)&buffer, &passSize)) {
     loadResult = false;
+    m_serverConfig.deleteControlPassword();
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.setControlPassword(&buffer[0]);

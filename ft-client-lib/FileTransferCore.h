@@ -61,7 +61,7 @@ public:
 
   void setInterface(FileTransferInterface *ftInterface);
 
-  const OperationSupport getSupportedOps();
+  const OperationSupport &getSupportedOps();
 
   vector<FileInfo> *getListLocalFolder(const TCHAR *pathToFile);
   vector<FileInfo> *getListRemoteFolder();
@@ -94,8 +94,8 @@ public:
   void onUpdateState(int state, int result);
 
   // FIXME: Debug.
-  void updateSupportedOperations(const CapsContainer *clientCaps,
-                                 const CapsContainer *serverCaps);
+  void updateSupportedOperations(const vector<UINT32> *clientCaps,
+                                 const vector<UINT32> *serverCaps);
 
 protected:
   //

@@ -89,6 +89,8 @@ void ViewPort::update(const Dimension *fbDimension)
     break;
   case ViewPortState::ARBITRARY_RECT:
     rect = m_state.m_arbitraryRect;
+    _ASSERT(m_desktop != 0);
+    m_desktop->getNormalizedRect(&rect);
     break;
   }
   m_log->debug(_T("View port coordinates: (%d, %d %dx%d)"),

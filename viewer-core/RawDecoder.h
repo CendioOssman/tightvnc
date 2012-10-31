@@ -1,4 +1,4 @@
-// Copyright (C) 2012 GlavSoft LLC.
+// Copyright (C) 2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,38 +22,34 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef _MSG_CAPABILITY_H_
-#define _MSG_CAPABILITY_H_
+#ifndef _RAW_DECODER_H_
+#define _RAW_DECODER_H_
 
-#include <map>
+#include "DecoderOfRectangle.h"
 
-#include "network/RfbInputGate.h"
-#include "network/RfbOutputGate.h"
-
-#include "CapsContainer.h"
-
-class MsgCapability
+class RawDecoder : public DecoderOfRectangle
 {
 public:
-  MsgCapability();
-  virtual ~MsgCapability();
+  RawDecoder(LogWriter *logWriter);
+  virtual ~RawDecoder();
 
-  virtual bool isEnabled();
-  virtual void bind(RfbInputGate *input, RfbOutputGate *output);
-  virtual void listenerMessage(RfbInputGate *input, INT32 msgType) = 0;
+  //
+  // This method is inherited from DecoderOfRectangle.
+  //
+  virtual void process(RfbInputGate *input,
+                       FrameBuffer *frameBuffer,
+                       FrameBuffer *secondFrameBuffer,
+                       const Rect *rect,
+                       LocalMutex *fbLock,
+                       FbUpdateNotifier *fbNotifier);
 
-  virtual bool isMsgSupported(INT32 msg);
-
-  virtual void enableClientMsg(const RfbCapabilityInfo *capability);
-  virtual void enableServerMsg(const RfbCapabilityInfo *capability);
 protected:
-  RfbInputGate *m_input;
-  RfbOutputGate *m_output;
+  virtual void decode(RfbInputGate *input,
+                      FrameBuffer *frameBuffer,
+                      const Rect *rect);
 
-  CapsContainer m_clientMsgCaps;
-  CapsContainer m_serverMsgCaps;
-
-  map<INT32, bool> m_availableServerMsg;
+private:
+  static const size_t AREA_OF_ONE_PART = 1024 * 64;
 };
 
 #endif

@@ -1,4 +1,4 @@
-// Copyright (C) 2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,18 +22,37 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef _NONE_AUTHENTICATION_H_
-#define _NONE_AUTHENTICATION_H_
+#ifndef _VNC_AUTHENTICATION_HANDLER_H_
+#define _VNC_AUTHENTICATION_HANDLER_H_
 
-#include "AuthHandler.h"
+#include "viewer-core/AuthHandler.h"
 
-class NoneAuthentication : public AuthHandler
+#include "ConnectionData.h"
+
+class VncAuthenticationHandler : public AuthHandler
 {
 public:
-  NoneAuthentication();
-  ~NoneAuthentication();
-  void authenticate(RfbInputGate *input, RfbOutputGate *output,
-                    const StringStorage *password);
+  VncAuthenticationHandler(ConnectionData *connectionData);
+  virtual ~VncAuthenticationHandler();
+
+  //
+  // Overrides AuthHandler::authenticate().
+  //
+  virtual void authenticate(DataInputStream *input, DataOutputStream *output);
+
+  //
+  // Overrides AuthHandler::addAuthCapability().
+  //
+  virtual void addAuthCapability(CapabilitiesManager *capabilitiesManager);
+
+protected:
+  //
+  // This method showing AuthenticationDialog, get password and 
+  // save password in m_connectionData
+  //
+  virtual void getPassword();
+
+  ConnectionData *m_connectionData;
 };
 
 #endif

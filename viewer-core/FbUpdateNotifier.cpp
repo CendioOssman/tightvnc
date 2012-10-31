@@ -26,6 +26,8 @@
 
 #include "thread/AutoLock.h"
 
+#include "CoreEventsAdapter.h"
+
 FbUpdateNotifier::FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logWriter)
 : m_frameBuffer(fb),
   m_fbLock(fbLock),
@@ -55,6 +57,7 @@ void FbUpdateNotifier::setAdapter(CoreEventsAdapter *adapter)
 void FbUpdateNotifier::execute()
 {
   while (!isTerminating()) {
+    // If flag is set, then thread going to sleep (wait event).
     bool noUpdates = true;
 
     bool isNewSize;
@@ -74,39 +77,43 @@ void FbUpdateNotifier::execute()
 
     if (isNewSize) {
       noUpdates = false;
-      m_logWriter->detail(_T("FbUpdateNotifier (event): new size of frame buffer"));
+      m_logWriter->debug(_T("FbUpdateNotifier (event): new size of frame buffer"));
       try {
         AutoLock al(m_fbLock);
         m_adapter->onFrameBufferPropChange(m_frameBuffer);
         // FIXME: it's bad code. Must work without one next line, but not it.
         m_adapter->onFrameBufferUpdate(m_frameBuffer, &m_frameBuffer->getDimension().getRect());
       } catch (...) {
-        m_logWriter->info(_T("FbUpdateNotifier (event): error in set new size"));
+        m_logWriter->error(_T("FbUpdateNotifier (event): error in set new size"));
       }
     }
 
-    if (!update.isEmpty() || isCursorChange) {
+    if (isCursorChange || !update.isEmpty()) {
       noUpdates = false;
 
       AutoLock al(m_fbLock);
       Rect cursor = m_cursorPainter.showCursor();
       update.addRect(&cursor);
       update.addRect(&m_oldPosition);
-      
+
       vector<Rect> updateList;
       update.getRectVector(&updateList);
       m_logWriter->detail(_T("FbUpdateNotifier (event): %u updates"), updateList.size());
 
       try {
-        for (vector<Rect>::iterator i = updateList.begin(); i != updateList.end(); i++)
+        for (vector<Rect>::iterator i = updateList.begin(); i != updateList.end(); i++) {
           m_adapter->onFrameBufferUpdate(m_frameBuffer, &*i);
+        }
       } catch (...) {
-        m_logWriter->info(_T("FbUpdateNotifier (event): error in update"));
+        m_logWriter->error(_T("FbUpdateNotifier (event): error in update"));
       }
       m_oldPosition = m_cursorPainter.hideCursor();
     }
-    if (noUpdates)
+
+    // Pause this thread, if there are no updates (cursor, frame buffer).
+    if (noUpdates) {
       m_eventUpdate.waitForEvent();
+    }
   }
 }
 
@@ -115,14 +122,14 @@ void FbUpdateNotifier::onTerminate()
   m_eventUpdate.notify();
 }
 
-void FbUpdateNotifier::onUpdate(Rect *update)
+void FbUpdateNotifier::onUpdate(const Rect *update)
 {
   {
     AutoLock al(&m_updateLock);
     m_update.addRect(update);
   }
   m_eventUpdate.notify();
-  m_logWriter->detail(_T("FbUpdateNotifier: added rectangle"));
+  m_logWriter->debug(_T("FbUpdateNotifier: added rectangle"));
 }
 
 void FbUpdateNotifier::onPropertiesFb()
@@ -133,7 +140,7 @@ void FbUpdateNotifier::onPropertiesFb()
     m_isNewSize = true;
   }
   m_eventUpdate.notify();
-  m_logWriter->detail(_T("FbUpdateNotifier: new size of frame buffer"));
+  m_logWriter->debug(_T("FbUpdateNotifier: new size of frame buffer"));
 }
 
 void FbUpdateNotifier::updatePointerPos(const Point *position)

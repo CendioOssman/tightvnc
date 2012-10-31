@@ -73,9 +73,8 @@ public:
 
   static const int DEFAULT_SCALE_DENOMERATOR = 100;
 protected:
-  // this method return round of (x/y) if bIncr is false
-  // and return x/y round to up
-  int sDiv(int x, int y, bool bIncr) const;
+  // This method return round to up of (x/y).
+  int sDiv(int x, int y) const;
 
   // size of window with frame buffer
   Rect m_rcWindow;

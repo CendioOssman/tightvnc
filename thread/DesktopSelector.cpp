@@ -78,20 +78,25 @@ bool DesktopSelector::selectDesktop(const StringStorage *name)
 
 bool DesktopSelector::getDesktopName(HDESK desktop, StringStorage *desktopName)
 {
-  DWORD nameLength;
+  desktopName->setString(_T(""));
+
+  DWORD nameLength = 0;
+  // Do not check returned value because the function will return FALSE always.
   GetUserObjectInformation(desktop, UOI_NAME, 0, 0, &nameLength);
 
-  std::vector<TCHAR> name(nameLength);
-
-  bool result = GetUserObjectInformation(desktop,
-                                         UOI_NAME,
-                                         &name[0],
-                                         nameLength,
-                                         0) != 0;
-  if (result) {
-    desktopName->setString(&name[0]);
+  if (nameLength != 0) {
+    std::vector<TCHAR> name(nameLength);
+    bool result = !!GetUserObjectInformation(desktop,
+                                             UOI_NAME,
+                                             &name[0],
+                                             nameLength,
+                                             0);
+    if (result) {
+      desktopName->setString(&name[0]);
+      return true;
+    }
   }
-  return result;
+  return false;
 }
 
 bool DesktopSelector::getCurrentDesktopName(StringStorage *desktopName)

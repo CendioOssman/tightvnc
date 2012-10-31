@@ -53,16 +53,26 @@ public:
   void setFileTransfer(FileTransferCapability *ft);
   void setRemoteViewerCore(RemoteViewerCore *pCore);
 
+  bool requiresReconnect() const;
   bool isStopped() const;
 
   static const int WM_USER_ERROR = WM_USER + 1;
   static const int WM_USER_STOP = WM_USER + 2;
-  static const int WM_USER_FS_WARNING = WM_USER + 3;
+  static const int WM_USER_DISCONNECT = WM_USER + 3;
+  static const int WM_USER_AUTH_ERROR = WM_USER + 4;
+  static const int WM_USER_FS_WARNING = WM_USER + 5;
 
 protected:
+  static const int TIMER_DESKTOP_STATE = 1;
+  static const int TIMER_DESKTOP_STATE_DELAY = 50;
+
   bool onMessage(UINT message, WPARAM wParam, LPARAM lParam);
   bool onEraseBackground(HDC hdc);
-  bool onError(WPARAM wParam);
+  
+  bool onDisconnect();
+  bool onAuthError(WPARAM wParam);
+  bool onError();
+
   bool onFsWarning();
   bool onSize(WPARAM wParam, LPARAM lParam);
   bool onCreate(LPCREATESTRUCT lps);
@@ -70,9 +80,12 @@ protected:
   bool onNotify(int idCtrl, LPNMHDR pnmh);
   bool onSysCommand(WPARAM wParam, LPARAM lParam);
   bool onClose();
+  bool onDestroy();
   bool onFocus(WPARAM wParam);
   bool onKillFocus(WPARAM wParam);
+  bool onTimer(WPARAM idTimer);
 
+  void desktopStateUpdate();
   void commandCtrlAltDel();
   void commandCtrlEsc();
   void commandCtrl();
@@ -81,25 +94,24 @@ protected:
   void commandPause();
   void onAbout();
   void commandNewConnection();
-  void commandSaveConnection();
+  void commandSaveSession();
   void commandScaleIn();
   void commandScaleOut();
   void commandScale100();
   void commandScaleAuto();
 
-  // CoreEventsAdapter
+  //
+  // It is implementation of CoreEventsAdapter functions.
+  //
   void onBell();
-  void onConnected();
+  void onConnected(RfbOutputGate *output);
   void onDisconnect(const StringStorage *message);
   void onAuthError(const AuthException *exception);
   void onError(const Exception *exception);
   void onFrameBufferUpdate(const FrameBuffer *fb, const Rect *rect);
   void onFrameBufferPropChange(const FrameBuffer *fb);
-  void doAuthenticate(const int securityType,
-                      RfbInputGate *input,
-                      RfbOutputGate *output);
   void onCutText(const StringStorage *cutText);
-  void getPassword(StringStorage *strPassw);
+
   int translateAccelToTB(int val);
   void applyScreenChanges(bool isFullScreen);
   
@@ -107,7 +119,7 @@ protected:
   // if size of remote screen is more local desktop, then return rect of desktop
   // else return rect of remote screen + border
   Rect calculateDefaultSize();
-  
+
   LogWriter m_logWriter;
 
   Control m_control;
@@ -115,32 +127,41 @@ protected:
   ConnectionConfigSM m_ccsm;
   ConnectionConfig *m_conConf;
   WindowsApplication *m_application;
-  RemoteViewerCore *m_pViewerCore;
+  RemoteViewerCore *m_viewerCore;
   FileTransferCapability *m_fileTransfer;
   FileTransferMainDialog *m_ftDialog;
   DesktopWindow m_dsktWnd;
-  Exception m_error;
   StringStorage m_strToolTip;
   ToolBar m_toolbar;
   ViewerMenu m_menu;
   ConnectionData *m_conData;
   SystemInformation m_sysinf;
 
-  // for full screen mode
+  // This variable save Exception after call onError().
+  Exception m_error;
+  // This variable save disconnect-message after call onDisconnect().
+  StringStorage m_disconnectMessage;
+
+  // Flag is set, if now viewer is in full screen mode
   bool m_isFullScr;
-  // size of work-area in windowed mode. Need for restore size of window
-  RECT m_rcNormal;
-  // true after recv first message WM_SIZING
+  // It's size of work-area in windowed mode. It is necessary for restore size of window.
+  Rect m_rcNormal;
+  // Flag is set after recv first message WM_SIZING.
   bool m_sizeIsChanged;
-  // true, if size of window is SIZE_MAXIMIZED
+  // Flag is set, if size of window is SIZE_MAXIMIZED.
   bool m_isMaximized;
+  // Flag is set, if toolbar is visible.
   bool m_bToolBar;
+  // It is scale of viewer window in percent.
   int m_scale;
 
-  // flag is set after onConnected()
+  // Flag is set after onConnected().
   bool m_isConnected;
 
-  // flag is set, if viewer instance is stopped
+  // Flag is set, if instance is requires to reconnect.
+  bool m_requiresReconnect;
+
+  // Flag is set, if viewer instance is stopped.
   bool m_stopped;
 
 private:
@@ -160,6 +181,8 @@ private:
   void switchFullScreenMode();
   void dialogConfiguration();
   void adjustWindowSize();
+  StringStorage formatWindowName() const;
+  void updateKeyState();
 };
 
 #endif

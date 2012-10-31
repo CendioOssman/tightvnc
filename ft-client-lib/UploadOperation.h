@@ -92,12 +92,12 @@ public:
   // Event handlers to process file transfer messages
   //
 
-  virtual void onUploadReply() throw(IOException);
-  virtual void onUploadDataReply() throw(IOException);
-  virtual void onUploadEndReply() throw(IOException);
-  virtual void onMkdirReply() throw(IOException);
-  virtual void onLastRequestFailedReply() throw(IOException);
-  virtual void onFileListReply() throw(IOException);
+  virtual void onUploadReply(DataInputStream *input) throw(IOException);
+  virtual void onUploadDataReply(DataInputStream *input) throw(IOException);
+  virtual void onUploadEndReply(DataInputStream *input) throw(IOException);
+  virtual void onMkdirReply(DataInputStream *input) throw(IOException);
+  virtual void onLastRequestFailedReply(DataInputStream *input) throw(IOException);
+  virtual void onFileListReply(DataInputStream *input) throw(IOException);
 
 private:
 

@@ -25,21 +25,11 @@
 #include "LastRectDecoder.h"
 
 LastRectDecoder::LastRectDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: PseudoDecoder(logWriter)
 {
+  m_encoding = PseudoEncDefs::LAST_RECT;
 }
 
 LastRectDecoder::~LastRectDecoder()
 {
-}
-
-void LastRectDecoder::decode(RfbInputGate *input,
-                             FrameBuffer *framebuffer,
-                             const Rect *dstRect)
-{
-}
-
-int LastRectDecoder::getCode() const
-{
-  return PseudoEncDefs::LAST_RECT;
 }

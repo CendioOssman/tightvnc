@@ -96,6 +96,16 @@ void FileAccount::print(unsigned int processId,
   flush(processId, threadId, dt, level, message);
 }
 
+bool FileAccount::acceptsLevel(int logLevel)
+{
+  return logDumpEnabled() || logHeadEnabled() || printsLine(logLevel);
+}
+
+bool FileAccount::printsLine(int level)
+{
+  return m_file != 0 && level <= m_level;
+}
+
 void FileAccount::flush(unsigned int processId,
                         unsigned int threadId,
                         const DateTime *dt,
@@ -104,10 +114,8 @@ void FileAccount::flush(unsigned int processId,
 {
   AutoLock al(&m_logMut);
 
-  if (level <= m_level) {
-    if (m_file != 0) {
-      format(processId, threadId, dt, level, message);
-    }
+  if (printsLine(level)) {
+    format(processId, threadId, dt, level, message);
   }
 }
 
@@ -164,7 +172,9 @@ void FileAccount::format(unsigned int processId,
   resultLine.appendString(endLine);
 
   // Writing string without null-termination symbol.
-  m_file->write(resultLine.getString(), resultLine.getSize() - sizeof(TCHAR));
+  if (m_file != 0) {
+    m_file->write(resultLine.getString(), resultLine.getSize() - sizeof(TCHAR));
+  }
 }
 
 void FileAccount::setNewFile(unsigned char newLevel, const TCHAR *newDir)

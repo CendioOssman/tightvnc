@@ -59,10 +59,6 @@ AuthCanceledException::~AuthCanceledException()
 {
 }
 
-AuthHandler::AuthHandler()
-{
-}
-
 AuthHandler::~AuthHandler()
 {
 }

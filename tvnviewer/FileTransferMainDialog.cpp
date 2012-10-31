@@ -107,6 +107,12 @@ BOOL FileTransferMainDialog::onNotify(UINT controlID, LPARAM data)
         onRemoteListViewKeyDown(nmlvkd->wVKey);
       }
       break;
+    case LVN_COLUMNCLICK:
+      {
+        NMLISTVIEW *lpdi = reinterpret_cast<NMLISTVIEW *>(data);
+        m_remoteFileListView.sort(lpdi->iSubItem);
+      }
+      break;
     } // switch notification code
 
     //
@@ -126,6 +132,12 @@ BOOL FileTransferMainDialog::onNotify(UINT controlID, LPARAM data)
       {
         LPNMLVKEYDOWN nmlvkd = (LPNMLVKEYDOWN)data;
         onLocalListViewKeyDown(nmlvkd->wVKey);
+      }
+      break;
+    case LVN_COLUMNCLICK:
+      {
+        NMLISTVIEW *lpdi = reinterpret_cast<NMLISTVIEW *>(data);
+        m_localFileListView.sort(lpdi->iSubItem);
       }
       break;
     } // switch notification code
@@ -598,6 +610,9 @@ void FileTransferMainDialog::moveUpRemoteFolder()
 void FileTransferMainDialog::onRemoteListViewDoubleClick()
 {
   FileInfo *selFileInfo = m_remoteFileListView.getSelectedFileInfo();
+  if (selFileInfo == 0)
+    return;
+
   if (!selFileInfo->isDirectory())
     return;
 
@@ -620,6 +635,10 @@ void FileTransferMainDialog::onLocalListViewDoubleClick()
 {
   // FIXME: removed duplicate code (see onRemoteListViewDoubleClick)
   FileInfo *selFileInfo = m_localFileListView.getSelectedFileInfo();
+
+  if (selFileInfo == 0)
+    return;
+
   if (!selFileInfo->isDirectory())
     return;
 

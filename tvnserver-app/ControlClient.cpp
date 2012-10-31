@@ -47,7 +47,6 @@
 const UINT32 ControlClient::REQUIRES_AUTH[] = { ControlProto::ADD_CLIENT_MSG_ID,
                                                 ControlProto::DISCONNECT_ALL_CLIENTS_MSG_ID,
                                                 ControlProto::GET_CONFIG_MSG_ID,
-                                                ControlProto::RELOAD_CONFIG_MSG_ID,
                                                 ControlProto::SET_CONFIG_MSG_ID,
                                                 ControlProto::SHUTDOWN_SERVER_MSG_ID,
                                                 ControlProto::SHARE_PRIMARY_MSG_ID,

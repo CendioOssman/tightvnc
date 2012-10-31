@@ -27,16 +27,12 @@
 
 #include "AuthHandler.h"
 
-class VncAuthentication : public AuthHandler
+class VncAuthentication
 {
 public:
-  VncAuthentication();
-  ~VncAuthentication();
-
-  void authenticate(RfbInputGate *input, RfbOutputGate *output,
+  static void vncAuthenticate(DataInputStream *input, DataOutputStream *output,
                     const StringStorage *password);
 
-public:
   // TODO: removed duplicate code: ServerConfig.h
   static const int VNC_PASSWORD_SIZE = 8;
 };

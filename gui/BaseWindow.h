@@ -105,18 +105,20 @@ public:
   static const int MOUSE_WDOWN  = 16;
 
 private:
-  // virtual functions
+  // This function may be implement in child class.
+  // Here is stub function, always returned false.
   virtual bool onCommand(WPARAM wParam, LPARAM lParam);
   virtual bool onNotify(int idCtrl, LPNMHDR pnmh);
   virtual bool onSysCommand(WPARAM wParam, LPARAM lParam);
   virtual bool onMessage(UINT message, WPARAM wParam, LPARAM lParam);
-  virtual bool onMouse(unsigned char msg, unsigned short wspeed, POINTS pt);
+  virtual bool onMouse(unsigned char mouseButtons, unsigned short wheelSpeed, POINT position);
 
 protected:
   HWND m_hWnd;
   StringStorage m_className;
   StringStorage m_windowName;
   HICON m_hicon;
+
   bool m_bWndCreated;
 };
 

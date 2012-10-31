@@ -26,15 +26,19 @@
 #include "ft-common/FTMessage.h"
 #include "thread/AutoLock.h"
 
-FileTransferRequestSender::FileTransferRequestSender(LogWriter *logWriter,
-                                                     RfbOutputGate *output)
+FileTransferRequestSender::FileTransferRequestSender(LogWriter *logWriter)
 : m_logWriter(logWriter),
-  m_output(output)
+  m_output(0)
 {
 }
 
 FileTransferRequestSender::~FileTransferRequestSender()
 {
+}
+
+void FileTransferRequestSender::setOutput(RfbOutputGate *outputStream)
+{
+  m_output = outputStream;
 }
 
 void FileTransferRequestSender::sendCompressionSupportRequest()

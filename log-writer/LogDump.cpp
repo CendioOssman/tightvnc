@@ -90,7 +90,7 @@ void LogDump::updateLogHeaderLines(unsigned int processId,
                                    int level,
                                    const TCHAR *message)
 {
-  if (!m_logHeaderStopped && m_logHeaderLines.size() < MAX_LOG_HEADER_SIZE) {
+  if (logHeadEnabled()) {
     m_logHeaderLines.push_back(LogEntry(processId, threadId, dt, level, message));
   }
 }
@@ -101,7 +101,7 @@ void LogDump::updateLogDumpLines(unsigned int processId,
                                  int level,
                                  const TCHAR *message)
 {
-  if (!m_logDumpStopped && m_logDumpLines.size() < MAX_LOG_DUMP_SIZE) {
+  if (logDumpEnabled()) {
     m_logDumpLines.push_back(LogEntry(processId, threadId, dt, level, message));
   }
 }
@@ -109,4 +109,14 @@ void LogDump::updateLogDumpLines(unsigned int processId,
 size_t LogDump::getLogDumpSize()
 {
   return m_logDumpLines.size();
+}
+
+bool LogDump::logDumpEnabled()
+{
+  return !m_logDumpStopped && m_logDumpLines.size() < MAX_LOG_DUMP_SIZE;
+}
+
+bool LogDump::logHeadEnabled()
+{
+  return !m_logHeaderStopped && m_logHeaderLines.size() < MAX_LOG_HEADER_SIZE;
 }

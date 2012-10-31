@@ -211,7 +211,13 @@ void RfbInitializer::doVncAuth()
   }
   // At this time we are sure that the client was typed an incorectly password.
   m_extAuthListener->onAuthFailed(m_client);
-  throw AuthException(_T("Authentication failed"));
+
+  StringStorage clientAddressStorage;
+  m_client->getPeerHost(&clientAddressStorage);
+  StringStorage errMess;
+  errMess.format(_T("Authentication failed from %s"), clientAddressStorage.getString());
+
+  throw AuthException(errMess.getString());
 }
 
 void RfbInitializer::doAuthNone()

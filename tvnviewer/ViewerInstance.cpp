@@ -31,15 +31,15 @@ ViewerInstance::ViewerInstance(WindowsApplication *application,
                                ConnectionData *condata,
                                const ConnectionConfig *conConf)
 : m_conConf(*conConf),
+  m_condata(*condata),
   m_socket(0),
-  m_viewerWnd(0),
+  m_viewerWnd(application,
+              &m_condata,
+              &m_conConf,
+              ViewerConfig::getInstance()->getLogger()),
+  m_vncAuthHandler(&m_condata),
   m_viewerCore(ViewerConfig::getInstance()->getLogger())
 {
-  m_condata.setPlainPassword(condata->getDefaultPassword());
-  if (!condata->isEmpty()) {
-    m_condata.setHost(&condata->getHost());
-  }
-  m_viewerWnd = new ViewerWindow(application, &m_condata, &m_conConf);
 }
 
 ViewerInstance::ViewerInstance(WindowsApplication *application,
@@ -47,15 +47,15 @@ ViewerInstance::ViewerInstance(WindowsApplication *application,
                                const ConnectionConfig *conConf,
                                SocketIPv4 *socket)
 : m_conConf(*conConf),
+  m_condata(*condata),
   m_socket(socket),
-  m_viewerWnd(0),
+  m_viewerWnd(application,
+              &m_condata,
+              &m_conConf,
+              ViewerConfig::getInstance()->getLogger()),
+  m_vncAuthHandler(&m_condata),
   m_viewerCore(ViewerConfig::getInstance()->getLogger())
 {
-  m_condata.setPlainPassword(condata->getDefaultPassword());
-  if (!condata->isEmpty()) {
-    m_condata.setHost(&condata->getHost());
-  }
-  m_viewerWnd = new ViewerWindow(application, &m_condata, &m_conConf);
 }
 
 
@@ -79,33 +79,41 @@ void ViewerInstance::waitViewer()
   m_viewerCore.waitTermination();
 }
 
+bool ViewerInstance::requiresReconnect() const
+{
+  return m_viewerWnd.requiresReconnect();
+}
+
 bool ViewerInstance::isStopped() const
 {
-  return m_viewerWnd->isStopped();
+  return m_viewerWnd.isStopped();
 }
 
 void ViewerInstance::stop()
 {
-  m_viewerWnd->postMessage(ViewerWindow::WM_USER_STOP);
+  m_viewerWnd.postMessage(ViewerWindow::WM_USER_STOP);
 }
 
 void ViewerInstance::start()
 {
   Logger *logger = ViewerConfig::getInstance()->getLogger();
-  m_viewerWnd->setRemoteViewerCore(&m_viewerCore);
+  m_viewerWnd.setRemoteViewerCore(&m_viewerCore);
 
 
-  m_viewerWnd->setFileTransfer(&m_fileTransfer);
-  m_viewerCore.addExtension(&m_fileTransfer);
+  m_viewerWnd.setFileTransfer(&m_fileTransfer);
+
+  m_vncAuthHandler.addAuthCapability(&m_viewerCore);
+
+  m_fileTransfer.addCapabilities(&m_viewerCore);
 
   if (m_socket) {
     m_viewerCore.start(m_socket,
-                       m_viewerWnd, m_conConf.getSharedFlag());
+                       &m_viewerWnd, m_conConf.getSharedFlag());
   } else {
     StringStorage strHost;
     m_condata.getReducedHost(&strHost);
     UINT16 portVal = m_condata.getPort();
     m_viewerCore.start(strHost.getString(), portVal,
-                       m_viewerWnd, m_conConf.getSharedFlag());
+                       &m_viewerWnd, m_conConf.getSharedFlag());
   }
 }

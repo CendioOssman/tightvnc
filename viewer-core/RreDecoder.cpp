@@ -25,8 +25,9 @@
 #include "RreDecoder.h"
 
 RreDecoder::RreDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: DecoderOfRectangle(logWriter)
 {
+  m_encoding = EncodingDefs::RRE;
 }
 
 RreDecoder::~RreDecoder()
@@ -56,9 +57,4 @@ void RreDecoder::decode(RfbInputGate *input,
     rect.move(dstRect->left, dstRect->top);
     frameBuffer->fillRect(&rect, color);
   }
-}
-
-int RreDecoder::getCode() const
-{
-  return EncodingDefs::RRE;
 }

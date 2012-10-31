@@ -52,6 +52,8 @@ public:
   // Sends log line to the log server.
   virtual void print(int logLevel, const TCHAR *line);
 
+  virtual bool acceptsLevel(int logLevel);
+
 private:
   // Writes a log message.
   virtual void flush(unsigned int processId,

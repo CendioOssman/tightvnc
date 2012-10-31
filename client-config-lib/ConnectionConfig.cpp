@@ -381,7 +381,7 @@ int ConnectionConfig::getLocalCursorShape()
   return m_localCursor;
 }
 
-bool ConnectionConfig::saveToStorage(SettingsManager *sm)
+bool ConnectionConfig::saveToStorage(SettingsManager *sm) const
 {
   AutoLock l(&m_cs);
 

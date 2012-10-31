@@ -25,19 +25,13 @@
 #ifndef _LAST_RECT_DECODER_H_
 #define _LAST_RECT_DECODER_H_
 
-#include "Decoder.h"
+#include "PseudoDecoder.h"
 
-class LastRectDecoder : public Decoder
+class LastRectDecoder : public PseudoDecoder
 {
 public:
   LastRectDecoder(LogWriter *logWriter);
   virtual ~LastRectDecoder();
-
-  void decode(RfbInputGate *input,
-              FrameBuffer *framebuffer,
-              const Rect *dstRect);
-
-  int getCode() const;
 };
 
 #endif

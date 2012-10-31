@@ -26,8 +26,10 @@
 
 const char *const EncodingDefs::SIG_RAW = "RAW_____";
 const char *const EncodingDefs::SIG_COPYRECT = "COPYRECT";
+const char *const EncodingDefs::SIG_RRE = "RRE_____";
 const char *const EncodingDefs::SIG_HEXTILE = "HEXTILE_";
 const char *const EncodingDefs::SIG_TIGHT = "TIGHT___";
+const char *const EncodingDefs::SIG_ZRLE = "ZRLE____";
 
 const char *const PseudoEncDefs::SIG_COMPR_LEVEL = "COMPRLVL";
 const char *const PseudoEncDefs::SIG_X_CURSOR = "X11CURSR";

@@ -61,6 +61,11 @@ void FileLogger::print(int logLevel, const TCHAR *line)
   }
 }
 
+bool FileLogger::acceptsLevel(int logLevel)
+{
+  return m_fileAccount.acceptsLevel(logLevel);
+}
+
 void FileLogger::changeLogProps(const TCHAR *newLogDir, unsigned char newLevel)
 {
   m_fileAccount.changeLogProps(newLogDir, newLevel);

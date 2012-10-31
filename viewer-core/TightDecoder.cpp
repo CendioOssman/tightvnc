@@ -27,9 +27,11 @@
 #include "StandardPixelFormatFactory.h"
 
 TightDecoder::TightDecoder(LogWriter *logWriter)
-: Decoder(logWriter),
+: DecoderOfRectangle(logWriter),
   m_isCPixel(false)
 {
+  m_encoding = EncodingDefs::TIGHT;
+
   m_inflater.resize(DECODERS_NUM);
   for (int i = 0; i < DECODERS_NUM; i++)
     m_inflater[i] = new Inflater;
@@ -44,44 +46,6 @@ TightDecoder::~TightDecoder()
     } catch (...) {
     }
   }
-}
-
-UINT32 TightDecoder::transformPixelToTight(UINT32 color)
-{
-  UINT32 result = 0;
-  result |= (color & 0xFF) << 16;
-  result |= color & 0xFF00;
-  result |= (color >> 16);
-  return result;
-}
-
-vector<UINT8> TightDecoder::transformArray(const vector<UINT8> &buffer)
-{
-  vector<UINT8> result;
-  result.resize(buffer.size() * 4 / 3);
-  for (size_t bi = 0, ri = 0; bi < buffer.size(); bi += 3, ri += 4) {
-    result[ri] = buffer[bi + 2];
-    result[ri + 1] = buffer[bi + 1];
-    result[ri + 2] = buffer[bi];
-    result[ri + 3] = 0;
-  }
-  return result;
-}
-
-UINT32 TightDecoder::readTightPixel(RfbInputGate *input, int bytesPerCPixel)
-{
-  UINT32 color = 0;
-  UINT8 buffer[sizeof(color)];
-  if (!m_isCPixel)
-    input->readFully(buffer, bytesPerCPixel);
-  else {
-    buffer[3] = 0;
-    buffer[2] = input->readUInt8();
-    buffer[1] = input->readUInt8();
-    buffer[0] = input->readUInt8();
-  }
-  memcpy(&color, buffer, bytesPerCPixel);
-  return color;
 }
 
 void TightDecoder::decode(RfbInputGate *input,
@@ -119,9 +83,41 @@ void TightDecoder::decode(RfbInputGate *input,
     processBasicTypes(input, fb, dstRect, compressionControl);
 }
 
-int TightDecoder::getCode() const
+UINT32 TightDecoder::transformPixelToTight(UINT32 color)
 {
-  return EncodingDefs::TIGHT;
+  UINT32 result = 0;
+  result |= (color & 0xFF) << 16;
+  result |= color & 0xFF00;
+  result |= (color >> 16);
+  return result;
+}
+
+vector<UINT8> TightDecoder::transformArray(const vector<UINT8> &buffer)
+{
+  vector<UINT8> result(buffer.size() * 4 / 3);
+  for (size_t bi = 0, ri = 0; bi < buffer.size(); bi += 3, ri += 4) {
+    result[ri] = buffer[bi + 2];
+    result[ri + 1] = buffer[bi + 1];
+    result[ri + 2] = buffer[bi];
+    result[ri + 3] = 0;
+  }
+  return result;
+}
+
+UINT32 TightDecoder::readTightPixel(RfbInputGate *input, int bytesPerCPixel)
+{
+  UINT32 color = 0;
+  UINT8 buffer[sizeof(color)];
+  if (!m_isCPixel)
+    input->readFully(buffer, bytesPerCPixel);
+  else {
+    buffer[3] = 0;
+    buffer[2] = input->readUInt8();
+    buffer[1] = input->readUInt8();
+    buffer[0] = input->readUInt8();
+  }
+  memcpy(&color, buffer, bytesPerCPixel);
+  return color;
 }
 
 void TightDecoder::reset()
@@ -194,21 +190,24 @@ void TightDecoder::processBasicTypes(RfbInputGate *input,
 {
   int decoderId = (compressionControl & STREAM_ID_MASK) >> 4;
   int filterId = COPY_FILTER;
-  if ((compressionControl & FILTER_ID_MASK) != 0)
+  if ((compressionControl & FILTER_ID_MASK) != 0) {
     filterId = input->readUInt8();
+  }
 
   int bytesPerCPixel = fb->getBytesPerPixel();
   size_t lengthCurrentBpp = dstRect->area() * bytesPerCPixel;
-  if (m_isCPixel)
+  if (m_isCPixel) {
     lengthCurrentBpp = dstRect->area() * 3;
+  }
 
   vector<UINT8> buffer;
 
   switch (filterId) {
   case COPY_FILTER:
     readTightData(input, buffer, lengthCurrentBpp, decoderId);
-    if (m_isCPixel)
+    if (m_isCPixel) {
       buffer = transformArray(buffer);
+    }
     drawTightBytes(fb, &buffer, dstRect);
     break;
 
@@ -219,8 +218,9 @@ void TightDecoder::processBasicTypes(RfbInputGate *input,
       int paletteSize = input->readUInt8() + 1;
       vector<UINT32> palette = readPalette(input, paletteSize, bytesPerCPixel);
       size_t dataLength = dstRect->area();
-      if (paletteSize == 2)
+      if (paletteSize == 2) {
         dataLength = (dstRect->getWidth() + 7) / 8 * dstRect->getHeight();
+      }
       readTightData(input, buffer, dataLength, decoderId);
       drawPalette(fb, palette, buffer, dstRect);
     }
@@ -255,7 +255,7 @@ void TightDecoder::readTightData(RfbInputGate *input,
   if (expectedLength < MIN_SIZE_TO_COMPRESS) {
     buffer.resize(expectedLength);
     if (expectedLength != 0) {
-        input->readFully(&buffer.front(), expectedLength);
+      input->readFully(&buffer.front(), expectedLength);
     }
   } else {
     readCompressedData(input, buffer, expectedLength, decoderId);
@@ -313,7 +313,7 @@ void TightDecoder::drawPalette(FrameBuffer *fb,
       memcpy(pixelPtr, &palette[(pixels[index] >> offset) & 0x01], bytesPerPixel);
 
     }
-  } else {
+  } else { // size of palette != 2
     for (int i = 0; i < dstLength; i++) {
       void *pixelPtr = fb->getBufferPtr(x + i % width, y + i / width);
       memcpy(pixelPtr, &palette[pixels[i]], bytesPerPixel);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="tvnviewer"
 	ProjectGUID="{082F71AD-CDF6-44DE-84F7-9D2D16784B23}"
 	RootNamespace="tvnviewer"
@@ -741,6 +741,10 @@
 				RelativePath=".\ViewerWindow.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\VncAuthenticationHandler.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -853,6 +857,10 @@
 			</File>
 			<File
 				RelativePath=".\ViewerWindow.h"
+				>
+			</File>
+			<File
+				RelativePath=".\VncAuthenticationHandler.h"
 				>
 			</File>
 		</Filter>

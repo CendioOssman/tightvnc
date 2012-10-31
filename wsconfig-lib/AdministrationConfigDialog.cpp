@@ -34,6 +34,7 @@
 #include "wsconfig-lib/ChangePasswordDialog.h"
 #include "util/StringTable.h"
 #include "win-system/Process.h"
+#include "tvnserver-app/NamingDefs.h"
 
 AdministrationConfigDialog::AdministrationConfigDialog()
 : BaseDialog(IDD_CONFIG_ADMINISTRATION_PAGE), m_parentDialog(NULL)
@@ -330,7 +331,8 @@ void AdministrationConfigDialog::onOpenFolderButtonClick()
 
   StringStorage command;
 
-  command.format(_T("explorer %s"), logDir.getString());
+  command.format(_T("explorer /select,%s\\%s.log"), logDir.getString(),
+                 LogNames::SERVER_LOG_FILE_STUB_NAME);
 
   Process explorer(command.getString());
 

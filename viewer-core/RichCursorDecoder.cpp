@@ -25,21 +25,11 @@
 #include "RichCursorDecoder.h"
 
 RichCursorDecoder::RichCursorDecoder(LogWriter *logWriter)
-: Decoder(logWriter)
+: PseudoDecoder(logWriter)
 {
+  m_encoding = PseudoEncDefs::RICH_CURSOR;
 }
 
 RichCursorDecoder::~RichCursorDecoder()
 {
-}
-
-void RichCursorDecoder::decode(RfbInputGate *input,
-                               FrameBuffer *framebuffer,
-                               const Rect *dstRect)
-{
-}
-
-int RichCursorDecoder::getCode() const
-{
-  return PseudoEncDefs::RICH_CURSOR;
 }

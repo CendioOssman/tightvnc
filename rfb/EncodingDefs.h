@@ -41,8 +41,10 @@ public:
 
   static const char *const SIG_RAW;
   static const char *const SIG_COPYRECT;
+  static const char *const SIG_RRE;
   static const char *const SIG_HEXTILE;
   static const char *const SIG_TIGHT;
+  static const char *const SIG_ZRLE;
 };
 
 //
