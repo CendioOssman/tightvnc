@@ -30,7 +30,7 @@
 #include "win-system/WindowsEvent.h"
 #include "thread/Thread.h"
 #include "network/RfbOutputGate.h"
-#include "desktop/DesktopInterface.h"
+#include "desktop/Desktop.h"
 #include "fb-update-sender/UpdateSender.h"
 #include "log-writer/LogWriter.h"
 
@@ -131,7 +131,7 @@ private:
   UpdateSender *m_updateSender;
   ClipboardExchange *m_clipboardExchange;
   ClientInputHandler *m_clientInputHandler;
-  DesktopInterface *m_desktop;
+  Desktop *m_desktop;
 
   bool m_viewOnly;
   bool m_isOutgoing;

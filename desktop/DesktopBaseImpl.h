@@ -22,10 +22,10 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __GUIDESKTOP_H__
-#define __GUIDESKTOP_H__
+#ifndef __DESKTOPBASEIMPL_H__
+#define __DESKTOPBASEIMPL_H__
 
-#include "DesktopInterface.h"
+#include "Desktop.h"
 #include "UpdateHandler.h"
 #include "server-config-lib/ConfigReloadListener.h"
 #include "UserInput.h"
@@ -35,17 +35,17 @@
 #include "ClipboardListener.h"
 
 // This class is a base class for different implemetations of desktops
-class GuiDesktop : public DesktopInterface,
+class DesktopBaseImpl : public Desktop,
                    public UpdateListener,
                    public ClipboardListener,
                    public ConfigReloadListener
 {
 public:
-  GuiDesktop(ClipboardListener *extClipListener,
+  DesktopBaseImpl(ClipboardListener *extClipListener,
              UpdateSendingListener *extUpdSendingListener,
              AbnormDeskTermListener *extDeskTermListener,
              LogWriter *log);
-  virtual ~GuiDesktop();
+  virtual ~DesktopBaseImpl();
 
   // Puts a current desktop name from working session to the
   // desktopName argument and an user name to userMame.
@@ -106,4 +106,4 @@ protected:
   LogWriter *m_log;
 };
 
-#endif // __GUIDESKTOP_H__
+#endif // __DESKTOPBASEIMPL_H__

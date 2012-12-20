@@ -116,13 +116,13 @@
 
       <Custom Action="RegService" Before="InstallFinalize">
         (REGISTER_AS_SERVICE = 1 AND <![CDATA[IS_SILENT <> 1]]> OR
-        SERVER_REGISTER_AS_SERVICE AND IS_SILENT = 1)
+        SERVER_REGISTER_AS_SERVICE = 1 AND IS_SILENT = 1)
         AND <![CDATA[&Server=3 AND NOT (!Server=3)]]>
         AND NOT REMOVE
       </Custom>
       <Custom Action="StartService" After="RegService">
         (REGISTER_AS_SERVICE = 1 AND <![CDATA[IS_SILENT <> 1]]> OR
-        SERVER_REGISTER_AS_SERVICE AND IS_SILENT = 1)
+        SERVER_REGISTER_AS_SERVICE = 1 AND IS_SILENT = 1)
         AND <![CDATA[&Server=3 AND NOT (!Server=3)]]>
         AND NOT REMOVE
       </Custom>

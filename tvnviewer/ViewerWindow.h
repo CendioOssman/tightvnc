@@ -53,7 +53,14 @@ public:
   void setFileTransfer(FileTransferCapability *ft);
   void setRemoteViewerCore(RemoteViewerCore *pCore);
 
+  //
+  // This function return value of flag m_requiresReconnect.
+  //
   bool requiresReconnect() const;
+
+  //
+  // This function return value of flag m_stopped.
+  //
   bool isStopped() const;
 
   static const int WM_USER_ERROR = WM_USER + 1;
@@ -145,11 +152,13 @@ protected:
   // Flag is set, if now viewer is in full screen mode
   bool m_isFullScr;
   // It's size of work-area in windowed mode. It is necessary for restore size of window.
+  WINDOWPLACEMENT m_workArea;
+  // It's size of optimal size of work-area in windowed mode.
   Rect m_rcNormal;
+
+
   // Flag is set after recv first message WM_SIZING.
   bool m_sizeIsChanged;
-  // Flag is set, if size of window is SIZE_MAXIMIZED.
-  bool m_isMaximized;
   // Flag is set, if toolbar is visible.
   bool m_bToolBar;
   // It is scale of viewer window in percent.
@@ -162,12 +171,14 @@ protected:
   bool m_requiresReconnect;
 
   // Flag is set, if viewer instance is stopped.
+  // Destructor of ViewerWindow may be called, if this flag is true.
   bool m_stopped;
 
 private:
   vector<int> m_standardScale;
   void changeCursor(int type);
   void applySettings();
+  void setSizeFullScreenWindow();
   void doFullScr();
   void doUnFullScr();
   void doSize();

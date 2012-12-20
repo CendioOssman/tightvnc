@@ -166,7 +166,13 @@ LONG BaseWindow::getStyle()
 void BaseWindow::setStyle(DWORD style)
 {
   _ASSERT(m_hWnd != 0);
-  SetWindowLong(m_hWnd, GWL_STYLE, style | DS_3DLOOK);
+  SetWindowLong(m_hWnd, GWL_STYLE, style);
+}
+
+LONG BaseWindow::getExStyle()
+{
+  _ASSERT(m_hWnd != 0);
+  return GetWindowLong(m_hWnd, GWL_EXSTYLE);
 }
 
 void BaseWindow::setExStyle(DWORD exstyle)

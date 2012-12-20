@@ -22,10 +22,10 @@
 //-------------------------------------------------------------------------
 //
 
-#include "GuiDesktop.h"
+#include "DesktopBaseImpl.h"
 #include "util/BrokenHandleException.h"
 
-GuiDesktop::GuiDesktop(ClipboardListener *extClipListener,
+DesktopBaseImpl::DesktopBaseImpl(ClipboardListener *extClipListener,
                        UpdateSendingListener *extUpdSendingListener,
                        AbnormDeskTermListener *extDeskTermListener,
                        LogWriter *log)
@@ -38,11 +38,11 @@ GuiDesktop::GuiDesktop(ClipboardListener *extClipListener,
 {
 }
 
-GuiDesktop::~GuiDesktop()
+DesktopBaseImpl::~DesktopBaseImpl()
 {
 }
 
-void GuiDesktop::getCurrentUserInfo(StringStorage *desktopName,
+void DesktopBaseImpl::getCurrentUserInfo(StringStorage *desktopName,
                                     StringStorage *userName)
 {
   _ASSERT(m_userInput != 0);
@@ -55,7 +55,7 @@ void GuiDesktop::getCurrentUserInfo(StringStorage *desktopName,
   }
 }
 
-void GuiDesktop::getFrameBufferProperties(Dimension *dim, PixelFormat *pf)
+void DesktopBaseImpl::getFrameBufferProperties(Dimension *dim, PixelFormat *pf)
 {
   _ASSERT(m_updateHandler != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -67,7 +67,7 @@ void GuiDesktop::getFrameBufferProperties(Dimension *dim, PixelFormat *pf)
   }
 }
 
-void GuiDesktop::getPrimaryDesktopCoords(Rect *rect)
+void DesktopBaseImpl::getPrimaryDesktopCoords(Rect *rect)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -79,7 +79,7 @@ void GuiDesktop::getPrimaryDesktopCoords(Rect *rect)
   }
 }
 
-void GuiDesktop::getDisplayNumberCoords(Rect *rect,
+void DesktopBaseImpl::getDisplayNumberCoords(Rect *rect,
                                         unsigned char dispNumber)
 {
   _ASSERT(m_userInput != 0);
@@ -92,7 +92,7 @@ void GuiDesktop::getDisplayNumberCoords(Rect *rect,
   }
 }
 
-void GuiDesktop::getNormalizedRect(Rect *rect)
+void DesktopBaseImpl::getNormalizedRect(Rect *rect)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -104,7 +104,7 @@ void GuiDesktop::getNormalizedRect(Rect *rect)
   }
 }
 
-void GuiDesktop::getWindowCoords(HWND hwnd, Rect *rect)
+void DesktopBaseImpl::getWindowCoords(HWND hwnd, Rect *rect)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -118,7 +118,7 @@ void GuiDesktop::getWindowCoords(HWND hwnd, Rect *rect)
   }
 }
 
-HWND GuiDesktop::getWindowHandleByName(const StringStorage *windowName)
+HWND DesktopBaseImpl::getWindowHandleByName(const StringStorage *windowName)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -131,7 +131,7 @@ HWND GuiDesktop::getWindowHandleByName(const StringStorage *windowName)
   return 0;
 }
 
-bool GuiDesktop::isRemoteInputAllowed()
+bool DesktopBaseImpl::isRemoteInputAllowed()
 {
   m_log->info(_T("checking remote input allowing"));
 
@@ -140,7 +140,7 @@ bool GuiDesktop::isRemoteInputAllowed()
   return enabled;
 }
 
-void GuiDesktop::setKeyboardEvent(UINT32 keySym, bool down)
+void DesktopBaseImpl::setKeyboardEvent(UINT32 keySym, bool down)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -156,7 +156,7 @@ void GuiDesktop::setKeyboardEvent(UINT32 keySym, bool down)
   }
 }
 
-void GuiDesktop::setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
+void DesktopBaseImpl::setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -172,7 +172,7 @@ void GuiDesktop::setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
   }
 }
 
-void GuiDesktop::setNewClipText(const StringStorage *newClipboard)
+void DesktopBaseImpl::setNewClipText(const StringStorage *newClipboard)
 {
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -198,7 +198,7 @@ void GuiDesktop::setNewClipText(const StringStorage *newClipboard)
   }
 }
 
-void GuiDesktop::sendUpdate()
+void DesktopBaseImpl::sendUpdate()
 {
   _ASSERT(m_updateHandler != 0);
   _ASSERT(m_extDeskTermListener != 0);
@@ -237,13 +237,13 @@ void GuiDesktop::sendUpdate()
   }
 }
 
-void GuiDesktop::onUpdate()
+void DesktopBaseImpl::onUpdate()
 {
   m_log->info(_T("update detected"));
   m_newUpdateEvent.notify();
 }
 
-void GuiDesktop::onUpdateRequest(const Rect *rectRequested, bool incremental)
+void DesktopBaseImpl::onUpdateRequest(const Rect *rectRequested, bool incremental)
 {
   m_log->info(_T("update requested"));
 
@@ -254,7 +254,7 @@ void GuiDesktop::onUpdateRequest(const Rect *rectRequested, bool incremental)
   m_newUpdateEvent.notify();
 }
 
-void GuiDesktop::onClipboardUpdate(const StringStorage *newClipboard)
+void DesktopBaseImpl::onClipboardUpdate(const StringStorage *newClipboard)
 {
   _ASSERT(m_extClipListener != 0);
 
@@ -264,7 +264,7 @@ void GuiDesktop::onClipboardUpdate(const StringStorage *newClipboard)
   m_extClipListener->onClipboardUpdate(newClipboard);
 }
 
-void GuiDesktop::onConfigReload(ServerConfig *serverConfig)
+void DesktopBaseImpl::onConfigReload(ServerConfig *serverConfig)
 {
   applyNewConfiguration();
 }

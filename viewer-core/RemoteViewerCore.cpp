@@ -135,8 +135,16 @@ void RemoteViewerCore::init()
 RemoteViewerCore::~RemoteViewerCore()
 {
   try {
+    // Stop all threads.
     stop();
-    waitTermination();
+
+    // If core isn't started, then this thread isn't execute,
+    // wait only thead of FbUpdateNotifier.
+    if (wasStarted()) {
+      waitTermination();
+    } else {
+      m_fbUpdateNotifier.wait();
+    }
   } catch (...) {
   }
 }
@@ -146,17 +154,22 @@ void RemoteViewerCore::start(CoreEventsAdapter *adapter,
 {
   m_logWriter.detail(_T("Starting remote viewer core..."));
 
+  // Set flag "wasStarted".
+  // This flag protects of second call start().
   {
     AutoLock al(&m_startLock);
-    if (m_wasStarted)
+    if (m_wasStarted) {
       throw Exception(_T("Remote viewer core is already started"));
+    }
     m_wasStarted = true;
   }
+
   m_sharedFlag = sharedFlag;
   m_adapter = adapter;
 
   m_fbUpdateNotifier.setAdapter(adapter);
-  // thread started
+
+  // Start thread.
   resume();
   m_logWriter.debug(_T("Remote viewer core is started"));
 }
@@ -191,6 +204,12 @@ bool RemoteViewerCore::wasStarted() const
   return m_wasStarted;
 }
 
+bool RemoteViewerCore::wasConnected() const
+{
+  AutoLock al(&m_connectLock);
+  return m_wasConnected;
+}
+
 void RemoteViewerCore::stop()
 {
   m_tcpConnection.close();
@@ -200,12 +219,8 @@ void RemoteViewerCore::stop()
 
 void RemoteViewerCore::waitTermination()
 {
-  if (m_fbUpdateNotifier.isActive()) {
-    m_fbUpdateNotifier.wait();
-  }
-  if (isActive()) {
-    wait();
-  }
+  m_fbUpdateNotifier.wait();
+  wait();
 }
 
 void RemoteViewerCore::setPixelFormat(const PixelFormat *pixelFormat)
@@ -226,6 +241,11 @@ bool RemoteViewerCore::updatePixelFormat()
       return false;
     m_isNewPixelFormat = false;
     pxFormat = m_viewerPixelFormat;
+  }
+
+  int bitsPerPixel = m_viewerPixelFormat.bitsPerPixel;
+  if (bitsPerPixel != 8 && bitsPerPixel != 16 && bitsPerPixel != 32) {
+    throw Exception(_T("Only 8, 16 or 32 bits per pixel supported!"));
   }
 
   {
@@ -295,11 +315,12 @@ void RemoteViewerCore::sendFbUpdateRequest(bool incremental)
 
 void RemoteViewerCore::sendKeyboardEvent(bool downFlag, UINT32 key)
 {
-  {
-    AutoLock al(&m_connectLock);
-    if (!m_wasConnected)
-      return;
+  // If core isn't connected, then m_output may be isn't initialized.
+  // Exit from function, if it is.
+  if (!wasConnected()) {
+    return;
   }
+
   m_logWriter.detail(_T("Sending key event: %d, %d..."), downFlag, key);
   RfbKeyEventClientMessage keyMessage(downFlag, key);
   keyMessage.send(m_output);
@@ -309,11 +330,12 @@ void RemoteViewerCore::sendKeyboardEvent(bool downFlag, UINT32 key)
 void RemoteViewerCore::sendPointerEvent(UINT8 buttonMask,
                                         const Point *position)
 {
-  {
-    AutoLock al(&m_connectLock);
-    if (!m_wasConnected)
-      return;
+  // If core isn't connected, then m_output may be isn't initialized.
+  // Exit from function, if it is.
+  if (!wasConnected()) {
+    return;
   }
+
   m_logWriter.detail(_T("Sending pointer event 0x%X, (%d, %d)..."),
                      static_cast<int>(buttonMask), position->x, position->y);
   // send position to server
@@ -328,10 +350,11 @@ void RemoteViewerCore::sendPointerEvent(UINT8 buttonMask,
 
 void RemoteViewerCore::sendCutTextEvent(const StringStorage *cutText)
 {
-  {
-    AutoLock al(&m_connectLock);
-    if (!m_wasConnected)
-      return;
+  // If core isn't connected, then m_output may be isn't initialized.
+  // Exit from function, if it is.
+
+  if (!wasConnected()) {
+    return;
   }
   m_logWriter.detail(_T("Sending clipboard cut text: \"%s\"..."), cutText->getString());
   RfbCutTextEventClientMessage cutTextMessage(cutText);
@@ -753,6 +776,7 @@ void RemoteViewerCore::execute()
     } catch (...) {
       m_logWriter.error(_T("Unknown error in CoreEventsAdapter::onConnected()"));
     }
+
     {
       AutoLock al(&m_connectLock);
       m_wasConnected = true;
@@ -1303,12 +1327,12 @@ void RemoteViewerCore::registerDecoderHandler(UINT32 code, Decoder *decoder, int
 
 void RemoteViewerCore::sendEncodings()
 {
-  {
-    AutoLock al(&m_connectLock);
-    if (!m_wasConnected) {
-      return;
-    }
+  // If core isn't connected, then m_output may be isn't initialized.
+  // Exit from function, if it is.
+  if (!wasConnected()) {
+    return;
   }
+
   RfbSetEncodingsClientMessage encodingsMessage(&m_decoderStore.getDecoderIds());
   encodingsMessage.send(m_output);
 }

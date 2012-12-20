@@ -27,14 +27,14 @@
 
 #include "RfbDispatcherListener.h"
 #include "RfbCodeRegistrator.h"
-#include "desktop/DesktopInterface.h"
+#include "desktop/Desktop.h"
 #include "network/RfbOutputGate.h"
 #include "log-writer/LogWriter.h"
 
 class ClipboardExchange : public RfbDispatcherListener, public Thread
 {
 public:
-  ClipboardExchange(RfbCodeRegistrator *codeRegtor, DesktopInterface *desktop,
+  ClipboardExchange(RfbCodeRegistrator *codeRegtor, Desktop *desktop,
                     RfbOutputGate *output, bool viewOnly, LogWriter *log);
   virtual ~ClipboardExchange();
 
@@ -49,7 +49,7 @@ protected:
 
 private:
   bool m_viewOnly;
-  DesktopInterface *m_desktop;
+  Desktop *m_desktop;
   RfbOutputGate *m_output;
 
   WindowsEvent m_newClipWaiter;

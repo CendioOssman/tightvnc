@@ -26,15 +26,16 @@
 #include "thread/ZombieKiller.h"
 #include "QueryConnectionApplication.h"
 #include "server-config-lib/Configurator.h"
-#include "desktop/Desktop.h"
 
 RfbClientManager::RfbClientManager(const TCHAR *serverName,
                                    NewConnectionEvents *newConnectionEvents,
-                                   LogWriter *log)
+                                   LogWriter *log,
+                                   DesktopFactory *desktopFactory)
 : m_nextClientId(0),
   m_desktop(0),
   m_newConnectionEvents(newConnectionEvents),
-  m_log(log)
+  m_log(log),
+  m_desktopFactory(desktopFactory)
 {
   m_log->info(_T("Starting rfb client manager"));
 }
@@ -52,7 +53,7 @@ void RfbClientManager::onClientTerminate()
   validateClientList();
 }
 
-DesktopInterface *RfbClientManager::onClientAuth(RfbClient *client)
+Desktop *RfbClientManager::onClientAuth(RfbClient *client)
 {
   // The client is now authenticated, so remove its IP from the ban list.
   StringStorage ip;
@@ -109,7 +110,7 @@ DesktopInterface *RfbClientManager::onClientAuth(RfbClient *client)
   if (m_desktop == 0 && !m_clientList.empty()) {
     // Create WinDesktop and notify listeners that the first client has been
     // connected.
-    m_desktop = new Desktop(this, this, this, m_log);
+    m_desktop = m_desktopFactory->createDesktop(this, this, this, m_log);
     vector<RfbClientManagerEventListener *>::iterator iter;
     for (iter = m_listeners.begin(); iter != m_listeners.end(); iter++) {
       (*iter)->afterFirstClientConnect();
@@ -258,7 +259,7 @@ void RfbClientManager::waitUntilAllClientAreBeenDestroyed()
 
 void RfbClientManager::validateClientList()
 {
-  DesktopInterface *objectToDestroy = 0;
+  Desktop *objectToDestroy = 0;
   {
     AutoLock al(&m_clientListLocker);
     // If clients are in the IN_READY_TO_REMOVE phase, remove them from the

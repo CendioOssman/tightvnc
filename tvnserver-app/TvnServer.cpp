@@ -98,9 +98,16 @@ TvnServer::TvnServer(bool runsInServiceContext,
     m_log.interror(_T("%s"), ex.getMessage());
   }
 
+  DesktopFactory *desktopFactory = 0;
+  if (runsInServiceContext) {
+    desktopFactory = &m_serviceDesktopFactory;
+  } else {
+    desktopFactory = &m_applicationDesktopFactory;
+  }
+
    // Instanize zombie killer singleton.
    // FIXME: may be need to do it in another place or use "lazy" initialization.
-  m_rfbClientManager = new RfbClientManager(NULL, newConnectionEvents, &m_log);
+  m_rfbClientManager = new RfbClientManager(0, newConnectionEvents, &m_log, desktopFactory);
 
   m_rfbClientManager->addListener(this);
 

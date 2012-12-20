@@ -27,6 +27,7 @@
 #include "CommonInputValidation.h"
 #include "UIDataAccess.h"
 #include "ConfigDialog.h"
+#include "file-lib/File.h"
 #include "server-config-lib/ServerConfig.h"
 #include "server-config-lib/Configurator.h"
 #include "util/CommonHeader.h"
@@ -149,22 +150,15 @@ void AdministrationConfigDialog::updateUI()
 
   m_logPathTB.setText(logPath.getString());
 
-  //
-  // Trying to open log file for reading. if we cannot open it
-  // when disable "Open path ..." button
-  // FIXME: Use File classes instead of Win32 API.
-  //
-
   StringStorage folder;
   getFolderName(logPath.getString(), &folder);
-  HANDLE hDoc = CreateFile(folder.getString(), GENERIC_READ,
-                           FILE_SHARE_READ, 0, OPEN_EXISTING,
-                           FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, 0);
-  if (hDoc == INVALID_HANDLE_VALUE) {
-    m_openLogPathButton.setEnabled(false);
-  } else {
-    CloseHandle(hDoc);
+
+  File folderFile(folder.getString());
+
+  if (folderFile.canRead()) {
     m_openLogPathButton.setEnabled(true);
+  } else {
+    m_openLogPathButton.setEnabled(false);
   }
 
   for (int i = 0; i < 5; i++) {
@@ -394,7 +388,7 @@ void AdministrationConfigDialog::onLogLevelUpdate()
 void AdministrationConfigDialog::getFolderName(const TCHAR *key, StringStorage *folder)
 {
   std::vector<TCHAR> folderString(_tcslen(key) + 1);
-  memcpy(&folderString.front(), key, folderString.size());
+  memcpy(&folderString.front(), key, folderString.size() * sizeof(TCHAR));
   TCHAR *token = _tcsrchr(&folderString.front(), _T('\\'));
   if (token != NULL) {
     *token = _T('\0');

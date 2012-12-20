@@ -1,4 +1,4 @@
-// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,44 +22,21 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __WINDESKTOP_H__
-#define __WINDESKTOP_H__
+#ifndef __WINSERVICEDESKTOPFACTORY_H__
+#define __WINSERVICEDESKTOPFACTORY_H__
 
-#include "util/CommonHeader.h"
-#include "DesktopConfigLocal.h"
-#include "desktop/WallpaperUtil.h"
-#include "thread/GuiThread.h"
-#include "GuiDesktop.h"
-#include "log-writer/LogWriter.h"
+#include "DesktopFactory.h"
 
-class WinDesktop : public GuiThread,
-                   public GuiDesktop
+class WinServiceDesktopFactory : public DesktopFactory
 {
 public:
-  WinDesktop(ClipboardListener *extClipListener,
-             UpdateSendingListener *extUpdSendingListener,
-             AbnormDeskTermListener *extDeskTermListener,
-             LogWriter *log);
-  virtual ~WinDesktop();
+  WinServiceDesktopFactory();
+  ~WinServiceDesktopFactory();
 
-protected:
-  virtual void execute();
-  virtual void onTerminate();
-
-private:
-  void freeResource();
-
-  // Writes some desktop info to log.
-  void logDesktopInfo();
-
-  virtual bool isRemoteInputTempBlocked();
-  virtual void applyNewConfiguration();
-
-  WallpaperUtil *m_wallPaper;
-
-  DesktopConfigLocal *m_deskConf;
-
-  LogWriter *m_log;
+  virtual Desktop *createDesktop(ClipboardListener *extClipListener,
+                                          UpdateSendingListener *extUpdSendingListener,
+                                          AbnormDeskTermListener *extDeskTermListener,
+                                          LogWriter *log);
 };
 
-#endif // __WINDESKTOP_H__
+#endif // __WINSERVICEDESKTOPFACTORY_H__

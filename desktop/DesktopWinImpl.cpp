@@ -22,7 +22,7 @@
 //-------------------------------------------------------------------------
 //
 
-#include "WinDesktop.h"
+#include "DesktopWinImpl.h"
 #include "server-config-lib/Configurator.h"
 #include "desktop-ipc/UpdateHandlerClient.h"
 #include "LocalUpdateHandler.h"
@@ -34,16 +34,16 @@
 #include "win-system/Environment.h"
 #include "win-system/WindowsDisplays.h"
 
-WinDesktop::WinDesktop(ClipboardListener *extClipListener,
+DesktopWinImpl::DesktopWinImpl(ClipboardListener *extClipListener,
                        UpdateSendingListener *extUpdSendingListener,
                        AbnormDeskTermListener *extDeskTermListener,
                        LogWriter *log)
-: GuiDesktop(extClipListener, extUpdSendingListener, extDeskTermListener, log),
+: DesktopBaseImpl(extClipListener, extUpdSendingListener, extDeskTermListener, log),
   m_wallPaper(0),
   m_deskConf(0),
   m_log(log)
 {
-  m_log->info(_T("Creating WinDesktop"));
+  m_log->info(_T("Creating DesktopWinImpl"));
 
   logDesktopInfo();
 
@@ -58,23 +58,23 @@ WinDesktop::WinDesktop(ClipboardListener *extClipListener,
 
     Configurator::getInstance()->addListener(this);
   } catch (Exception &ex) {
-    m_log->error(_T("exception during WinDesktop creaion: %s"), ex.getMessage());
+    m_log->error(_T("exception during DesktopWinImpl creaion: %s"), ex.getMessage());
     freeResource();
     throw;
   }
   resume();
 }
 
-WinDesktop::~WinDesktop()
+DesktopWinImpl::~DesktopWinImpl()
 {
-  m_log->info(_T("Deleting WinDesktop"));
+  m_log->info(_T("Deleting DesktopWinImpl"));
   terminate();
   wait();
   freeResource();
-  m_log->info(_T("WinDesktop deleted"));
+  m_log->info(_T("DesktopWinImpl deleted"));
 }
 
-void WinDesktop::freeResource()
+void DesktopWinImpl::freeResource()
 {
   Configurator::getInstance()->removeListener(this);
 
@@ -85,14 +85,14 @@ void WinDesktop::freeResource()
   if (m_userInput) delete m_userInput;
 }
 
-void WinDesktop::onTerminate()
+void DesktopWinImpl::onTerminate()
 {
   m_newUpdateEvent.notify();
 }
 
-void WinDesktop::execute()
+void DesktopWinImpl::execute()
 {
-  m_log->info(_T("WinDesktop thread started"));
+  m_log->info(_T("DesktopWinImpl thread started"));
 
   while (!isTerminating()) {
     m_newUpdateEvent.waitForEvent();
@@ -101,21 +101,21 @@ void WinDesktop::execute()
     }
   }
 
-  m_log->info(_T("WinDesktop thread stopped"));
+  m_log->info(_T("DesktopWinImpl thread stopped"));
 }
 
-bool WinDesktop::isRemoteInputTempBlocked()
+bool DesktopWinImpl::isRemoteInputTempBlocked()
 {
   return !m_deskConf->isRemoteInputAllowed();
 }
 
-void WinDesktop::applyNewConfiguration()
+void DesktopWinImpl::applyNewConfiguration()
 {
-  m_log->info(_T("reload WinDesktop configuration"));
+  m_log->info(_T("reload DesktopWinImpl configuration"));
   m_deskConf->updateByNewSettings();
 }
 
-void WinDesktop::logDesktopInfo()
+void DesktopWinImpl::logDesktopInfo()
 {
   try {
     if (Environment::isAeroOn(m_log)) {

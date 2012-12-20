@@ -34,7 +34,7 @@ public:
   void getDesktopAllArea(RECT * rc);
 
   // get rectangle of user desktop area
-  // without button 'Start'
+  // without button 'Start' (only primary monitor).
   bool getDesktopArea(RECT *rc);
 
   // return true if StretchBlt is used

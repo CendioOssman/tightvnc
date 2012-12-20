@@ -43,6 +43,7 @@ class FbUpdateNotifier : public Thread
 public:
   FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logger);
   virtual ~FbUpdateNotifier();
+
   void setAdapter(CoreEventsAdapter *adapter);
 
   void onUpdate(const Rect *rect);
@@ -63,6 +64,10 @@ protected:
   LocalMutex *m_fbLock;
   FrameBuffer *m_frameBuffer;
   CursorPainter m_cursorPainter;
+
+  // Pointer to adapter.
+  // Nothing event (changing properties of frame buffer, update frame buffer
+  // or update cursor) don't sended to adapter, while m_adapter is 0.
   CoreEventsAdapter *m_adapter;
 
   LocalMutex m_updateLock;

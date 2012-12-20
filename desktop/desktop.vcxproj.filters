@@ -86,9 +86,6 @@
     <ClCompile Include="WallpaperUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WinDesktop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WindowsClipboard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -102,15 +99,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WindowsUserInput.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Desktop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GuiDesktop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DesktopClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GrabOptimizator.cpp">
@@ -129,6 +117,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MirrorDriverClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DesktopBaseImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DesktopClientImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DesktopWinImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinServiceDesktopFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationDesktopFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -229,18 +232,6 @@
     <ClInclude Include="WindowsUserInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Desktop.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DesktopInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GuiDesktop.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DesktopClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="GrabOptimizator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -257,6 +248,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MirrorDriverClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DesktopBaseImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DesktopClientImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DesktopFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DesktopWinImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Desktop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WinServiceDesktopFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationDesktopFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

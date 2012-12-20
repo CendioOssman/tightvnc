@@ -46,7 +46,7 @@
 
 FileTransferRequestHandler::FileTransferRequestHandler(RfbCodeRegistrator *registrator,
                                                        RfbOutputGate *output,
-                                                       DesktopInterface *desktop,
+                                                       Desktop *desktop,
                                                        LogWriter *log,
                                                        bool enabled)
 : m_downloadFile(NULL), m_fileInputStream(NULL),

@@ -252,15 +252,16 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationDesktopFactory.cpp" />
     <ClCompile Include="ClipboardListener.cpp" />
     <ClCompile Include="ConsolePoller.cpp" />
     <ClCompile Include="CopyRectDetector.cpp" />
-    <ClCompile Include="Desktop.cpp" />
-    <ClCompile Include="DesktopClient.cpp" />
+    <ClCompile Include="DesktopBaseImpl.cpp" />
+    <ClCompile Include="DesktopClientImpl.cpp" />
     <ClCompile Include="DesktopConfigLocal.cpp" />
     <ClCompile Include="DesktopServerWatcher.cpp" />
+    <ClCompile Include="DesktopWinImpl.cpp" />
     <ClCompile Include="GrabOptimizator.cpp" />
-    <ClCompile Include="GuiDesktop.cpp" />
     <ClCompile Include="HookInstaller.cpp" />
     <ClCompile Include="HooksUpdateDetector.cpp" />
     <ClCompile Include="HookUpdateTimer.cpp" />
@@ -286,25 +287,27 @@
     <ClCompile Include="UpdateSendingListener.cpp" />
     <ClCompile Include="UserInput.cpp" />
     <ClCompile Include="WallpaperUtil.cpp" />
-    <ClCompile Include="WinDesktop.cpp" />
     <ClCompile Include="WindowsClipboard.cpp" />
     <ClCompile Include="WindowsInputBlocker.cpp" />
     <ClCompile Include="WindowsMouseGrabber.cpp" />
     <ClCompile Include="WindowsScreenGrabber.cpp" />
     <ClCompile Include="WindowsUserInput.cpp" />
+    <ClCompile Include="WinServiceDesktopFactory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AbnormDeskTermListener.h" />
+    <ClInclude Include="ApplicationDesktopFactory.h" />
     <ClInclude Include="ClipboardListener.h" />
     <ClInclude Include="ConsolePoller.h" />
     <ClInclude Include="CopyRectDetector.h" />
     <ClInclude Include="Desktop.h" />
-    <ClInclude Include="DesktopClient.h" />
+    <ClInclude Include="DesktopBaseImpl.h" />
+    <ClInclude Include="DesktopClientImpl.h" />
     <ClInclude Include="DesktopConfigLocal.h" />
-    <ClInclude Include="DesktopInterface.h" />
+    <ClInclude Include="DesktopFactory.h" />
     <ClInclude Include="DesktopServerWatcher.h" />
+    <ClInclude Include="DesktopWinImpl.h" />
     <ClInclude Include="GrabOptimizator.h" />
-    <ClInclude Include="GuiDesktop.h" />
     <ClInclude Include="HookInstaller.h" />
     <ClInclude Include="HooksUpdateDetector.h" />
     <ClInclude Include="HookUpdateTimer.h" />
@@ -336,6 +339,7 @@
     <ClInclude Include="WindowsMouseGrabber.h" />
     <ClInclude Include="WindowsScreenGrabber.h" />
     <ClInclude Include="WindowsUserInput.h" />
+    <ClInclude Include="WinServiceDesktopFactory.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

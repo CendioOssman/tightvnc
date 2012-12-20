@@ -1,4 +1,4 @@
-// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,28 +22,44 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __CLIENTAUTHLISTENER_H__
-#define __CLIENTAUTHLISTENER_H__
+#ifndef __DESKTOPWINIMPL_H__
+#define __DESKTOPWINIMPL_H__
 
-#include "desktop/Desktop.h"
-#include "rfb-sconn/RfbClient.h"
-#include "AuthException.h"
+#include "util/CommonHeader.h"
+#include "DesktopConfigLocal.h"
+#include "desktop/WallpaperUtil.h"
+#include "thread/GuiThread.h"
+#include "DesktopBaseImpl.h"
+#include "log-writer/LogWriter.h"
 
-class ClientAuthListener
+class DesktopWinImpl : public GuiThread,
+                   public DesktopBaseImpl
 {
 public:
-  virtual ~ClientAuthListener() {}
+  DesktopWinImpl(ClipboardListener *extClipListener,
+             UpdateSendingListener *extUpdSendingListener,
+             AbnormDeskTermListener *extDeskTermListener,
+             LogWriter *log);
+  virtual ~DesktopWinImpl();
 
-  // Interface function
-  // This function returns zero if a server refuse a client
-  // connection, else returns pointer to a WinDesktop object
-  virtual Desktop *onClientAuth(RfbClient *client) = 0;
-  // Checks the client to ban.
-  // Return true if client is banned else reurns false.
-  virtual bool onCheckForBan(RfbClient *client) = 0;
-  // This function notifies about auth failed of the client.
-  virtual void onAuthFailed(RfbClient *client) = 0;
-  virtual void onCheckAccessControl(RfbClient *client) throw(AuthException) = 0;
+protected:
+  virtual void execute();
+  virtual void onTerminate();
+
+private:
+  void freeResource();
+
+  // Writes some desktop info to log.
+  void logDesktopInfo();
+
+  virtual bool isRemoteInputTempBlocked();
+  virtual void applyNewConfiguration();
+
+  WallpaperUtil *m_wallPaper;
+
+  DesktopConfigLocal *m_deskConf;
+
+  LogWriter *m_log;
 };
 
-#endif // __CLIENTAUTHLISTENER_H__
+#endif // __DESKTOPWINIMPL_H__

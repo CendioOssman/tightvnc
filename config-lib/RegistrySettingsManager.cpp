@@ -61,7 +61,7 @@ bool RegistrySettingsManager::isOk()
 void RegistrySettingsManager::extractKeyName(const TCHAR *key, StringStorage *folder)
 {
   std::vector<TCHAR> folderString(_tcslen(key) + 1);
-  memcpy(&folderString.front(), key, folderString.size());
+  memcpy(&folderString.front(), key, folderString.size() * sizeof(TCHAR));
   TCHAR *token = _tcsrchr(&folderString.front(), _T('\\'));
   if (token != NULL) {
     *token = _T('\0');
@@ -74,7 +74,7 @@ void RegistrySettingsManager::extractKeyName(const TCHAR *key, StringStorage *fo
 void RegistrySettingsManager::extractValueName(const TCHAR *key, StringStorage *keyName)
 {
   std::vector<TCHAR> nameString(_tcslen(key) + 1);
-  memcpy(&nameString.front(), key, nameString.size());
+  memcpy(&nameString.front(), key, nameString.size() * sizeof(TCHAR));
   TCHAR *token = _tcsrchr(&nameString.front(), _T('\\'));
   if (token != NULL) {
     keyName->setString(++token);

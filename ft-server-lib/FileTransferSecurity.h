@@ -31,12 +31,12 @@
 
 #include "win-system/Impersonator.h"
 
-#include "desktop/DesktopInterface.h"
+#include "desktop/Desktop.h"
 
 class FileTransferSecurity : private Impersonator
 {
 public:
-  FileTransferSecurity(DesktopInterface *desktop, LogWriter *log);
+  FileTransferSecurity(Desktop *desktop, LogWriter *log);
   virtual ~FileTransferSecurity();
 
   // Sets access rights for calling process for execution
@@ -53,7 +53,7 @@ public:
 protected:
   bool m_hasAccess;
 
-  DesktopInterface *m_desktop;
+  Desktop *m_desktop;
 
   LogWriter *m_log;
 };

@@ -27,6 +27,8 @@
 
 #include "util/CommonHeader.h"
 
+#include "desktop/WinServiceDesktopFactory.h"
+#include "desktop/ApplicationDesktopFactory.h"
 #include "RfbClientManager.h"
 #include "RfbServer.h"
 #include "ExtraRfbServers.h"
@@ -172,6 +174,8 @@ protected:
    */
   const bool m_runAsService;
 
+  WinServiceDesktopFactory m_serviceDesktopFactory;
+  ApplicationDesktopFactory m_applicationDesktopFactory;
   /**
    * Rfb client manager (for all rfb servers), used by rfb servers
    * rfb clients, control server and control clients.

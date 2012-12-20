@@ -32,7 +32,7 @@
 #include "file-lib/WinFileChannel.h"
 #include "util/Inflater.h"
 #include "util/Deflater.h"
-#include "desktop/DesktopInterface.h"
+#include "desktop/Desktop.h"
 #include "rfb-sconn/RfbCodeRegistrator.h"
 #include "rfb-sconn/RfbDispatcherListener.h"
 #include "FileTransferSecurity.h"
@@ -57,7 +57,7 @@ public:
    */
   FileTransferRequestHandler(RfbCodeRegistrator *registrator,
                              RfbOutputGate *output,
-                             DesktopInterface *desktop,
+                             Desktop *desktop,
                              LogWriter *log,
                              bool enabled = true);
 

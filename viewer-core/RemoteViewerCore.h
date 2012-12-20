@@ -247,12 +247,17 @@ public:
   //
   void stop();
 
+  // FIXME: check this commentary.
+
   //
   // Wait until all threads have been finished.
   //
   // This function does not terminate threads. That can be done by calling
   // stop(). If stop() was not and will not be called, and no error occures,
   // this function blocks the calling thread forever.
+  //
+  // NOTE: If remote viewer core isn't started, then function waitTermination()
+  // blocks the calling thread forever.
   //
   void waitTermination();
 
@@ -486,6 +491,12 @@ private:
   void sendEncodings();
 
   //
+  // This function return true, if flag m_wasConnected is true.
+  // This flag is true after onConnected().
+  //
+  bool wasConnected() const;
+
+  //
   // Update properties (Dimension and PixelfFormat) of m_frameBuffer.
   //
   void setFbProperties(const Dimension *fbDimension,
@@ -547,9 +558,11 @@ private:
   map<UINT32, Decoder *> m_decoderHandlers;
   map<UINT32, int> m_decoderPriority;
 
+  // This flag is set after call start().
   mutable LocalMutex m_startLock;
   bool m_wasStarted;
 
+  // This flag is set after onConnected().
   mutable LocalMutex m_connectLock;
   bool m_wasConnected;
 

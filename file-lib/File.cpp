@@ -371,10 +371,10 @@ bool File::tryCreateFile(DWORD desiredAccess, DWORD creationDisposition) const
 {
   HANDLE hfile = CreateFile(m_pathName.getString(),
                             desiredAccess,
-                            0,
+                            FILE_SHARE_READ,
                             NULL,
                             creationDisposition,
-                            FILE_ATTRIBUTE_NORMAL,
+                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS,
                             NULL);
 
   if (hfile == INVALID_HANDLE_VALUE) {

@@ -77,6 +77,7 @@ public:
   // for changing or get style and exstyle of window
   LONG getStyle();
   void setStyle(DWORD style);
+  LONG getExStyle();
   void setExStyle(DWORD exstyle);
 
   // full redraw of window area

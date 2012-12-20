@@ -69,10 +69,12 @@ ViewerWindow::ViewerWindow(WindowsApplication *application,
   StringStorage subTitleName = WindowNames::TVN_SUB_WINDOW_TITLE_NAME;
 
   setClass(&windowClass);
-  createWindow(&titleName, WS_OVERLAPPEDWINDOW);
+  createWindow(&titleName, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 
   m_dsktWnd.setClass(&windowClass);
-  m_dsktWnd.createWindow(&subTitleName, WS_VISIBLE | WS_CLIPSIBLINGS | WS_CHILD, getHWnd());
+  m_dsktWnd.createWindow(&subTitleName,
+                         WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_CHILD,
+                         getHWnd());
 
   SetTimer(m_hWnd, TIMER_DESKTOP_STATE, TIMER_DESKTOP_STATE_DELAY, (TIMERPROC)NULL);
 }
@@ -207,7 +209,6 @@ void ViewerWindow::applySettings()
     m_scale = scale;
     m_dsktWnd.setScale(m_scale);
     doSize();
-    redraw();
   }
   if (m_isConnected) {
     if (m_conConf->isFullscreenEnabled()) {
@@ -284,6 +285,9 @@ bool ViewerWindow::onMessage(UINT message, WPARAM wParam, LPARAM lParam)
     return onKillFocus(wParam);
   case WM_TIMER:
     return onTimer(wParam);
+  case WM_DISPLAYCHANGE:
+    adjustWindowSize();
+
   }
   return false;
 }
@@ -504,7 +508,10 @@ void ViewerWindow::commandSaveSession()
   ofn.Flags = OFN_OVERWRITEPROMPT;
   try {
     if (GetSaveFileName(&ofn)) {
-      DeleteFile(fileName);
+      File oldSettings(fileName);
+      if (oldSettings.exists()) {
+        oldSettings.remove();
+      }
       IniFileSettingsManager sm(fileName);
       sm.setApplicationName(_T("connection"));
 
@@ -659,6 +666,14 @@ bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
     }
   }
   switch(wParam) {
+  // If restore full-screen window, then exit from full screen.
+  case SC_RESTORE:
+    if (m_isFullScr) {
+      doUnFullScr();
+      return true;
+    }
+    return false;
+
     case IDS_ABOUT_VIEWER:
       onAbout();
       return true;
@@ -750,6 +765,38 @@ void ViewerWindow::applyScreenChanges(bool isFullScreen)
   redraw();
 }
 
+void ViewerWindow::setSizeFullScreenWindow()
+{
+  // Save position of window.
+  GetWindowPlacement(m_hWnd, &m_workArea);
+
+  // Get size of desktop.
+  HMONITOR hmon = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO mi;
+  mi.cbSize = sizeof(mi);
+
+  RECT fullScreenWindowsRect;
+  if (!!GetMonitorInfo(hmon, &mi)) {
+    fullScreenWindowsRect = mi.rcMonitor;
+  } else {
+    m_logWriter.warning(_T("Get monitor info is failed. Use second method (no multi-screen)."));
+    GetWindowRect(GetDesktopWindow(), &fullScreenWindowsRect);
+  }
+  Rect fullScreenRect;
+  fullScreenRect.fromWindowsRect(&fullScreenWindowsRect);
+  m_logWriter.detail(_T("full screen window rect: %d, %d; %d, %d"),
+                     fullScreenRect.left, fullScreenRect.top,
+                     fullScreenRect.getWidth(), fullScreenRect.getHeight());
+
+  setStyle((getStyle() | WS_MAXIMIZE) & ~(WS_CAPTION | WS_BORDER | WS_THICKFRAME));
+  setExStyle(getExStyle() | WS_EX_TOPMOST);
+
+  SetWindowPos(m_hWnd, 0,
+               fullScreenRect.left, fullScreenRect.top,
+               fullScreenRect.getWidth(), fullScreenRect.getHeight(),
+               SWP_SHOWWINDOW);
+}
+
 void ViewerWindow::doFullScr()
 {
   if (m_isFullScr) {
@@ -760,7 +807,6 @@ void ViewerWindow::doFullScr()
   m_conConf->saveToStorage(&m_ccsm);
 
   ViewerConfig *config = ViewerConfig::getInstance();
-  GetWindowRect(getHWnd(), &m_rcNormal.toWindowsRect());
   m_bToolBar = m_toolbar.isVisible();
   m_toolbar.hide();
 
@@ -768,13 +814,7 @@ void ViewerWindow::doFullScr()
   m_menu.checkedMenuItem(IDS_TB_TOOLBAR,    false);
   m_menu.enableMenuItem(IDS_TB_TOOLBAR,     1);
 
-  RECT rc;
-  m_sysinf.getDesktopAllArea(&rc);
-  setStyle(WS_VISIBLE | WS_POPUP | WS_SYSMENU);
-  setPosition(rc.left, rc.top);
-  int width = rc.right - rc.left;
-  int height = rc.bottom - rc.top;
-  setSize(width, height);
+  setSizeFullScreenWindow();
 
   SetFocus(m_dsktWnd.getHWnd());
   applyScreenChanges(true);
@@ -805,12 +845,19 @@ void ViewerWindow::doUnFullScr()
   UINT isEnable = static_cast<UINT>(m_conConf->isViewOnly());
   m_menu.enableMenuItem(IDS_TB_TOOLBAR, isEnable);
 
-  int width  = m_rcNormal.right  - m_rcNormal.left;
-  int height = m_rcNormal.bottom - m_rcNormal.top;
-
-  setStyle(WS_VISIBLE | WS_OVERLAPPEDWINDOW);
-  setPosition(m_rcNormal.left, m_rcNormal.top);
-  setSize(width, height);
+  // Restore position, style and exstyle of windowed window.
+  setStyle(getStyle() | WS_CAPTION | WS_BORDER | WS_THICKFRAME);
+  setExStyle(getExStyle() & ~WS_EX_TOPMOST);
+  Rect workArea;
+  workArea.fromWindowsRect(&m_workArea.rcNormalPosition);
+  if (m_rcNormal.getHeight() == workArea.getHeight() ||
+      m_rcNormal.getWidth() == workArea.getWidth()) {
+    SetWindowPlacement(m_hWnd, &m_workArea);
+  } else {
+    setStyle(getStyle() & ~WS_MAXIMIZE);
+    setPosition(m_rcNormal.left, m_rcNormal.top);
+    setSize(m_rcNormal.getWidth(), m_rcNormal.getHeight());
+  }
 
   m_dsktWnd.setScale(m_scale);
   applyScreenChanges(false);
@@ -836,6 +883,7 @@ bool ViewerWindow::onClose()
       return true;
     }
   }
+  m_dsktWnd.destroyWindow();
   destroyWindow();
   return true;
 }
@@ -853,15 +901,12 @@ void ViewerWindow::doSize()
 
 bool ViewerWindow::onSize(WPARAM wParam, LPARAM lParam) 
 {
-  if (wParam == SIZE_MAXIMIZED) {
-    m_isMaximized = true;
-  } else {
-    m_isMaximized = false;
-  }
   RECT rc;
   int x, y;
 
   getClientRect(&rc);
+  m_logWriter.debug(_T("client rect: %d, %d; %d, %d"),
+                    rc.left, rc.top, rc.right, rc.bottom);
   x = y = 0;
   if (m_toolbar.isVisible()) {
     m_toolbar.autoSize();
@@ -873,6 +918,8 @@ bool ViewerWindow::onSize(WPARAM wParam, LPARAM lParam)
     int h = rc.bottom - rc.top;
     int w = rc.right - rc.left;
 
+    m_logWriter.debug(_T("Desktop-window. (x, y): (%d, %d); (w, h): (%d, %d)"),
+                      x, y, w, h);
     if (h > 0 && w > 0) {
       m_dsktWnd.setPosition(x, y);
       m_dsktWnd.setSize(w, h);
@@ -898,6 +945,7 @@ bool ViewerWindow::onDisconnect()
              formatWindowName().getString(),
              MB_OK);
 
+  m_dsktWnd.destroyWindow();
   destroyWindow();
   return true;
 }
@@ -924,6 +972,7 @@ bool ViewerWindow::onAuthError(WPARAM wParam)
       }
     }
   }
+  m_dsktWnd.destroyWindow();
   destroyWindow();
   return true;
 }
@@ -936,6 +985,8 @@ bool ViewerWindow::onError()
              error.getString(),
              formatWindowName().getString(),
              MB_OK | MB_ICONERROR);
+
+  m_dsktWnd.destroyWindow();
   destroyWindow();
   return true;
 }
@@ -965,11 +1016,23 @@ void ViewerWindow::onBell()
 
 Rect ViewerWindow::calculateDefaultSize()
 {
-  RECT desktopRc;
-  if (!m_sysinf.getDesktopArea(&desktopRc)) {
-     m_sysinf.getDesktopAllArea(&desktopRc);
+  // Get work area.
+  Rect defaultRect;
+
+  HMONITOR hmon = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO mi;
+  mi.cbSize = sizeof(mi);
+
+  if (!!GetMonitorInfo(hmon, &mi)) {
+    defaultRect.fromWindowsRect(&mi.rcWork);
+  } else {
+    m_logWriter.debug(_T("Get monitor info is failed. Use second method (no multi-screen)."));
+    RECT desktopRc;
+    if (!m_sysinf.getDesktopArea(&desktopRc)) {
+       m_sysinf.getDesktopAllArea(&desktopRc);
+    }
+    defaultRect.fromWindowsRect(&desktopRc);
   }
-  Rect defaultRect(&desktopRc);
 
   int widthDesktop  = defaultRect.getWidth();
   int heightDesktop = defaultRect.getHeight();
@@ -1075,12 +1138,18 @@ bool ViewerWindow::isStopped() const
 
 void ViewerWindow::adjustWindowSize()
 {
-  if (!m_isFullScr && !m_sizeIsChanged && !m_isMaximized) {
+  // If size isn't changed by user, then adjust size.
+  if (!m_sizeIsChanged) {
     Rect defaultSize = calculateDefaultSize();
-    if (!defaultSize.isEqualTo(&m_rcNormal)) {
+    bool defaultSizeIsChanged = defaultSize.getWidth() != m_rcNormal.getWidth() ||
+                                defaultSize.getHeight() != m_rcNormal.getHeight();
+    bool isMaximized = (getStyle() | WS_MAXIMIZE) == 0;
+    // If size is changed, isn't full screen, if window isn't maximized,
+    // then set new position and size.
+    if (!m_isFullScr && defaultSizeIsChanged && !isMaximized) {
       m_rcNormal = defaultSize;
-      setPosition(defaultSize.left, defaultSize.top);
-      setSize(defaultSize.getWidth(), defaultSize.getHeight());
+      setPosition(m_rcNormal.left, m_rcNormal.top);
+      setSize(m_rcNormal.getWidth(), m_rcNormal.getHeight());
     }
   }
 }

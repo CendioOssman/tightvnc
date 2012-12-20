@@ -58,8 +58,10 @@ void TightDecoder::decode(RfbInputGate *input,
 
   m_isCPixel = false;
   PixelFormat pf = fb->getPixelFormat();
-  if (pf.isEqualTo(&StandardPixelFormatFactory::create32bppPixelFormat()))
+  if (pf.colorDepth == 24 && pf.bitsPerPixel == 32 &&
+      pf.redMax == 255 && pf.greenMax == 255 && pf.blueMax == 255) {
     m_isCPixel = true;
+}
 
   UINT8 compressionControl = input->readUInt8();
   resetDecoders(compressionControl);

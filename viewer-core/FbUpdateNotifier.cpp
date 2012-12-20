@@ -37,6 +37,8 @@ FbUpdateNotifier::FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWrite
   m_isCursorChange(false)
 {
   m_oldPosition = m_cursorPainter.hideCursor();
+
+  resume();
 }
 
 FbUpdateNotifier::~FbUpdateNotifier()
@@ -50,16 +52,34 @@ FbUpdateNotifier::~FbUpdateNotifier()
 
 void FbUpdateNotifier::setAdapter(CoreEventsAdapter *adapter)
 {
+  AutoLock al(&m_updateLock);
   m_adapter = adapter;
-  resume();
+  m_eventUpdate.notify();
 }
 
 void FbUpdateNotifier::execute()
 {
+  // Don't send any event to adapter, while adapter isn't set.
+  {
+    bool adapterIsNull = true;
+    while (!isTerminating() && adapterIsNull) {
+      // Wait event.
+      m_eventUpdate.waitForEvent();
+
+      // Check: now adapter is set?
+      AutoLock al(&m_updateLock);
+      if (m_adapter != 0) {
+        adapterIsNull = false;
+      }
+    }
+  }
+
+  // Send event to adapter, while tread isn't terminated.
   while (!isTerminating()) {
     // If flag is set, then thread going to sleep (wait event).
     bool noUpdates = true;
 
+    // Move updates to local variable with blocking notifier mutex "m_updateLock".
     bool isNewSize;
     bool isCursorChange;
     Region update;
@@ -75,6 +95,8 @@ void FbUpdateNotifier::execute()
       m_update.clear();
     }
 
+    // Send event "Change properties of frame buffer" to adapter
+    // with blocking frame buffer mutex "m_fbLock".
     if (isNewSize) {
       noUpdates = false;
       m_logWriter->debug(_T("FbUpdateNotifier (event): new size of frame buffer"));
@@ -88,6 +110,8 @@ void FbUpdateNotifier::execute()
       }
     }
 
+    // Update position on cursor and send frame buffer update event to adapter
+    // with blocking frame buffer mutex "m_fbLock".
     if (isCursorChange || !update.isEmpty()) {
       noUpdates = false;
 

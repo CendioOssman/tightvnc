@@ -25,50 +25,34 @@
 #ifndef __DESKTOP_H__
 #define __DESKTOP_H__
 
-#include "desktopinterface.h"
-#include "ClipboardListener.h"
-#include "log-writer/LogWriter.h"
+#include "util/StringStorage.h"
+#include "region/Dimension.h"
+#include "rfb/PixelFormat.h"
+#include "fb-update-sender/UpdateRequestListener.h"
 
-// External listeners
-#include "UpdateSendingListener.h"
-#include "AbnormDeskTermListener.h"
-
-// This class is a DesktopInterface implementation that is independed from
-// a gui implementation.
-class Desktop : public DesktopInterface
+// This class is a public interface to a desktop.
+class Desktop : public UpdateRequestListener
 {
 public:
-  Desktop(ClipboardListener *extClipListener,
-          UpdateSendingListener *extUpdSendingListener,
-          AbnormDeskTermListener *extDeskTermListener,
-          LogWriter *log);
-  virtual ~Desktop();
-
   // Puts a current desktop name from working session to the
   // desktopName argument and an user name to userMame.
-  void getCurrentUserInfo(StringStorage *desktopName,
-                          StringStorage *userName);
+  virtual void getCurrentUserInfo(StringStorage *desktopName,
+                                  StringStorage *userName) = 0;
   // Puts the current frame buffer dimension and pixel format to
   // the dim and pf function arguments.
-  void getFrameBufferProperties(Dimension *dim, PixelFormat *pf);
+  virtual void getFrameBufferProperties(Dimension *dim, PixelFormat *pf) = 0;
 
-  void getPrimaryDesktopCoords(Rect *rect);
-  void getDisplayNumberCoords(Rect *rect,
-                              unsigned char dispNumber);
-  virtual void getNormalizedRect(Rect *rect);
-  void getWindowCoords(HWND hwnd, Rect *rect);
-  virtual HWND getWindowHandleByName(const StringStorage *windowName);
+  virtual void getPrimaryDesktopCoords(Rect *rect) = 0;
+  // Returns a rect that is normilized from "virtual desktop" to frame buffer coordinates.
+  virtual void getNormalizedRect(Rect *rect) = 0;
+  virtual void getDisplayNumberCoords(Rect *rect,
+                                      unsigned char dispNumber) = 0;
+  virtual void getWindowCoords(HWND hwnd, Rect *rect) = 0;
+  virtual HWND getWindowHandleByName(const StringStorage *windowName) = 0;
 
-  void setKeyboardEvent(UINT32 keySym, bool down);
-  void setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask);
-  void setNewClipText(const StringStorage *newClipboard);
-private:
-  virtual void onUpdateRequest(const Rect *rectRequested,
-                               bool incremental);
-
-  // Pointer to a DesktopInterface implementation that is depended from a
-  // gui implementation.
-  DesktopInterface *m_guiDesktop;
+  virtual void setKeyboardEvent(UINT32 keySym, bool down) = 0;
+  virtual void setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask) = 0;
+  virtual void setNewClipText(const StringStorage *newClipboard) = 0;
 };
 
 #endif // __DESKTOP_H__

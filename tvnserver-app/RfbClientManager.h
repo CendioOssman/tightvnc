@@ -31,7 +31,8 @@
 #include "thread/Thread.h"
 #include "thread/LocalMutex.h"
 #include "win-system/WindowsEvent.h"
-#include "desktop/DesktopInterface.h"
+#include "desktop/Desktop.h"
+#include "desktop/DesktopFactory.h"
 #include "log-writer/LogWriter.h"
 
 // Listener interfaces
@@ -72,7 +73,8 @@ public:
   // FIXME: parameter is not used.
   RfbClientManager(const TCHAR *serverName,
                    NewConnectionEvents *newConnectionEvents,
-                   LogWriter *log);
+                   LogWriter *log,
+                   DesktopFactory *desktopFactory);
   virtual ~RfbClientManager();
 
   // Adds rfb clients info to specified rfb client info list.
@@ -95,7 +97,7 @@ public:
 protected:
   // Listen functions
   virtual void onClientTerminate();
-  virtual DesktopInterface *onClientAuth(RfbClient *client);
+  virtual Desktop *onClientAuth(RfbClient *client);
   virtual bool onCheckForBan(RfbClient *client);
   // This function only adds the client to the ban list.
   virtual void onAuthFailed(RfbClient *client);
@@ -144,7 +146,8 @@ private:
 
   // Creating and destroying this object must be with the locked
   // m_clientListLocker
-  DesktopInterface *m_desktop;
+  Desktop *m_desktop;
+  DesktopFactory *m_desktopFactory;
 
   // Inforamtion
   unsigned int m_nextClientId;

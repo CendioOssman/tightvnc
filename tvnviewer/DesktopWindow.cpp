@@ -234,12 +234,12 @@ bool DesktopWindow::onMouse(unsigned char mouseButtons, unsigned short wheelSpee
 
       if ((buttons & wheelMask) == 0) {
         // Send position of cursor and state of buttons one time.
-        m_viewerCore->sendPointerEvent(buttons, &pos);
+        sendPointerEvent(buttons, &pos);
       } else {
         // Send position of cursor and state of buttons wheelSpeed times.
         for (int i = 0; i < wheelSpeed; i++) {
-          m_viewerCore->sendPointerEvent(buttons, &pos);
-          m_viewerCore->sendPointerEvent(buttons & ~wheelMask, &pos);
+          sendPointerEvent(buttons, &pos);
+          sendPointerEvent(buttons & ~wheelMask, &pos);
         }
       } // wheel
     }
@@ -297,7 +297,7 @@ bool DesktopWindow::onDrawClipboard()
       return true;
     }
     m_strClipboard = _T("");
-    m_viewerCore->sendCutTextEvent(&clipboardString);
+    sendCutTextEvent(&clipboardString);
   }
   return true;
 }
@@ -572,6 +572,10 @@ void DesktopWindow::setScale(int scale)
   AutoLock al(&m_bufferLock);
   m_scManager.setScale(scale);
   m_winResize = true;
+  // Invalidate all area of desktop window.
+  if (m_hWnd != 0) {
+    redraw();
+  }
 }
 
 POINTS DesktopWindow::getViewerCoord(long xPos, long yPos)
@@ -618,9 +622,7 @@ void DesktopWindow::getServerGeometry(int *width, int *height, int *pixelsize)
 
 void DesktopWindow::onRfbKeySymEvent(unsigned int rfbKeySym, bool down)
 {
-  if (m_viewerCore) {
-    m_viewerCore->sendKeyboardEvent(down, rfbKeySym);
-  }
+  sendKeyboardEvent(down, rfbKeySym);
 }
 
 void DesktopWindow::setCtrlState(const bool ctrlState)
@@ -652,3 +654,52 @@ void DesktopWindow::sendCtrlAltDel()
 {
   m_rfbKeySym->sendCtrlAltDel();
 }
+
+void DesktopWindow::sendKeyboardEvent(bool downFlag, UINT32 key)
+{
+  // If pointer to viewer core is 0, then exit.
+  if (m_viewerCore == 0) {
+    return;
+  }
+
+  // Trying send keyboard event...
+  try {
+    m_viewerCore->sendKeyboardEvent(downFlag, key);
+  } catch (const Exception &exception) {
+    m_logWriter->detail(_T("Error in DesktopWindow::sendKeyboardEvent(): %s"),
+                        exception.getMessage());
+  }
+}
+
+void DesktopWindow::sendPointerEvent(UINT8 buttonMask, const Point *position)
+{
+  // If pointer to viewer core is 0, then exit.
+  if (m_viewerCore == 0) {
+    return;
+  }
+
+  // Trying send pointer event...
+  try {
+    m_viewerCore->sendPointerEvent(buttonMask, position);
+  } catch (const Exception &exception) {
+    m_logWriter->detail(_T("Error in DesktopWindow::sendPointerEvent(): %s"),
+                        exception.getMessage());
+  }
+}
+
+void DesktopWindow::sendCutTextEvent(const StringStorage *cutText)
+{
+  // If pointer to viewer core is 0, then exit.
+  if (m_viewerCore == 0) {
+    return;
+  }
+
+  // Trying send cut-text event...
+  try {
+    m_viewerCore->sendCutTextEvent(cutText);
+  } catch (const Exception &exception) {
+    m_logWriter->detail(_T("Error in DesktopWindow::sendCutTextEvent(): %s"),
+                        exception.getMessage());
+  }
+}
+

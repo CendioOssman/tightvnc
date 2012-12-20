@@ -1,4 +1,4 @@
-// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,28 +22,22 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __CLIENTAUTHLISTENER_H__
-#define __CLIENTAUTHLISTENER_H__
+#ifndef __DESKTOPFACTORY_H__
+#define __DESKTOPFACTORY_H__
 
-#include "desktop/Desktop.h"
-#include "rfb-sconn/RfbClient.h"
-#include "AuthException.h"
+#include "ClipboardListener.h"
+#include "UpdateSendingListener.h"
+#include "AbnormDeskTermListener.h"
+#include "log-writer/LogWriter.h"
+#include "Desktop.h"
 
-class ClientAuthListener
+class DesktopFactory
 {
 public:
-  virtual ~ClientAuthListener() {}
-
-  // Interface function
-  // This function returns zero if a server refuse a client
-  // connection, else returns pointer to a WinDesktop object
-  virtual Desktop *onClientAuth(RfbClient *client) = 0;
-  // Checks the client to ban.
-  // Return true if client is banned else reurns false.
-  virtual bool onCheckForBan(RfbClient *client) = 0;
-  // This function notifies about auth failed of the client.
-  virtual void onAuthFailed(RfbClient *client) = 0;
-  virtual void onCheckAccessControl(RfbClient *client) throw(AuthException) = 0;
+  virtual Desktop *createDesktop(ClipboardListener *extClipListener,
+                                          UpdateSendingListener *extUpdSendingListener,
+                                          AbnormDeskTermListener *extDeskTermListener,
+                                          LogWriter *log) = 0;
 };
 
-#endif // __CLIENTAUTHLISTENER_H__
+#endif // __DESKTOPFACTORY_H__

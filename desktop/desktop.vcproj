@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="desktop"
 	ProjectGUID="{5E03D1B4-243D-4200-8714-0FFD67C69E02}"
 	RootNamespace="desktop"
@@ -537,6 +537,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\ApplicationDesktopFactory.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ClipboardListener.cpp"
 				>
 			</File>
@@ -549,11 +553,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Desktop.cpp"
+				RelativePath=".\DesktopBaseImpl.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\DesktopClient.cpp"
+				RelativePath=".\DesktopClientImpl.cpp"
 				>
 			</File>
 			<File
@@ -565,11 +569,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GrabOptimizator.cpp"
+				RelativePath=".\DesktopWinImpl.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GuiDesktop.cpp"
+				RelativePath=".\GrabOptimizator.cpp"
 				>
 			</File>
 			<File
@@ -673,10 +677,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\WinDesktop.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\WindowsClipboard.cpp"
 				>
 			</File>
@@ -696,6 +696,10 @@
 				RelativePath=".\WindowsUserInput.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\WinServiceDesktopFactory.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -704,6 +708,10 @@
 			>
 			<File
 				RelativePath=".\AbnormDeskTermListener.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ApplicationDesktopFactory.h"
 				>
 			</File>
 			<File
@@ -723,7 +731,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DesktopClient.h"
+				RelativePath=".\DesktopBaseImpl.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DesktopClientImpl.h"
 				>
 			</File>
 			<File
@@ -731,11 +743,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DesktopInterface.h"
+				RelativePath=".\DesktopFactory.h"
 				>
 			</File>
 			<File
 				RelativePath=".\DesktopServerWatcher.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DesktopWinImpl.h"
 				>
 			</File>
 			<File
@@ -744,10 +760,6 @@
 			</File>
 			<File
 				RelativePath=".\GrabOptimizator.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GuiDesktop.h"
 				>
 			</File>
 			<File
@@ -851,10 +863,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\WinDesktop.h"
-				>
-			</File>
-			<File
 				RelativePath=".\WindowsClipboard.h"
 				>
 			</File>
@@ -872,6 +880,10 @@
 			</File>
 			<File
 				RelativePath=".\WindowsUserInput.h"
+				>
+			</File>
+			<File
+				RelativePath=".\WinServiceDesktopFactory.h"
 				>
 			</File>
 		</Filter>

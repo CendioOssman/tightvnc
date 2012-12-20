@@ -26,7 +26,7 @@
 
 #include "server-config-lib/Configurator.h"
 
-FileTransferSecurity::FileTransferSecurity(DesktopInterface *desktop, LogWriter *log)
+FileTransferSecurity::FileTransferSecurity(Desktop *desktop, LogWriter *log)
 : Impersonator(log),
   m_hasAccess(false),
   m_desktop(desktop),

@@ -27,7 +27,7 @@
 
 #include "ViewPortState.h"
 #include "rfb/FrameBuffer.h"
-#include "desktop/DesktopInterface.h"
+#include "desktop/Desktop.h"
 #include "thread/LocalMutex.h"
 #include "util/DateTime.h"
 #include "log-writer/LogWriter.h"
@@ -49,7 +49,7 @@ public:
 
   // Sets desktop interface that can be used in some mode to get
   // desktop info. The desktop interface uses only in the update() function.
-  void initDesktopInterface(DesktopInterface *desktop);
+  void initDesktopInterface(Desktop *desktop);
 
   // This function updates view port rectangle. The new view port rectangle
   // will be constrained by fbDimension.
@@ -72,7 +72,7 @@ private:
 
   static const int RESOLVING_PERIOD = 3000;
 
-  DesktopInterface *m_desktop;
+  Desktop *m_desktop;
 
   ViewPortState m_state;
   Rect m_rect;

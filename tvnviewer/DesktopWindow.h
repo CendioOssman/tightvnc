@@ -39,7 +39,7 @@
 #include "viewer-core/RemoteViewerCore.h"
 
 class DesktopWindow : public PaintWindow,
-                      protected RfbKeySymListener 
+                      protected RfbKeySymListener
 {
 public:
   DesktopWindow(LogWriter *logWriter, ConnectionConfig *conConf);
@@ -82,6 +82,14 @@ public:
   void setFullScreen(bool isFullScreen);
 
 protected:
+  //
+  // Overrides RfbKeySymListener::onRfbKeySymEvent().
+  //
+  void onRfbKeySymEvent(unsigned int rfbKeySym, bool down);
+
+  //
+  // Inherited from BaseWindow.
+  //
   bool onMessage(UINT message, WPARAM wParam, LPARAM lParam);
   void onPaint(DeviceContext *dc, PAINTSTRUCT *paintStruct);
   bool onCreate(LPCREATESTRUCT pcs);
@@ -95,10 +103,17 @@ protected:
   bool onMouse(unsigned char mouseKeys, unsigned short wheelSpeed, POINT position);
   bool onSize(WPARAM wParam, LPARAM lParam);
   bool onDestroy();
+
   POINTS getViewerCoord(long xPos, long yPos);
-  void onRfbKeySymEvent(unsigned int rfbKeySym, bool down);
   void calculateWndSize(bool isChanged);
   void applyScrollbarChanges(bool isChanged, bool isVert, bool isHorz, int wndWidth, int wndHeight);
+
+  // This function check pointer to viewer core and send event.
+  // If into viewer core throwing exception Exception, then it catching
+  // in this function and logged.
+  void sendKeyboardEvent(bool downFlag, UINT32 key);
+  void sendPointerEvent(UINT8 buttonMask, const Point *position);
+  void sendCutTextEvent(const StringStorage *cutText);
 
   LogWriter *m_logWriter;
 
@@ -115,6 +130,7 @@ protected:
   // scroll bars: vertical and horizontal
   ScrollBar m_sbar;
 
+  // This flag is true if size of window is changed (scroll must be updated).
   bool m_winResize;
   bool m_showVert;
   bool m_showHorz;

@@ -11,6 +11,14 @@
 
       <DialogRef Id="AdditionalTasks" />
 
+      <!-- Skip the License Agreement dialog if it's needed. -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="SetupTypeDlg" Order="9">
+        $(var.NoLicense) = 1
+      </Publish>
+      <Publish Dialog="SetupTypeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="9">
+        $(var.NoLicense) = 1
+      </Publish>
+
       <!-- Jump to the AdditionalTasks dialog from SetupTypeDlg -->
       <Publish Dialog="SetupTypeDlg" Control="TypicalButton" Event="NewDialog" Value="AdditionalTasks" Order="10">1</Publish>
       <Publish Dialog="SetupTypeDlg" Control="CompleteButton" Event="NewDialog" Value="AdditionalTasks" Order="10">1</Publish>

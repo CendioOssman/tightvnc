@@ -22,8 +22,8 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __DESKTOPCLIENT_H__
-#define __DESKTOPCLIENT_H__
+#ifndef __DESKTOPCLIENTIMPL_H__
+#define __DESKTOPCLIENTIMPL_H__
 
 #include "util/CommonHeader.h"
 #include "DesktopServerWatcher.h"
@@ -32,7 +32,7 @@
 #include "desktop-ipc/BlockingGate.h"
 #include "desktop-ipc/GateKicker.h"
 #include "desktop-ipc/DesktopSrvDispatcher.h"
-#include "GuiDesktop.h"
+#include "DesktopBaseImpl.h"
 #include "log-writer/LogWriter.h"
 
 //Interfaces
@@ -40,17 +40,17 @@
 #include "desktop-ipc/ReconnectionListener.h"
 #include "UpdateListener.h"
 
-class DesktopClient : public AnEventListener,
+class DesktopClientImpl : public AnEventListener,
                    public ReconnectionListener,
                    public Thread,
-                   public GuiDesktop
+                   public DesktopBaseImpl
 {
 public:
-  DesktopClient(ClipboardListener *extClipListener,
+  DesktopClientImpl(ClipboardListener *extClipListener,
                 UpdateSendingListener *extUpdSendingListener,
                 AbnormDeskTermListener *extDeskTermListener,
                 LogWriter *log);
-  virtual ~DesktopClient();
+  virtual ~DesktopClientImpl();
 
 protected:
   virtual void execute();
@@ -84,4 +84,4 @@ private:
   LogWriter *m_log;
 };
 
-#endif // __DESKTOPCLIENT_H__
+#endif // __DESKTOPCLIENTIMPL_H__

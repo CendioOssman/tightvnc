@@ -43,7 +43,7 @@ ViewPort::~ViewPort()
 {
 }
 
-void ViewPort::initDesktopInterface(DesktopInterface *desktop)
+void ViewPort::initDesktopInterface(Desktop *desktop)
 {
   m_desktop = desktop;
 }

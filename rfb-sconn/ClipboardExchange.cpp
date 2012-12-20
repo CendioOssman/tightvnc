@@ -28,7 +28,7 @@
 #include "thread/AutoLock.h"
 
 ClipboardExchange::ClipboardExchange(RfbCodeRegistrator *codeRegtor,
-                                     DesktopInterface *desktop,
+                                     Desktop *desktop,
                                      RfbOutputGate *output,
                                      bool viewOnly,
                                      LogWriter *log)
