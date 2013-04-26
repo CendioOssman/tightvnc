@@ -30,9 +30,10 @@ UpdateHandlerServer::UpdateHandlerServer(BlockingGate *forwGate,
                                          LogWriter *log)
 : DesktopServerProto(forwGate),
   m_extTerminationListener(extTerminationListener),
-  m_log(log)
+  m_log(log),
+  m_scrDriverFactory(Configurator::getInstance()->getServerConfig())
 {
-  m_updateHandler = new LocalUpdateHandler(this, log);
+  m_updateHandler = new UpdateHandlerImpl(this, &m_scrDriverFactory, log);
 
   dispatcher->registerNewHandle(EXTRACT_REQ, this);
   dispatcher->registerNewHandle(SCREEN_PROP_REQ, this);
@@ -136,9 +137,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
 
     // Send cursor position if it has been changed.
     backGate->writeUInt8(updCont.cursorPosChanged);
-    if (updCont.cursorPosChanged) {
-      sendPoint(&updCont.cursorPos, backGate);
-    }
+    sendPoint(&updCont.cursorPos, backGate);
 
     // Send cursor shape if it has been changed.
     backGate->writeUInt8(updCont.cursorShapeChanged);

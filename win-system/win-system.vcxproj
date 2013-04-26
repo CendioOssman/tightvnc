@@ -320,6 +320,7 @@
     <ClCompile Include="VersionInfo.cpp" />
     <ClCompile Include="WinClipboard.cpp" />
     <ClCompile Include="WinCommandLineArgs.cpp" />
+    <ClCompile Include="WinCursor.cpp" />
     <ClCompile Include="WindowsApplication.cpp" />
     <ClCompile Include="WindowsDisplays.cpp" />
     <ClCompile Include="WindowsEvent.cpp" />
@@ -367,6 +368,7 @@
     <ClInclude Include="VersionInfo.h" />
     <ClInclude Include="WinClipboard.h" />
     <ClInclude Include="WinCommandLineArgs.h" />
+    <ClInclude Include="WinCursor.h" />
     <ClInclude Include="WindowsApplication.h" />
     <ClInclude Include="WindowsDisplays.h" />
     <ClInclude Include="WindowsEvent.h" />

@@ -130,8 +130,8 @@ void UpdateHandlerClient::extract(UpdateContainer *updateContainer)
       updCont.cursorPosChanged = m_forwGate->readUInt8() != 0;
       if (updCont.cursorPosChanged) {
         m_log->info(_T("UpdateHandlerClient: cursor pos changed"));
-        updCont.cursorPos = readPoint(m_forwGate);
       }
+      updCont.cursorPos = readPoint(m_forwGate);
 
       // Get cursor shape if it has been changed.
       updCont.cursorShapeChanged = m_forwGate->readUInt8() != 0;

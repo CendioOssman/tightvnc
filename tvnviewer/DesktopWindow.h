@@ -56,8 +56,10 @@ public:
   void setScale(int scale);
   // it returns the image width and height considering scale
   Rect getViewerGeometry();
-  // it returns the image width, height and number of bits per pixel
-  void getServerGeometry(int *width, int *height, int *pixelsize);
+  // it returns the image width and height.
+  Rect getFrameBufferGeometry();
+  // it return size of server frame buffer and pixelsize.
+  void getServerGeometry(Rect *rect, int *pixelsize);
 
   void setConnected();
   void setViewerCore(RemoteViewerCore *viewerCore);
@@ -145,6 +147,9 @@ protected:
   // frame buffer
   LocalMutex m_bufferLock;
   DibFrameBuffer m_framebuffer;
+  // This variable save server dimension.
+  // Dimension of m_framebuffer can be large m_serverDimension.
+  Dimension m_serverDimension;
 
   // clipboard
   WinClipboard m_clipboard;

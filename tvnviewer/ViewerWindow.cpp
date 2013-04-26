@@ -25,7 +25,7 @@
 #include "config-lib/IniFileSettingsManager.h"
 #include "util/Exception.h"
 #include "util/ResourceLoader.h"
-#include "viewer-core/StandardPixelFormatFactory.h"
+#include "rfb/StandardPixelFormatFactory.h"
 
 #include "FsWarningDialog.h"
 #include "NamingDefs.h"
@@ -238,7 +238,7 @@ void ViewerWindow::changeCursor(int type)
       hcur = rLoader->loadCursor(IDI_CNOCURSOR);
       break;
     case ConnectionConfig::NORMAL_CURSOR:
-      hcur = rLoader->loadStandartCursor(IDC_ARROW);
+      hcur = rLoader->loadStandardCursor(IDC_ARROW);
       break;
   }
   setClassCursor(hcur);
@@ -346,16 +346,17 @@ void ViewerWindow::dialogConnectionInfo()
     kbdName[2] = _T('?'); 
   }
 
-  int width, height, pixel;
-  m_dsktWnd.getServerGeometry(&width, &height, &pixel);
+  Rect geometry;
+  int pixelSize = 0;
+  m_dsktWnd.getServerGeometry(&geometry, &pixelSize);
   StringStorage str;
   str.format(StringTable::getString(IDS_CONNECTION_INFO_FORMAT),
              host.getString(),
              m_viewerCore->getRemoteDesktopName().getString(),
              m_viewerCore->getProtocolString().getString(),
-             width,
-             height,
-             pixel,
+             geometry.getWidth(),
+             geometry.getHeight(),
+             pixelSize,
              &kbdName[0]);
   MessageBox(getHWnd(),
              str.getString(),
@@ -614,15 +615,12 @@ void ViewerWindow::commandScaleAuto()
       int wndWidth = rcWindow.right - rcWindow.left - 1;
       int wndHeight = rcWindow.bottom - rcWindow.top;
 
-      int scrWidth = 0;
-      int scrHeight = 0;
-      int pixelSize = 0;
-      m_dsktWnd.getServerGeometry(&scrWidth, &scrHeight, &pixelSize);
+      Rect screen = m_dsktWnd.getFrameBufferGeometry();
 
-      if (wndWidth * scrHeight <= wndHeight * scrWidth) {
-        m_conConf->setScale(wndWidth, scrWidth);
+      if (wndWidth * screen.getHeight() <= wndHeight * screen.getWidth()) {
+        m_conConf->setScale(wndWidth, screen.getWidth());
       } else {
-        m_conConf->setScale(wndHeight, scrHeight);
+        m_conConf->setScale(wndHeight, screen.getHeight());
       }
       m_conConf->fitWindow(false);
     }
@@ -666,14 +664,6 @@ bool ViewerWindow::onCommand(WPARAM wParam, LPARAM lParam)
     }
   }
   switch(wParam) {
-  // If restore full-screen window, then exit from full screen.
-  case SC_RESTORE:
-    if (m_isFullScr) {
-      doUnFullScr();
-      return true;
-    }
-    return false;
-
     case IDS_ABOUT_VIEWER:
       onAbout();
       return true;
@@ -750,6 +740,11 @@ void ViewerWindow::showFileTransferDialog()
     if (m_ftDialog == 0) {
       m_ftDialog = new FileTransferMainDialog(m_fileTransfer->getCore());
       m_ftDialog->setParent(&m_control);
+      HWND controlWnd = m_control.getWindow();
+      DWORD style = GetWindowLong(controlWnd,GWL_STYLE);
+      style = style & ~(WS_POPUP);
+      style = style | WS_CHILD;
+      SetWindowLong(controlWnd,GWL_STYLE,style);
       m_fileTransfer->setInterface(m_ftDialog);
     }
     m_ftDialog->show();
@@ -788,7 +783,7 @@ void ViewerWindow::setSizeFullScreenWindow()
                      fullScreenRect.left, fullScreenRect.top,
                      fullScreenRect.getWidth(), fullScreenRect.getHeight());
 
-  setStyle((getStyle() | WS_MAXIMIZE) & ~(WS_CAPTION | WS_BORDER | WS_THICKFRAME));
+  setStyle((getStyle() | WS_MAXIMIZE) & ~(WS_CAPTION | WS_BORDER | WS_THICKFRAME  | WS_MAXIMIZEBOX));
   setExStyle(getExStyle() | WS_EX_TOPMOST);
 
   SetWindowPos(m_hWnd, 0,
@@ -846,7 +841,7 @@ void ViewerWindow::doUnFullScr()
   m_menu.enableMenuItem(IDS_TB_TOOLBAR, isEnable);
 
   // Restore position, style and exstyle of windowed window.
-  setStyle(getStyle() | WS_CAPTION | WS_BORDER | WS_THICKFRAME);
+  setStyle(getStyle() | WS_CAPTION | WS_BORDER | WS_THICKFRAME | WS_MAXIMIZEBOX);
   setExStyle(getExStyle() & ~WS_EX_TOPMOST);
   Rect workArea;
   workArea.fromWindowsRect(&m_workArea.rcNormalPosition);

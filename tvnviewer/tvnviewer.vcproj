@@ -738,11 +738,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ViewerWindow.cpp"
+				RelativePath=".\ViewerVncAuthHandler.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\VncAuthenticationHandler.cpp"
+				RelativePath=".\ViewerWindow.cpp"
 				>
 			</File>
 		</Filter>
@@ -856,11 +856,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ViewerWindow.h"
+				RelativePath=".\ViewerVncAuthHandler.h"
 				>
 			</File>
 			<File
-				RelativePath=".\VncAuthenticationHandler.h"
+				RelativePath=".\ViewerWindow.h"
 				>
 			</File>
 		</Filter>

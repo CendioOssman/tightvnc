@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="win-system"
 	ProjectGUID="{56EADC5B-9C2C-431C-9275-98FE9088518B}"
 	RootNamespace="winsystem"
@@ -697,6 +697,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\WinCursor.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\WindowsApplication.cpp"
 				>
 			</File>
@@ -884,6 +888,10 @@
 			</File>
 			<File
 				RelativePath=".\WinCommandLineArgs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\WinCursor.h"
 				>
 			</File>
 			<File
