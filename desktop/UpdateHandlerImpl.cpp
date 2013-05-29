@@ -27,7 +27,8 @@
 UpdateHandlerImpl::UpdateHandlerImpl(UpdateListener *externalUpdateListener, ScreenDriverFactory *scrDriverFactory,
                                      LogWriter *log)
 : m_externalUpdateListener(externalUpdateListener),
-  m_fullUpdateRequested(false)
+  m_fullUpdateRequested(false),
+  m_log(log)
 {
   m_screenDriver = scrDriverFactory->createScreenDriver(&m_updateKeeper,
                                                         this,
@@ -92,7 +93,7 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
     if (m_screenDriver->getScreenSizeChanged() || !currentDimension.isEqualTo(&newDimension)) {
       updateContainer->screenSizeChanged = true;
     }
-    m_screenDriver->applyNewScreenProperties();
+    applyNewScreenProperties();
     {
       // Only this place the class provides frame buffer changings, and then why it
       // must be under the mutex. Getters for the backup frame buffer in here (at this function)
@@ -117,6 +118,24 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
     m_cursorShape.clone(m_screenDriver->getCursorShape());
 
     m_fullUpdateRequested = false;
+  }
+}
+
+void UpdateHandlerImpl::applyNewScreenProperties()
+{
+  int applyTryCount = 3;
+  bool applyResult = true;
+  do {
+    if (!applyResult) {
+      WindowsEvent waitEvent; // No way to made it abortable.
+      waitEvent.waitForEvent(1000);
+    }
+    m_log->info(_T("Screen properties changed, applying new screen properties, total tries = %d"), applyTryCount);
+    applyResult = m_screenDriver->applyNewScreenProperties();
+    applyTryCount--;
+  } while (applyTryCount > 0 && !applyResult);
+  if (!applyResult) {
+    throw Exception(_T("Unable set new screen properties at all tries"));
   }
 }
 

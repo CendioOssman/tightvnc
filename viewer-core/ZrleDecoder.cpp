@@ -62,28 +62,30 @@ void ZrleDecoder::decode(RfbInputGate *input,
                                                unpackedData.size());
   DataInputStream unpackedDataStream(&unpackedByteArrayStream);
 
-  m_bytesPerPixel = frameBuffer->getBytesPerPixel();
   m_numberFirstByte = 0;
-
-  // FIXME: test this code.
   PixelFormat pxFormat = frameBuffer->getPixelFormat();
-  if (pxFormat.bitsPerPixel == 32 && pxFormat.colorDepth <= 24) {
-    UINT32 colorMaxValue = pxFormat.blueMax  << pxFormat.blueShift  |
-                           pxFormat.greenMax << pxFormat.greenShift |
-                           pxFormat.redMax   << pxFormat.redShift;
-    bool bytesIsUnUse[4] = {0, 0, 0, 0};
-    for (int i = 0; i < 4; i++) {
-      bytesIsUnUse[i] = (colorMaxValue & 0xFF) == 0;
-      colorMaxValue >>= 8;
-    }
-    if (bytesIsUnUse[3]) {
+
+  if (pxFormat.bitsPerPixel == 8) {
+    m_bytesPerPixel = 1;
+  } else if (pxFormat.bitsPerPixel == 16) {
+    m_bytesPerPixel = 2;
+  } else if (pxFormat.bitsPerPixel == 32) {
+    UINT32 colorMaxValue =  pxFormat.blueMax  << pxFormat.blueShift  |
+                            pxFormat.greenMax << pxFormat.greenShift |
+                            pxFormat.redMax   << pxFormat.redShift;
+    //for CPIXELS
+    if ((colorMaxValue & (0xFF000000))==0) {
       m_bytesPerPixel = 3;
       m_numberFirstByte = 0;
-    } else if (bytesIsUnUse[0]) {
+    } else if ((colorMaxValue & 0xFF)==0) {
       m_bytesPerPixel = 3;
       m_numberFirstByte = 1;
+    } else /*for other cases*/{
+      m_bytesPerPixel = 4;
+      m_numberFirstByte = 0;
     }
   }
+
   for (int y = dstRect->top; y < dstRect->bottom; y += TILE_SIZE) {
     for (int x = dstRect->left; x < dstRect->right; x += TILE_SIZE) {
       Rect tileRect(x, y, 
@@ -100,40 +102,27 @@ void ZrleDecoder::decode(RfbInputGate *input,
 
       int type = readType(&unpackedDataStream);
 
-      // raw pixel data
       if (type == 0) {
+        // raw pixel data
         readRawTile(&unpackedDataStream, pixels, &tileRect);
-      }
-
-      // a solid tile consisting of a single colour
-      if (type == 1) {
+      } else if (type == 1) {
+        // a solid tile consisting of a single colour
         readSolidTile(&unpackedDataStream, pixels, &tileRect);
-      }
-
-      // packed palette
-      if (type >= 2 && type <= 16) {
+      } else if (type >= 2 && type <= 16) {
+        // packed palette
         readPackedPaletteTile(&unpackedDataStream, pixels, &tileRect, type);
-      }
-
-      // unused types
-      if (type >= 17 && type <= 127) {
-        // This types isn't used in zrle, but it is valid.
-      }
-
-      // plain rle
-      if (type == 128) {
+      } else if (type >= 17 && type <= 127) {
+        // unused (no advantage over palette RLE)
+      } if (type == 128) {
+        // plain rle
         readPlainRleTile(&unpackedDataStream, pixels, &tileRect);
-      }
-
-      // invalid type
-      if (type == 129) {
+      } if (type == 129) {
+        // invalid type
         StringStorage error;
         error.format(_T("Error: subencoding %d of Zrle encoding is unused"), type);
         throw Exception(error.getString());
-      }
-
-      // palette rle
-      if (type >= 130 && type <= 255) {
+      } if (type >= 130 && type <= 255) {
+        // palette rle
         readPaletteRleTile(&unpackedDataStream, pixels, &tileRect, type);
       }
 
@@ -187,6 +176,7 @@ void ZrleDecoder::readPalette(DataInputStream *input,
                               Palette *palette)
 {
   palette->resize(paletteSize);
+
   for (int i = 0; i < paletteSize; i++) {
     input->readFully(&(*palette)[i] + m_numberFirstByte, m_bytesPerPixel);
   }
@@ -209,11 +199,11 @@ void ZrleDecoder::readSolidTile(DataInputStream *input,
 
   input->readFully(solid + m_numberFirstByte, m_bytesPerPixel);
   
-  // FIXME: optimization. Fill first line and copy it?
+  char *pixelsPtr = &pixels.front();
+  // TODO: Can we optimize this?
   for (size_t i = 0; i < tileLength; i++) {
-    // FIXME: may be this code??
-    //memcpy(&pixels[i * m_bytesPerPixel] + m_numberFirstByte, solid, m_bytesPerPixel);
-    memcpy(&pixels[i * m_bytesPerPixel], solid, m_bytesPerPixel);
+    memcpy(pixelsPtr + m_numberFirstByte, solid, m_bytesPerPixel); 
+    pixelsPtr += m_bytesPerPixel;
   }
 }
 
@@ -237,15 +227,11 @@ void ZrleDecoder::readPackedPaletteTile(DataInputStream *input,
     m = (width + 7) / 8;
     mask = 0x01;
     deltaOffset = 1;
-  }
-
-  if (paletteSize == 3 || paletteSize == 4) {
+  } else if (paletteSize == 3 || paletteSize == 4) {
     m = (width + 3) / 4;
     mask = 0x03;
     deltaOffset = 2;
-  }
-
-  if (paletteSize >= 5 && paletteSize <= 16) {
+  } else if (paletteSize >= 5 && paletteSize <= 16) {
     m = (width + 1) / 2;
     mask = 0x0F;
     deltaOffset = 4;
@@ -285,7 +271,7 @@ void ZrleDecoder::readPlainRleTile(DataInputStream *input,
     input->readFully(color + m_numberFirstByte, m_bytesPerPixel);
 
     size_t runLength = readRunLength(input);
-
+    // TODO: refactor this
     for(size_t i = 0; i < runLength; i++) {
       // FIXME: add check this condition in all similar areas.
       if (indexPixel + m_bytesPerPixel <= pixels.size()) {
@@ -317,10 +303,12 @@ void ZrleDecoder::readPaletteRleTile(DataInputStream *input,
       color -= 128;
       runLength = readRunLength(input);
     }
-
-    for(size_t i = 0; i < runLength; i++)
-      memcpy(&pixels[(indexPixel + i) * m_bytesPerPixel], &palette[color], m_bytesPerPixel);
-
+    
+    char * pixelsPtr = &pixels[indexPixel * m_bytesPerPixel];
+    for(size_t i = 0; i < runLength; i++) {
+      memcpy(pixelsPtr, &palette[color], m_bytesPerPixel);
+      pixelsPtr += m_bytesPerPixel;
+    }
     indexPixel += runLength;
   }
 }
@@ -330,22 +318,23 @@ void ZrleDecoder::drawTile(FrameBuffer *fb,
                            const vector<char> *pixels)
 {
   int width = tileRect->getWidth();
-  int height = tileRect->getHeight();
   size_t fbBytesPerPixel = m_bytesPerPixel;
+
   if (fbBytesPerPixel == 3) {
-    fbBytesPerPixel++;
+    fbBytesPerPixel = 4;
   }
 
   int tileLength = tileRect->area();
 
   int x = tileRect->left;
   int y = tileRect->top;
+   
+  const char *pixelsPtr = &pixels->front();
+  char *bufferPtr = 0;
   for (int i = 0; i < tileLength; i++) {
-    void *pixelPtr = fb->getBufferPtr(x + i % width, y + i / width);
-
-    memset(pixelPtr, 0, fbBytesPerPixel);
-    memcpy(pixelPtr,
-           &pixels->operator[](i * m_bytesPerPixel),
-           m_bytesPerPixel);
+    bufferPtr = (char*)fb->getBufferPtr(x + i % width, y + i / width);
+    memset(bufferPtr, 0, fbBytesPerPixel);
+    memcpy(bufferPtr, pixelsPtr, m_bytesPerPixel);
+    pixelsPtr+=m_bytesPerPixel;
   }
 }

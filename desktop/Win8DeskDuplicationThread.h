@@ -30,6 +30,7 @@
 #include "thread/LocalMutex.h"
 #include "thread/GuiThread.h"
 #include "Win8DuplicationListener.h"
+#include "log-writer/LogWriter.h"
 
 #include "WinCustomD3D11Texture2D.h"
 #include "WinDxgiOutputDuplication.h"
@@ -46,7 +47,8 @@ public:
                             LocalMutex *cursorMutex,
                             Win8DuplicationListener *duplListener,
                             WinDxgiOutput *dxgiOutput,
-                            int threadNumber);
+                            int threadNumber,
+                            LogWriter *log);
   virtual ~Win8DeskDuplicationThread();
 
   bool isValid();
@@ -89,6 +91,8 @@ private:
 
   WinCustomD3D11Texture2D m_stageTexture2D;
   FrameBuffer m_auxiliaryFrameBuffer;
+
+  LogWriter *m_log;
 };
 
 #endif // __WIN8DESKDUPLICATIONTHREAD_H__

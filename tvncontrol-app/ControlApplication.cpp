@@ -322,8 +322,6 @@ void ControlApplication::execute()
 
 int ControlApplication::runControlInterface(bool showIcon)
 {
-  ControlTrayIcon *icon = 0;
-
   m_trayIcon = new ControlTrayIcon(m_serverControl, this, this, showIcon);
 
   resume();

@@ -61,7 +61,6 @@ private:
                       const FrameBuffer *fb) throw(IOException);
 
   // Send a solid-color tile.
-  template <class PIXEL_T>
     void writeSolidTile() throw(IOException);
   
   // Send packed palette tile.

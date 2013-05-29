@@ -39,7 +39,8 @@ Win8DeskDuplicationThread::Win8DeskDuplicationThread(FrameBuffer *targetFb,
                                                      LocalMutex *cursorMutex,
                                                      Win8DuplicationListener *duplListener,
                                                      WinDxgiOutput *dxgiOutput,
-                                                     int threadNumber)
+                                                     int threadNumber,
+                                                     LogWriter *log)
 : m_targetFb(targetFb),
   m_targetRect(*targetRect),
   m_targetCurShape(targetCurShape),
@@ -51,7 +52,8 @@ Win8DeskDuplicationThread::Win8DeskDuplicationThread(FrameBuffer *targetFb,
   m_hasCriticalError(false),
   m_hasRecoverableError(false),
   m_stageTexture2D(m_device.getDevice(), (UINT)targetRect->getWidth(), (UINT)targetRect->getHeight()),
-  m_threadNumber(threadNumber)
+  m_threadNumber(threadNumber),
+  m_log(log)
 {
   resume();
 }
@@ -174,6 +176,8 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
 
     Rect dstRect(rect);
     dstRect.move(m_targetRect.left, m_targetRect.top);
+    m_log->debug(_T("Destination dirty rect = %d, %d, %dx%d"), dstRect.left, dstRect.top, dstRect.getWidth(), dstRect.getHeight());
+
     m_auxiliaryFrameBuffer.setPropertiesWithoutResize(&stageDim, &m_targetFb->getPixelFormat());
     m_auxiliaryFrameBuffer.setBuffer(autoMapSurface.getBuffer());
     m_targetFb->copyFrom(&dstRect, &m_auxiliaryFrameBuffer, rect.left, rect.top);

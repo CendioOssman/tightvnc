@@ -27,6 +27,7 @@
 
 #include "region/Rect.h"
 #include "win-system/DynamicLibrary.h"
+#include "log-writer/LogWriter.h"
 
 #include <d3d11.h>
 #include <DXGI1_2.h>
@@ -36,6 +37,7 @@ class WinD3D11Device
 public:
   // Creates new device and context of first found.
   WinD3D11Device();
+  WinD3D11Device(LogWriter *log);
   // Copy references and increase count for winD3D11Device's internal handles. So the
   // source winD3D11Device object can be destroyed while this object will use.
   WinD3D11Device(const WinD3D11Device &src);
@@ -59,6 +61,8 @@ private:
   DynamicLibrary m_d3d11Lib;
   ID3D11Device *m_device;
   ID3D11DeviceContext *m_context;
+
+  LogWriter *m_log;
 };
 
 #endif // __WIND3D11DEVICE_H__

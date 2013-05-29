@@ -36,14 +36,15 @@
 
 Win8ScreenDriverImpl::Win8ScreenDriverImpl(LogWriter *log, UpdateKeeper *updateKeeper,
                                            LocalMutex *fbLocalMutex,
-                                           UpdateListener *updateListener)
+                                           UpdateListener *updateListener,
+                                           bool detectionEnabled)
 : m_updateKeeper(updateKeeper),
   m_updateListener(updateListener),
   m_log(log),
   m_curTimeStamp(0),
   m_hasCriticalError(false),
   m_hasRecoverableError(false),
-  m_detectionEnabled(false)
+  m_detectionEnabled(detectionEnabled)
 {
   resume();
   // Wait for DxInterface initialization
@@ -84,8 +85,11 @@ FrameBuffer *Win8ScreenDriverImpl::getScreenBuffer()
 
 void Win8ScreenDriverImpl::initDxgi()
 {
-  WinD3D11Device d3D11Device;
+  m_log->debug(_T("Creating of D3D11Device"));
+  WinD3D11Device d3D11Device(m_log);
+  m_log->debug(_T("Quering Interface for IDXGIDevice"));
   WinDxgiDevice dxgiDevice(&d3D11Device);
+  m_log->debug(_T("Getting Parent for IDXGIAdapter"));
   WinDxgiAdapter dxgiAdapter(&dxgiDevice);
 
   Region virtDeskRegion;
@@ -111,6 +115,7 @@ void Win8ScreenDriverImpl::initDxgi()
   PixelFormat pf = getDxPixelFormat();
   Rect virtDeskBoundRect = virtDeskRegion.getBounds();
   m_frameBuffer.setProperties(&virtDeskBoundRect, &pf);
+  m_frameBuffer.setColor(0, 0, 0);
 
   for (size_t iDxgiOutput  = 0; iDxgiOutput < dxgiOutputArray.size(); iDxgiOutput++) {
     Thread *thread = new Win8DeskDuplicationThread(&m_frameBuffer,
@@ -120,7 +125,8 @@ void Win8ScreenDriverImpl::initDxgi()
                                                    &m_cursorMutex,
                                                    this,
                                                    &dxgiOutputArray[iDxgiOutput],
-                                                   (int)iDxgiOutput);
+                                                   (int)iDxgiOutput,
+                                                   m_log);
     m_deskDuplThreadBundle.addThread(thread);
   }
 }
@@ -146,6 +152,13 @@ void Win8ScreenDriverImpl::execute()
 
   while (!isTerminating() && isValid()) {
     m_errorEvent.waitForEvent();
+  }
+  if (!isValid()) {
+    m_log->error(_T("Win8ScreenDriverImpl has an invalid state. The invalid state can be")
+                 _T(" a part of screen propery changes. An update signal will be generated")
+                 _T(" as a screen size changed signal."));
+    m_updateKeeper->setScreenSizeChanged();
+    m_updateListener->onUpdate();
   }
   m_deskDuplThreadBundle.destroyAllThreads();
 }

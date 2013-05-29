@@ -106,7 +106,10 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
   if (updCont.screenSizeChanged) {
     // Send new screen properties
     sendPixelFormat(&newPf, backGate);
-    sendDimension(&fb->getDimension(), backGate);
+    Dimension fbDim = fb->getDimension();
+    Rect fbRect = fbDim.getRect();
+    sendDimension(&fbDim, backGate);
+    sendFrameBuffer(fb, &fbRect, backGate);
   } else {
     // Send video region
     sendRegion(&updCont.videoRegion, backGate);

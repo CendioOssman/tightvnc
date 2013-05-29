@@ -464,7 +464,17 @@ void DesktopWindow::drawImage(const RECT *src, const RECT *dst)
   Rect rc_dest(dst);
 
   AutoLock al(&m_bufferLock);
-  m_framebuffer.stretchFromDibSection(&rc_dest, &rc_src);
+  
+  if ((src->right - src->left) == (dst->right - dst->left) &&
+     (src->bottom - src->top) == (dst->bottom - dst->top) &&
+     src->left == dst->left &&
+     src->right == dst->right &&
+     src->top == dst->top &&
+     src->bottom == dst->bottom) {
+    m_framebuffer.blitFromDibSection(&rc_dest);
+  } else {
+    m_framebuffer.stretchFromDibSection(&rc_dest, &rc_src);
+  }
 }
 
 bool DesktopWindow::onSize(WPARAM wParam, LPARAM lParam) 

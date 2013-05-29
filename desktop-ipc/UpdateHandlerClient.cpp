@@ -102,8 +102,12 @@ void UpdateHandlerClient::extract(UpdateContainer *updateContainer)
                                 (int)newPf.redShift,
                                 (int)newPf.greenShift,
                                 (int)newPf.blueShift);
+        AutoLock al(&m_fbLocMut);
         m_backupFrameBuffer.setProperties(&newDim, &newPf);
       }
+      // Equalizing this frame buffer by other side frame buffer.
+      Rect fbRect = m_backupFrameBuffer.getDimension().getRect();
+      readFrameBuffer(&m_backupFrameBuffer, &fbRect, m_forwGate);
     } else {
       // Get video region
       readRegion(&updCont.videoRegion, m_forwGate);

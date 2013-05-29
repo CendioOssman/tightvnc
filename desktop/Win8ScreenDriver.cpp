@@ -88,12 +88,9 @@ bool Win8ScreenDriver::applyNewScreenProperties()
 {
   try {
     Win8ScreenDriverImpl *drvImpl =
-      new Win8ScreenDriverImpl(m_log, m_updateKeeper, m_fbLocalMutex, m_updateListener);
+      new Win8ScreenDriverImpl(m_log, m_updateKeeper, m_fbLocalMutex, m_updateListener, m_detectionEnabled);
     delete m_drvImpl;
     m_drvImpl = drvImpl;
-    if (m_detectionEnabled) {
-      m_drvImpl->executeDetection();
-    }
   } catch (Exception &e) {
     m_log->error(_T("Can't apply new screen properties: %s"), e.getMessage());
     return false;

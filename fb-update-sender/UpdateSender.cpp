@@ -867,7 +867,7 @@ void UpdateSender::updateFrameBuffer(UpdateContainer *updCont,
     changedAndCopyRgns.add(&m_requestedFullReg);
   }
 
-  updCont->screenSizeChanged =
+  updCont->screenSizeChanged = updCont->screenSizeChanged ||
     !m_desktop->updateExternalFrameBuffer(&m_frameBuffer, &changedAndCopyRgns, &viewPort);
 }
 

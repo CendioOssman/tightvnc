@@ -56,12 +56,16 @@ private:
 
   virtual void onUpdate();
 
+  void applyNewScreenProperties();
+
   UpdateKeeper m_updateKeeper;
   ScreenDriver *m_screenDriver;
   UpdateFilter *m_updateFilter;
   UpdateListener *m_externalUpdateListener;
 
   Rect m_absoluteRect;
+
+  LogWriter *m_log;
 
   bool m_fullUpdateRequested;
 };

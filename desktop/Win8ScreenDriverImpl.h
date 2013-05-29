@@ -41,7 +41,7 @@ class Win8ScreenDriverImpl : private GuiThread, private Win8DuplicationListener
 public:
   Win8ScreenDriverImpl(LogWriter *log, UpdateKeeper *updateKeeper,
                        LocalMutex *fbLocalMutex,
-                       UpdateListener *updateListener);
+                       UpdateListener *updateListener, bool detectionEnabled = false);
   virtual ~Win8ScreenDriverImpl();
 
   void executeDetection();

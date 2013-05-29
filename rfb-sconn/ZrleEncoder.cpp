@@ -65,25 +65,36 @@ void ZrleEncoder::sendRectangle(const Rect *rect,
   m_bytesPerPixel = 0;
   m_numberFirstByte = 0;
   const FrameBuffer *clientFb = m_pixelConverter->convert(rect, serverFb);
+  //client pixel format
   m_pxFormat = clientFb->getPixelFormat();
-  if (m_pxFormat.bitsPerPixel == 32 && m_pxFormat.colorDepth <= 24) {
-    UINT32 colorMaxValue = m_pxFormat.blueMax  << m_pxFormat.blueShift  |
-                           m_pxFormat.greenMax << m_pxFormat.greenShift |
-                           m_pxFormat.redMax   << m_pxFormat.redShift;
-    bool bytesIsUnUse[4] = {0, 0, 0, 0};
-    for (int i = 0; i < 4; i++) {
-      bytesIsUnUse[i] = (colorMaxValue & 0xFF) == 0;
-      colorMaxValue >>= 8;
+  //server pixel format
+  PixelFormat serverPxFormat = serverFb->getPixelFormat();
+  bool bigEndianDiffs = m_pxFormat.bigEndian != serverPxFormat.bigEndian;
+  if (m_pxFormat.bitsPerPixel == 8) {
+    m_bytesPerPixel = 1;
+  } else if (m_pxFormat.bitsPerPixel == 16) {
+    m_bytesPerPixel = 2;
+  } else if (m_pxFormat.bitsPerPixel == 32) {
+    UINT32 colorMaxValue =  m_pxFormat.blueMax  << m_pxFormat.blueShift  |
+                            m_pxFormat.greenMax << m_pxFormat.greenShift |
+                            m_pxFormat.redMax   << m_pxFormat.redShift;
+    //from big-endian to local
+    if (bigEndianDiffs) {
+      colorMaxValue = ntohl(colorMaxValue);
     }
-    if (bytesIsUnUse[3]) {
+    //for CPIXELS
+    if ((colorMaxValue & (0xFF000000))==0) {
       m_bytesPerPixel = 3;
       m_numberFirstByte = 0;
-    } else if (bytesIsUnUse[0]) {
+    } else if ((colorMaxValue & 0xFF)==0) {
       m_bytesPerPixel = 3;
       m_numberFirstByte = 1;
+    } else /*for other cases*/{
+      m_bytesPerPixel = 4;
+      m_numberFirstByte = 0;
     }
   }
-
+ 
   // Reserve data once for potentional transmitting of whole frame buffer
   // in raw encoding with CPIXELs.
   // If vector will be small it will be resized automatically.
@@ -132,7 +143,7 @@ void ZrleEncoder::sendRect(const Rect *rect,
       
       // If number of colors is 1 the tile with minimal size is solid.
       if (numColors == 1) {
-        writeSolidTile<PIXEL_T>();
+        writeSolidTile();
       // Else calculate sizes of tile with other encodings
       // and choose encoding type when size is the minimal.
       } else {
@@ -144,39 +155,22 @@ void ZrleEncoder::sendRect(const Rect *rect,
         } else {
           m_mSize = ((tileRect.getWidth() + 1) / 2) * tileRect.getHeight();
         }
-
-        if (m_bytesPerPixel == 3) {
-          // Size of raw tile is (1 + width * height * pixelSize).
-          m_rawTileSize = tileRect.area() * 3  + 1;
-          // Size of palette tile.
-          if (numColors > 1 && numColors <= 16) {
-            m_paletteTileSize = 1 + numColors * 3 + m_mSize;
-          } else {
-            m_paletteTileSize = THIS_TYPE_OF_TILE_IS_NOT_POSSIBLE;
-          }
-          // Size of palette RLE tile.
-          if (numColors > 16 && numColors <= 127) {
-            m_paletteRleTileSize += numColors * 3;
-          } else {
-            m_paletteRleTileSize = THIS_TYPE_OF_TILE_IS_NOT_POSSIBLE;
-          }
+        
+        //TODO: Test this code
+        // Size of raw tile is (1 + width * height * pixelSize).
+        m_rawTileSize = 1 + tileRect.area() * m_bytesPerPixel;
+        // Size of palette tile.
+        if (numColors > 1 && numColors <= 16) {
+          m_paletteTileSize = 1 + numColors * m_bytesPerPixel + m_mSize;
         } else {
-          // Size of raw tile is (1 + width * height * pixelSize).
-          m_rawTileSize = 1 + tileRect.area() * sizeof(PIXEL_T);
-          // Size of palette tile.
-          if (numColors > 1 && numColors <= 16) {
-            m_paletteTileSize = 1 + numColors * sizeof(PIXEL_T) + m_mSize;
-          } else {
-            m_paletteTileSize = THIS_TYPE_OF_TILE_IS_NOT_POSSIBLE;
-          }
-          // Size of palette RLE tile.
-          if (numColors > 16 && numColors <= 127) {
-            m_paletteRleTileSize += numColors * sizeof(PIXEL_T);
-          } else {
-            m_paletteRleTileSize = THIS_TYPE_OF_TILE_IS_NOT_POSSIBLE;
-          }
+          m_paletteTileSize = THIS_TYPE_OF_TILE_IS_NOT_POSSIBLE;
         }
-
+        // Size of palette RLE tile.
+        if (numColors > 16 && numColors <= 127) {
+          m_paletteRleTileSize += numColors * m_bytesPerPixel;
+        } else {
+          m_paletteRleTileSize = THIS_TYPE_OF_TILE_IS_NOT_POSSIBLE;
+        }
         // Choose the size of the min tile.
         size_t minSizeOfTile = m_rawTileSize;
         if (m_paletteTileSize < minSizeOfTile) {
@@ -225,31 +219,22 @@ void ZrleEncoder::writeRawTile(const Rect *tileRect,
                                const FrameBuffer *fb)
 {
   m_oldSize = m_rgbData.size();
+  m_rgbData.resize(m_oldSize + tileRect->area() * m_bytesPerPixel + 1);
+  m_rgbData[m_oldSize] = 0;
   if (m_bytesPerPixel == 3) {
-    m_rgbData.resize(m_oldSize + tileRect->area() * 3 + 1);
-    m_rgbData[m_oldSize] = 0;
     copyCPixels(tileRect, fb, &m_rgbData[m_oldSize + 1]);
   } else {
-    m_rgbData.resize(m_oldSize + tileRect->area() * sizeof(PIXEL_T) + 1);
-    m_rgbData[m_oldSize] = 0;
     copyPixels<PIXEL_T>(tileRect, fb, &m_rgbData[m_oldSize + 1]);
   }
 }
 
-template <class PIXEL_T>
 void ZrleEncoder::writeSolidTile() throw(IOException)
 {
   m_oldSize = m_rgbData.size();
   UINT32 colorPixel = m_pal.getEntry(0);
-  if (m_bytesPerPixel == 3) {
-    m_rgbData.resize(m_oldSize + 3 + 1);
-    m_rgbData[m_oldSize] = 1;
-    memcpy(&m_rgbData[m_oldSize + 1], &colorPixel + m_numberFirstByte, 3);
-  } else {
-    m_rgbData.resize(m_oldSize + sizeof(PIXEL_T) + 1);
-    m_rgbData[m_oldSize] = 1;
-    memcpy(&m_rgbData[m_oldSize + 1], &colorPixel, sizeof(PIXEL_T));
-  }
+  m_rgbData.resize(m_oldSize + m_bytesPerPixel + 1);
+  m_rgbData[m_oldSize] = 1;
+  memcpy(&m_rgbData[m_oldSize + 1], &colorPixel + m_numberFirstByte, m_bytesPerPixel);
 }
 
 template <class PIXEL_T>
@@ -269,11 +254,7 @@ void ZrleEncoder::writePackedPaletteTile(const Rect *tileRect,
 
   // Resize of m_rgbData for a new chunk of data.
   // m_oldSize + sizeof(subencodingByte + palette + packedPixels)
-  if (m_bytesPerPixel == 3) {
-    m_rgbData.resize(m_oldSize + 1 + numColors * 3 + m_mSize);
-  } else {
-    m_rgbData.resize(m_oldSize + 1 + numColors * sizeof(PIXEL_T) + m_mSize);
-  }
+  m_rgbData.resize(m_oldSize + 1 + numColors * m_bytesPerPixel + m_mSize);
 
   // Write type of subencoding.
   m_rgbData[m_oldSize] = numColors;
@@ -281,13 +262,9 @@ void ZrleEncoder::writePackedPaletteTile(const Rect *tileRect,
   // Write palette.
   for (int i = 0; i < numColors; i++) {
     UINT32 buf = m_pal.getEntry(i);
-    if (m_bytesPerPixel == 3) {
-      memcpy(&m_rgbData[m_oldSize + 1 + i * 3], &buf + m_numberFirstByte, 3);
-    } else {
-      memcpy(&m_rgbData[m_oldSize + 1 + i * sizeof(PIXEL_T)],
+    memcpy(&m_rgbData[m_oldSize + 1 + i * m_bytesPerPixel],
              &buf + m_numberFirstByte,
-             sizeof(PIXEL_T));
-    }
+             m_bytesPerPixel);
   }
 
   // Pack pixels.
@@ -308,11 +285,7 @@ void ZrleEncoder::writePackedPaletteTile(const Rect *tileRect,
       }
       else {
         // Write next packed byte.
-        if (m_bytesPerPixel == 3) {
-          m_rgbData[m_oldSize + 1 + numColors * 3 + indexOfM] = packedByte;
-        } else {
-          m_rgbData[m_oldSize + 1 + numColors * sizeof(PIXEL_T) + indexOfM] = packedByte;
-        }
+        m_rgbData[m_oldSize + 1 + numColors * m_bytesPerPixel + indexOfM] = packedByte;
         indexOfM++;
         packedByte = 0;
         offset = 8;
@@ -327,11 +300,7 @@ void ZrleEncoder::writePackedPaletteTile(const Rect *tileRect,
       offset -= deltaOffset;
     }
     // Write next packed byte.
-    if (m_bytesPerPixel == 3) {
-      m_rgbData[m_oldSize + 1 + numColors * 3 + indexOfM] = packedByte;
-    } else {
-      m_rgbData[m_oldSize + 1 + numColors * sizeof(PIXEL_T) + indexOfM] = packedByte;
-    }
+    m_rgbData[m_oldSize + 1 + numColors * m_bytesPerPixel + indexOfM] = packedByte;
     indexOfM++;
     packedByte = 0;
     offset = 8;
@@ -343,7 +312,7 @@ void ZrleEncoder::pushRunLengthPaletteRle(int runLength,
 {
   do {
     if (runLength > 255) {
-      paletteRleData->push_back(255);
+      paletteRleData->push_back(255); 
     } else {
       paletteRleData->push_back(runLength);
     }
@@ -357,11 +326,7 @@ void ZrleEncoder::writePaletteRleTile(const Rect *tileRect,
 {
   int numColors = m_pal.getNumColors();
   std::vector<UINT8> paletteRleData;
-  if (m_bytesPerPixel == 3) {
-    paletteRleData.resize(1 + numColors * 3);
-  } else {
-    paletteRleData.resize(1 + numColors * sizeof(PIXEL_T));
-  }
+  paletteRleData.resize(1 + numColors * m_bytesPerPixel);
 
   // Write type of subencoding.
   paletteRleData[0] = numColors + 128;
@@ -369,13 +334,9 @@ void ZrleEncoder::writePaletteRleTile(const Rect *tileRect,
   // Write palette.
   for (int i = 0; i < numColors; i++) {
     UINT32 buf = m_pal.getEntry(i);
-    if (m_bytesPerPixel == 3) {
-      memcpy(&paletteRleData[1 + i * 3], &buf + m_numberFirstByte, 3);
-    } else {
-      memcpy(&paletteRleData[1 + i * sizeof(PIXEL_T)],
+    memcpy(&paletteRleData[1 + i * m_bytesPerPixel],
              &buf + m_numberFirstByte,
-             sizeof(PIXEL_T));
-    }
+             m_bytesPerPixel);
   }
 
   const PIXEL_T *buffer = static_cast<const PIXEL_T *>(fb->getBuffer());
@@ -438,19 +399,11 @@ template <class PIXEL_T>
 void ZrleEncoder::writePixelToPlainRleTile(const PIXEL_T px,
                                            PIXEL_T *previousPx)
 {
-  if (m_bytesPerPixel == 3) {
-    m_plainRleTile.resize(m_plainRleTile.size() + 3);
-    memcpy(&m_plainRleTile[m_plainRleTile.size() - 3],
-            &px + m_numberFirstByte,
-            3);
-    *previousPx = px;
-  } else {
-    m_plainRleTile.resize(m_plainRleTile.size() + sizeof(PIXEL_T));
-    memcpy(&m_plainRleTile[m_plainRleTile.size() - sizeof(PIXEL_T)],
-            &px + m_numberFirstByte,
-            sizeof(PIXEL_T));
-    *previousPx = px;
-  }
+  m_plainRleTile.resize(m_plainRleTile.size() + m_bytesPerPixel);
+  memcpy(&m_plainRleTile[m_plainRleTile.size() - m_bytesPerPixel],
+          &px + m_numberFirstByte,
+          m_bytesPerPixel);
+  *previousPx = px;
 }
 
 template <class PIXEL_T>
@@ -471,14 +424,14 @@ void ZrleEncoder::fillPalette(const Rect *tileRect,
                  pxFormat.blueMax << pxFormat.blueShift;
 
   // There is the first iteration of loop below.
+  // Pixel for adding to plainRleTile
   PIXEL_T previousPx;
   PIXEL_T px = buffer[tileRect->top * m_fbWidth + tileRect->left];
 
-  // Processing of the first pixel.
-  if (tryInsertPx) {
-    tryInsertPx = m_pal.insert(px, 1);
-  }
-
+  // Pixel for adding to palette
+  PIXEL_T oldPixel = px;
+  int palLength = 1;
+  
   // Fill RLE tile vector.
   px &= mask;
   // Write type of subencoding.
@@ -487,6 +440,7 @@ void ZrleEncoder::fillPalette(const Rect *tileRect,
   // Calculate size of palette RLE tile.
   m_paletteRleTileSize = 1;
   writePixelToPlainRleTile<PIXEL_T>(px, &previousPx);
+
   // Increase the size of palette RLE tile.
   m_paletteRleTileSize++;
 
@@ -498,12 +452,16 @@ void ZrleEncoder::fillPalette(const Rect *tileRect,
     int y = tileRect->top + i / tileRect->getWidth();
 
     px = buffer[y * m_fbWidth + x];
-
-    // Fill palette.
-    if (tryInsertPx) {
-      tryInsertPx = m_pal.insert(px, 1);
+    
+    // Fill palette
+    if (tryInsertPx && oldPixel != px) {
+      tryInsertPx = m_pal.insert(oldPixel, palLength);
+      oldPixel = px;
+      palLength = 1;
+    } else {
+      palLength++;
     }
-
+    
     // Fill RLE tile vector.
     px &= mask;
     if (px != previousPx) {
@@ -513,6 +471,9 @@ void ZrleEncoder::fillPalette(const Rect *tileRect,
     } else {
       runLength++;
     }
+  }
+  if (tryInsertPx) {
+    m_pal.insert(oldPixel, palLength);
   }
   pushRunLengthRle(runLength);
 }
@@ -526,7 +487,7 @@ void ZrleEncoder::copyPixels(const Rect *rect,
   const int rectWidth = rect->getWidth();
   const PIXEL_T *src = static_cast<const PIXEL_T *>(fb->getBufferPtr(rect->left, rect->top));
   const int fbStride = fb->getDimension().width;
-  const int bytesPerRow = rect->getWidth() * sizeof(PIXEL_T);
+  const int bytesPerRow = rect->getWidth() * m_bytesPerPixel;
 
   for (int y = 0; y < rectHeight; y++) {
     memcpy(dst, src, bytesPerRow);
