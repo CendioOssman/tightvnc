@@ -64,7 +64,9 @@ void TightEncoder::splitRectangle(const Rect *rect,
   }
 
   int maxWidth = getConf(options).maxRectWidth;
-  maxWidth = max(maxWidth, rectWidth);
+  if (maxWidth > rectWidth) {
+    maxWidth = rectWidth;
+  }
   
   int maxHeight = maxSize / maxWidth;
 

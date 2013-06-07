@@ -119,6 +119,7 @@ void Win8ScreenDriverImpl::initDxgi()
 
   for (size_t iDxgiOutput  = 0; iDxgiOutput < dxgiOutputArray.size(); iDxgiOutput++) {
     Thread *thread = new Win8DeskDuplicationThread(&m_frameBuffer,
+                                                   &deskCoordArray,
                                                    &deskCoordArray[iDxgiOutput],
                                                    &m_win8CursorShape,
                                                    &m_curTimeStamp,

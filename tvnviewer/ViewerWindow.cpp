@@ -739,12 +739,6 @@ void ViewerWindow::showFileTransferDialog()
     }
     if (m_ftDialog == 0) {
       m_ftDialog = new FileTransferMainDialog(m_fileTransfer->getCore());
-      m_ftDialog->setParent(&m_control);
-      HWND controlWnd = m_control.getWindow();
-      DWORD style = GetWindowLong(controlWnd,GWL_STYLE);
-      style = style & ~(WS_POPUP);
-      style = style | WS_CHILD;
-      SetWindowLong(controlWnd,GWL_STYLE,style);
       m_fileTransfer->setInterface(m_ftDialog);
     }
     m_ftDialog->show();

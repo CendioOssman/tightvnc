@@ -40,61 +40,6 @@ typedef HRESULT (WINAPI *D3D11CreateDeviceFunType)(
   _Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel,
   _Out_opt_ ID3D11DeviceContext** ppImmediateContext );
 
-WinD3D11Device::WinD3D11Device()
-: m_device(0),
-  m_context(0),
-  m_d3d11Lib(_T("d3d11.dll"))
-{
-  D3D11CreateDeviceFunType d3d11CreateDevice;
-  d3d11CreateDevice = (D3D11CreateDeviceFunType)m_d3d11Lib.getProcAddress("D3D11CreateDevice");
-  if (d3d11CreateDevice == 0) {
-    throw Exception(_T("Unable to load the D3D11CreateDevice() function"));
-  }
-
-  // Driver types supported
-  D3D_DRIVER_TYPE driverTypes[] =
-  {
-    D3D_DRIVER_TYPE_HARDWARE,
-    D3D_DRIVER_TYPE_REFERENCE
-  };
-  UINT driverTypeCount = ARRAYSIZE(driverTypes);
-
-  // Feature levels supported
-  D3D_FEATURE_LEVEL featureLevels[] =
-  {
-    D3D_FEATURE_LEVEL_11_0,
-    D3D_FEATURE_LEVEL_10_1,
-    D3D_FEATURE_LEVEL_10_0,
-    D3D_FEATURE_LEVEL_9_1
-  };
-  UINT featureLevelCount = ARRAYSIZE(featureLevels);
-
-  D3D_FEATURE_LEVEL featureLevel;
-
-  // Create device
-  HRESULT hr;
-  for (UINT iDriverType = 0; iDriverType < driverTypeCount; ++iDriverType) {
-    hr = d3d11CreateDevice(0,
-                           driverTypes[iDriverType],
-                           0,
-                           0,
-                           featureLevels,
-                           featureLevelCount,
-                           D3D11_SDK_VERSION,
-                           &m_device,
-                           &featureLevel,
-                           &m_context);
-    if (SUCCEEDED(hr)) {
-      break;
-    }
-  }
-  if (FAILED(hr)) {
-    StringStorage errMess;
-    errMess.format(_T("D3D11CreateDevice function was failed with code error = (%dl)"), (long)hr);
-    throw Exception(errMess.getString());
-  }
-}
-
 WinD3D11Device::WinD3D11Device(LogWriter *log)
 : m_device(0),
   m_context(0),
@@ -110,8 +55,7 @@ WinD3D11Device::WinD3D11Device(LogWriter *log)
   // Driver types supported
   D3D_DRIVER_TYPE driverTypes[] =
   {
-    D3D_DRIVER_TYPE_HARDWARE,
-    D3D_DRIVER_TYPE_REFERENCE
+    D3D_DRIVER_TYPE_HARDWARE
   };
   UINT driverTypeCount = ARRAYSIZE(driverTypes);
 

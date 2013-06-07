@@ -33,6 +33,7 @@
 #include "Win8DeskDuplicationThread.h"
 
 Win8DeskDuplicationThread::Win8DeskDuplicationThread(FrameBuffer *targetFb,
+                                                     const std::vector<Rect> *deskCoordArray,
                                                      const Rect *targetRect,
                                                      Win8CursorShape *targetCurShape,
                                                      LONGLONG *cursorTimeStamp,
@@ -42,18 +43,22 @@ Win8DeskDuplicationThread::Win8DeskDuplicationThread(FrameBuffer *targetFb,
                                                      int threadNumber,
                                                      LogWriter *log)
 : m_targetFb(targetFb),
+  m_deskCoordArray(*deskCoordArray),
   m_targetRect(*targetRect),
   m_targetCurShape(targetCurShape),
   m_cursorTimeStamp(cursorTimeStamp),
   m_cursorMutex(cursorMutex),
   m_duplListener(duplListener),
   m_dxgiOutput1(dxgiOutput),
+  m_device(log),
   m_outDupl(&m_dxgiOutput1, &m_device),
   m_hasCriticalError(false),
   m_hasRecoverableError(false),
   m_stageTexture2D(m_device.getDevice(), (UINT)targetRect->getWidth(), (UINT)targetRect->getHeight()),
   m_threadNumber(threadNumber),
-  m_log(log)
+  m_log(log),
+  m_shiftWidth(0),
+  m_shiftHeight(0)
 {
   resume();
 }
@@ -72,6 +77,20 @@ bool Win8DeskDuplicationThread::isValid()
 void Win8DeskDuplicationThread::execute()
 {
   try {
+    // determine shift of targetRect on frame buffer
+    // we need to do this calculations if user has 2 or more displays
+    // and the first display is not the most left and top
+    for (size_t i = 0; i < m_deskCoordArray.size(); ++i) {
+      if (m_deskCoordArray[i].left < m_targetRect.left) {
+        m_shiftWidth += (m_deskCoordArray[i].right - m_deskCoordArray[i].left);
+      }
+    }
+    for (size_t i = 0; i < m_deskCoordArray.size(); ++i) {
+      if (m_deskCoordArray[i].top < m_targetRect.top) {
+        m_shiftHeight += (m_deskCoordArray[i].bottom - m_deskCoordArray[i].top);
+      }
+    }
+
     while (!isTerminating() && isValid()) {
       WinDxgiAcquiredFrame acquiredFrame(&m_outDupl, 500);
       if (acquiredFrame.wasTimeOut()) {
@@ -132,10 +151,10 @@ void Win8DeskDuplicationThread::processMoveRects(size_t moveCount)
   Rect rect;
   for (size_t iRect = 0; iRect < moveCount; iRect++) {
     rect.fromWindowsRect(&m_moveRects[iRect].DestinationRect);
-    // Translate the rect and point to frame buffer coordinates.
-    rect.move(m_targetRect.left, m_targetRect.top);
-    int x = m_moveRects[iRect].SourcePoint.x + m_targetRect.left;
-    int y = m_moveRects[iRect].SourcePoint.y + m_targetRect.top;
+    // Translate the rect and point to the frame buffer coordinates.
+    rect.move(m_shiftWidth, m_shiftHeight);
+    int x = m_moveRects[iRect].SourcePoint.x + m_shiftWidth;
+    int y = m_moveRects[iRect].SourcePoint.y + m_shiftHeight;
     m_targetFb->move(&rect, x, y);
 
     m_duplListener->onCopyRect(&rect, x, y);
@@ -175,9 +194,11 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
     WinAutoMapDxgiSurface autoMapSurface(&surface, DXGI_MAP_READ);
 
     Rect dstRect(rect);
-    dstRect.move(m_targetRect.left, m_targetRect.top);
+    // Translate the rect to the frame buffer coordinates.
+    dstRect.move(m_shiftWidth, m_shiftHeight);
     m_log->debug(_T("Destination dirty rect = %d, %d, %dx%d"), dstRect.left, dstRect.top, dstRect.getWidth(), dstRect.getHeight());
 
+    stageDim.width = autoMapSurface.getStride() / 4;
     m_auxiliaryFrameBuffer.setPropertiesWithoutResize(&stageDim, &m_targetFb->getPixelFormat());
     m_auxiliaryFrameBuffer.setBuffer(autoMapSurface.getBuffer());
     m_targetFb->copyFrom(&dstRect, &m_auxiliaryFrameBuffer, rect.left, rect.top);
@@ -215,8 +236,8 @@ void  Win8DeskDuplicationThread::processCursor(const DXGI_OUTDUPL_FRAME_INFO *in
 
     if (pointerPos.Visible) {
       Point hotPoint = m_targetCurShape->getCursorShape()->getHotSpot();
-      m_duplListener->onCursorPositionChanged(pointerPos.Position.x + m_targetRect.left + hotPoint.x,
-                                              pointerPos.Position.y + m_targetRect.top + hotPoint.y);
+      m_duplListener->onCursorPositionChanged(pointerPos.Position.x + m_shiftWidth + hotPoint.x,
+                                              pointerPos.Position.y + m_shiftHeight + hotPoint.y);
     }
   }
 }
