@@ -324,11 +324,14 @@
     <ClCompile Include="WindowsApplication.cpp" />
     <ClCompile Include="WindowsDisplays.cpp" />
     <ClCompile Include="WindowsEvent.cpp" />
+    <ClCompile Include="WindowsEventEx.cpp" />
     <ClCompile Include="WinHandles.cpp" />
+    <ClCompile Include="WinHooks.cpp" />
     <ClCompile Include="WinProcessCommandLine.cpp" />
     <ClCompile Include="WinStaLibrary.cpp" />
     <ClCompile Include="WinTimeMillis.cpp" />
     <ClCompile Include="Workstation.cpp" />
+    <ClCompile Include="WsaStartup.cpp" />
     <ClCompile Include="WTS.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -343,6 +346,7 @@
     <ClInclude Include="Impersonator.h" />
     <ClInclude Include="InputInjector.h" />
     <ClInclude Include="Keyboard.h" />
+    <ClInclude Include="HookEventListener.h" />
     <ClInclude Include="LocalWindowsApplication.h" />
     <ClInclude Include="NamedPipe.h" />
     <ClInclude Include="ParentProcess.h" />
@@ -372,11 +376,14 @@
     <ClInclude Include="WindowsApplication.h" />
     <ClInclude Include="WindowsDisplays.h" />
     <ClInclude Include="WindowsEvent.h" />
+    <ClInclude Include="WindowsEventEx.h" />
     <ClInclude Include="WinHandles.h" />
+    <ClInclude Include="WinHooks.h" />
     <ClInclude Include="WinProcessCommandLine.h" />
     <ClInclude Include="WinStaLibrary.h" />
     <ClInclude Include="WinTimeMillis.h" />
     <ClInclude Include="Workstation.h" />
+    <ClInclude Include="WsaStartup.h" />
     <ClInclude Include="WTS.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

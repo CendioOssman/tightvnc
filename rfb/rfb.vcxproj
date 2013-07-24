@@ -260,6 +260,7 @@
     <ClCompile Include="PixelFormat.cpp" />
     <ClCompile Include="RfbKeySym.cpp" />
     <ClCompile Include="StandardPixelFormatFactory.cpp" />
+    <ClCompile Include="TunnelDefs.cpp" />
     <ClCompile Include="VendorDefs.cpp" />
     <ClCompile Include="EncodingDefs.cpp" />
     <ClCompile Include="PixelConverter.cpp" />
@@ -275,6 +276,7 @@
     <ClInclude Include="RfbKeySym.h" />
     <ClInclude Include="RfbKeySymListener.h" />
     <ClInclude Include="StandardPixelFormatFactory.h" />
+    <ClInclude Include="TunnelDefs.h" />
     <ClInclude Include="VendorDefs.h" />
     <ClInclude Include="EncodingDefs.h" />
     <ClInclude Include="PixelConverter.h" />
