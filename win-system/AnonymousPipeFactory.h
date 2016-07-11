@@ -33,7 +33,7 @@
 class AnonymousPipeFactory
 {
 public:
-  AnonymousPipeFactory(LogWriter *log);
+  AnonymousPipeFactory(unsigned int bufferSize, LogWriter *log);
   virtual ~AnonymousPipeFactory();
 
   // This function generates the pair of the AnonymousPipe
@@ -54,6 +54,7 @@ public:
 
 private:
   LogWriter *m_log;
+  unsigned int m_bufferSize;
 };
 
 #endif // __ANONYMOUSPIPEFACTORY_H__

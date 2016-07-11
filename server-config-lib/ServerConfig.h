@@ -35,6 +35,7 @@
 #include "io-lib/DataInputStream.h"
 #include "io-lib/DataOutputStream.h"
 #include "io-lib/IOException.h"
+#include "region/RectSerializer.h"
 
 #include <shlobj.h>
 
@@ -251,14 +252,18 @@ public:
   // Remark: not-thread safe method, use lock / unlock methods of this class
   // to lock and unlock server configuration.
   StringVector *getVideoClassNames();
+  
+  std::vector<Rect> *getVideoRects();
 
   //
   // Other
   //
 
   unsigned int getVideoRecognitionInterval();
-
   void setVideoRecognitionInterval(unsigned int interval);
+
+  int  getIdleTimeout();
+  void setIdleTimeout(int timeout);
 
   void saveLogToAllUsersPath(bool enabled);
   bool isSaveLogToAllUsersPathFlagEnabled();
@@ -271,6 +276,7 @@ public:
 
   void getLogFileDir(StringStorage *logFileDir);
   void setLogFileDir(const TCHAR *logFileDir);
+
 protected:
 
   //
@@ -379,8 +385,11 @@ protected:
   //
   // Video regions
   //
-
+  
+  // Defined by window class name
   StringVector m_videoClassNames;
+  // Defined by rectangle coords in "dXxdY+X0+Y0" format, as in -sharerect command line option
+  std::vector<Rect> m_videoRects;
   
   //
   // Other
@@ -388,6 +397,9 @@ protected:
 
   unsigned int m_videoRecognitionInterval;
   bool m_grabTransparentWindows;
+
+  // Socket timeout to disconnect inactive clients, in seconds
+  int m_idleTimeout;
 
   // Flag that determiates where log file directory will be.
   bool m_saveLogToAllUsersPath;

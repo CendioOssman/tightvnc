@@ -302,8 +302,19 @@ void DesktopServerProto::sendConfigSettings(BlockingGate *gate)
   for (; iter < wndClassNames->end(); iter++) {
     gate->writeUTF8((*iter).getString());
   }
+  // Send video rects
+  std::vector<Rect> *Rects = srvConf->getVideoRects();
+  size_t size = Rects->size();
+  gate->writeUInt32((UINT32)size);
+  for (size_t i = 0; i < size; i++) {
+    StringStorage s;
+    RectSerializer::toString(&(Rects->at(i)), &s);
+    gate->writeUTF8(s.getString());
+  }
   // Send video recognition interval
   gate->writeUInt32(srvConf->getVideoRecognitionInterval());
+  // Send socket timeout
+  gate->writeUInt32(srvConf->getIdleTimeout());
 }
 
 void DesktopServerProto::readConfigSettings(BlockingGate *gate)
@@ -332,6 +343,17 @@ void DesktopServerProto::readConfigSettings(BlockingGate *gate)
     gate->readUTF8(&tmpString);
     srvConf->getVideoClassNames()->push_back(tmpString);
   }
+  // Receive video rects
+  stringCount = gate->readUInt32();
+
+  tmpString.setString(_T(""));
+  for (size_t i = 0; i < stringCount; i++) {
+    gate->readUTF8(&tmpString);
+    srvConf->getVideoRects()->push_back(RectSerializer::toRect(&tmpString));
+  }
+
   // Receive video recognition interval
   srvConf->setVideoRecognitionInterval(gate->readUInt32());
+  // Receive socket timeout
+  srvConf->setIdleTimeout(gate->readUInt32());
 }

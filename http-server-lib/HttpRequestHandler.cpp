@@ -104,9 +104,7 @@ void HttpRequestHandler::processRequest()
           break;
         }
 
-        // FIXME: Strange append code.
-        paramsString.format("%s%s", paramsString.getString(),
-                            parameter.getFormattedString());
+        paramsString.appendString(parameter.getFormattedString());
       } // for all arguments.
     } // if has arguments.
 

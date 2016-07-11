@@ -207,17 +207,15 @@ void RfbKeySym::processCharEvent(WCHAR charCode,
 void RfbKeySym::processFocusRestoration()
 {
   m_log->info(_T("Process focus restoration in the RfbKeySym class"));
-  unsigned char kbdState[256];
-  if (GetKeyboardState(kbdState) != 0) {
-    checkAndSendDiff(VK_CONTROL, kbdState[VK_CONTROL]);
-    checkAndSendDiff(VK_RCONTROL, kbdState[VK_RCONTROL]);
-    checkAndSendDiff(VK_LCONTROL, kbdState[VK_LCONTROL]);
-    checkAndSendDiff(VK_MENU, kbdState[VK_MENU]);
-    checkAndSendDiff(VK_LMENU, kbdState[VK_LMENU]);
-    checkAndSendDiff(VK_RMENU, kbdState[VK_RMENU]);
-    checkAndSendDiff(VK_SHIFT, kbdState[VK_SHIFT]);
-    checkAndSendDiff(VK_RSHIFT, kbdState[VK_RSHIFT]);
-    checkAndSendDiff(VK_LSHIFT, kbdState[VK_LSHIFT]);
+
+  // Send a modifier key state based on physical keyboard state, not thread key message queue.
+  unsigned char keys[9] = {VK_CONTROL, VK_RCONTROL, VK_LCONTROL,
+                           VK_MENU, VK_RMENU, VK_LMENU, 
+                           VK_SHIFT, VK_RSHIFT, VK_LSHIFT};
+  for (int i = 0; i < 9 ; i++) {
+    unsigned char key = keys[i];
+    unsigned char state = GetAsyncKeyState(key) >> 8;
+    checkAndSendDiff(key, state);
   }
 }
 
@@ -225,7 +223,6 @@ void RfbKeySym::processFocusLoss()
 {
   m_log->info(_T("Process focus loss in the RfbKeySym class"));
 
-  Sleep(100);
   // Send a modifier key up only if the key is down.
   checkAndSendDiff(VK_CONTROL, 0);
   checkAndSendDiff(VK_RCONTROL, 0);
@@ -326,14 +323,13 @@ void RfbKeySym::restoreModifier(unsigned char modifier)
 void RfbKeySym::checkAndSendDiff(unsigned char virtKey, unsigned char state)
 {
   bool testedState = (state & 128) != 0;
-
   m_viewerKeyState[virtKey] = testedState ? 128 : 0;
   virtKey = distinguishLeftRightModifier(virtKey, false);
 
   bool srvState = (m_serverKeyState[virtKey] & 128) != 0;
   m_serverKeyState[virtKey] = testedState ? 128 : 0;
 
-  if (testedState != srvState) {
+  if (testedState != srvState) { 
     UINT32 rfbSym;
     bool success = m_keyMap.virtualCodeToKeySym(&rfbSym, virtKey);
     _ASSERT(success);

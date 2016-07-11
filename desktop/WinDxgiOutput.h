@@ -37,6 +37,7 @@ class WinDxgiOutput
 public:
   WinDxgiOutput(WinDxgiAdapter *dxgiAdapter, UINT iOutput);
   WinDxgiOutput(const WinDxgiOutput &src);
+  WinDxgiOutput(IDXGIOutput *dxgiOutput);
   virtual ~WinDxgiOutput();
 
   WinDxgiOutput &operator = (WinDxgiOutput const &src);
@@ -44,6 +45,8 @@ public:
   bool isAttachedtoDesktop();
 
   Rect getDesktopCoordinates();
+
+  DXGI_MODE_ROTATION getRotation() const;
 
   void getDeviceName(StringStorage *out);
 

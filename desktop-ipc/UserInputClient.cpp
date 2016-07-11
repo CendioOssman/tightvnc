@@ -219,3 +219,24 @@ void UserInputClient::getApplicationRegion(unsigned int procId, Region *region)
     }
   } while (!success);
 }
+
+bool UserInputClient::isApplicationInFocus(unsigned int procId)
+{
+  bool result = false;
+
+  AutoLock al(m_forwGate);
+  bool success = false;
+  do {
+    try {
+      // Send request
+      m_forwGate->writeUInt8(APPLICATION_CHECK_FOCUS);
+      m_forwGate->writeUInt32(procId);
+      // readRegion(region, m_forwGate);
+      result = (m_forwGate->readUInt8() != 0);
+      success = true;
+    } catch (ReconnectException &) {
+    }
+  } while (!success);
+
+  return result;
+}

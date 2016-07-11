@@ -1,4 +1,4 @@
-// Copyright (C) 2013 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,26 +22,28 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __WINVIDEOREGIONFOUNDERIMPL_H__
-#define __WINVIDEOREGIONFOUNDERIMPL_H__
+#ifndef __EMULATEDANONYMOUSPIPEFACTORY_H__
+#define __EMULATEDANONYMOUSPIPEFACTORY_H__
 
-#include "util/DateTime.h"
-#include "region/Region.h"
-#include "ScreenDriver.h"
+#include "NamedPipe.h"
+#include "log-writer/LogWriter.h"
 
-class WinVideoRegionFounderImpl : public ScreenDriver
+// The EmulatedAnonymousPipeFactory class generates a chanel based on named pipe.
+// This is similar to anonymous pipe generation.
+class EmulatedAnonymousPipeFactory
 {
 public:
-  WinVideoRegionFounderImpl();
-  virtual ~WinVideoRegionFounderImpl();
+  EmulatedAnonymousPipeFactory(unsigned int bufferSize, LogWriter *log);
+  virtual ~EmulatedAnonymousPipeFactory();
+
+  void generatePipes(NamedPipe **serverPipe, bool serverInheritable,
+                     NamedPipe **clientPipe, bool clientInheritable);
 
 private:
-  virtual void getVideoRegion(Region *dstVidRegion);
+  void getUniqPipeName(StringStorage *result);
 
-  void updateVideoRegion();
-
-  DateTime m_lastVidUpdTime;
-  Region m_vidRegion;
+  LogWriter *m_log;
+  unsigned int m_bufferSize;
 };
 
-#endif // __WINVIDEOREGIONFOUNDERIMPL_H__
+#endif // __EMULATEDANONYMOUSPIPEFACTORY_H__

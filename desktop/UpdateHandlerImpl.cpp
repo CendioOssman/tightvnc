@@ -71,7 +71,7 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
 
   // Note: The getVideoRegion() function is not a thread safe function, but it invokes
   // only from this one place and so that is why it does not cover by the mutex.
-  m_screenDriver->getVideoRegion(&updateContainer->videoRegion);
+ 	m_screenDriver->getVideoRegion(&updateContainer->videoRegion);
   // Constrain the video region to the current frame buffer border.
   Region fbRect(&m_backupFrameBuffer.getDimension().getRect());
   updateContainer->videoRegion.intersect(&fbRect);

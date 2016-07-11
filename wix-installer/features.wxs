@@ -24,12 +24,14 @@
                Title='TightVNC Viewer'
                Description='TightVNC Viewer is used to view and control remote computers.'
                Level='1'>
+        <ComponentRef Id='ProgramMenuDir' />
         <ComponentRef Id='ViewerExe' />
         <ComponentRef Id='ViewerFileAssoc' />
         <ComponentRef Id='TvnviewerFirewallException'/>
       </Feature>
       <?endif?>
       <!-- Always installing component -->
+        <ComponentRef Id='ProgramMenuDir' />
       <ComponentRef Id='UrlComponent'/>
       <ComponentRef Id='LicenseFileComponent'/>
     </Feature>

@@ -70,10 +70,10 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
     cmdLineParser.getSharedMemName(&shMemName);
     SharedMemory shMem(shMemName.getString(), 72);
     UINT64 *mem = (UINT64 *)shMem.getMemPointer();
-    HANDLE hWrite, hRead;
 
     DateTime startTime = DateTime::now();
 
+    WindowsEvent m_sleepInterval;
     while (mem[0] == 0) {
       unsigned int timeForWait = max((int)10000 - 
                                      (int)(DateTime::now() -
@@ -82,17 +82,23 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
       if (timeForWait == 0) {
         throw Exception(_T("The desktop server time out expired"));
       }
+      m_sleepInterval.waitForEvent(10);
     }
 
-    hWrite = (HANDLE)mem[1];
-    hRead  = (HANDLE)mem[2];
-    m_clToSrvChan = new AnonymousPipe(hWrite, hRead, &m_log);
-    m_log.info(_T("Client->server hWrite = %p; hRead = %p"), hWrite, hRead);
+    HANDLE readPipeHandle, writePipeHandle;
+    unsigned int maxPortionSize;
 
-    hWrite = (HANDLE)mem[3];
-    hRead  = (HANDLE)mem[4];
-    m_srvToClChan = new AnonymousPipe(hWrite, hRead, &m_log);
-    m_log.info(_T("Server->client hWrite = %p; hRead = %p"), hWrite, hRead);
+    readPipeHandle = (HANDLE)mem[1];
+    writePipeHandle = (HANDLE)mem[2];
+    maxPortionSize = (unsigned int)mem[3];
+    m_clToSrvChan = new AnonymousPipe(readPipeHandle, writePipeHandle, maxPortionSize, false);
+    m_log.info(_T("Client->server readPipeHandle = %p, writePipeHandle = %p"), readPipeHandle, writePipeHandle);
+
+    readPipeHandle = (HANDLE)mem[4];
+    writePipeHandle = (HANDLE)mem[5];
+    maxPortionSize = (unsigned int)mem[6];
+    m_srvToClChan = new AnonymousPipe(readPipeHandle, writePipeHandle, maxPortionSize, false);
+    m_log.info(_T("Server->client readPipeHandle = %p, writePipeHandle = %p"), readPipeHandle, writePipeHandle);
 
     m_clToSrvGate = new BlockingGate(m_clToSrvChan);
     m_srvToClGate = new BlockingGate(m_srvToClChan);

@@ -70,7 +70,8 @@ protected:
 
 protected:
   ServerConfig *m_config;
-  TextBox m_videoRegions;
+  TextBox m_videoClasses;
+  TextBox m_videoRects;
   TextBox m_videoRecognitionInterval;
   SpinControl m_videoRecognitionIntervalSpin;
   BaseDialog *m_parentDialog;

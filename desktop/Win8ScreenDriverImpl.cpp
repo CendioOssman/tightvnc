@@ -98,32 +98,43 @@ FrameBuffer *Win8ScreenDriverImpl::getScreenBuffer()
 
 void Win8ScreenDriverImpl::initDxgi()
 {
-  m_log->debug(_T("Creating of D3D11Device"));
-  WinD3D11Device d3D11Device(m_log);
-  m_log->debug(_T("Quering Interface for IDXGIDevice"));
-  WinDxgiDevice dxgiDevice(&d3D11Device);
-  m_log->debug(_T("Getting Parent for IDXGIAdapter"));
-  WinDxgiAdapter dxgiAdapter(&dxgiDevice);
-
+  // First try to find adapter for default device, next its parent factory.
+  // Next use the factory to enum adapters. Finally use adapters to enum outputs.
   Region virtDeskRegion;
   m_log->debug(_T("Try to enumerate dxgi outputs"));
   std::vector<WinDxgiOutput> dxgiOutputArray;
   std::vector<Rect> deskCoordArray;
-  UINT iOutput = 0;
-  try {
-    for (iOutput = 0; iOutput < 65535; iOutput++) {
-      WinDxgiOutput dxgiOutput(&dxgiAdapter, iOutput);
-      if (dxgiOutput.isAttachedtoDesktop()) {
-        dxgiOutputArray.push_back(dxgiOutput);
-        Rect deskCoord = dxgiOutput.getDesktopCoordinates();
-        deskCoordArray.push_back(deskCoord);
-        virtDeskRegion.addRect(&deskCoord);
+
+  for (UINT iAdapter = 0; iAdapter < 65535; iAdapter++) { 
+    try {
+      for (UINT iOutput = 0; iOutput < 65535; iOutput++) {
+          // Provide own device for every Output instance
+          // Fix #1324, Win 8/8.1 server hangs in two monitor setup
+          // TODO: find solution for monitors on different adapters
+          m_log->debug(_T("Creating of D3D11Device"));
+          WinD3D11Device d3D11Device(m_log);
+          m_log->debug(_T("Quering Interface for IDXGIDevice"));
+          WinDxgiDevice dxgiDevice(&d3D11Device);
+          WinDxgiAdapter dxgiAdapter(&dxgiDevice, iAdapter);
+          try {
+            WinDxgiOutput dxgiOutput(&dxgiAdapter, iOutput);
+            if (dxgiOutput.isAttachedtoDesktop()) {
+              m_log->debug(_T("DXGI output found. iAdapter = %u, iOutput = %u"), iAdapter, iOutput);
+              dxgiOutputArray.push_back(dxgiOutput);
+              Rect deskCoord = dxgiOutput.getDesktopCoordinates();
+              deskCoordArray.push_back(deskCoord);
+              virtDeskRegion.addRect(&deskCoord);
+            }
+          } catch (WinDxRecoverableException) {
+            m_log->debug(_T("Reached the end of dxgi output list"));
+            break;
+          }
       }
+    } catch (WinDxRecoverableException) {
+      m_log->debug(_T("Reached the end of dxgi adapter list"));
+      break;
     }
-  } catch (WinDxRecoverableException &e) {
-    m_log->debug(_T("Reached the end of dxgi output list with iOutput = %u"), iOutput);
-    // End of output list.
-  }
+  } 
 
   // Check that all outputs for the virtual screen are found (in case two or more
   // hardware graphic interfaces are used). It's better to avoid using buggy

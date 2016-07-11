@@ -38,7 +38,7 @@ public:
   // @throw Exception on an error.
   // After successful creating this object take the security channel by
   // the getChannel() function to own.
-  SecurityPipeServer(Channel *tempPublChan);
+  SecurityPipeServer(Channel *tempPublChan, unsigned int bufferSize);
   virtual ~SecurityPipeServer();
 
   // Call this function at once to take the security channel. After calling
@@ -48,11 +48,11 @@ public:
 private:
   virtual void onTimeTimer();
 
-  HANDLE assignHandleFor(unsigned int procId, HANDLE srcHandle);
   void generateSecConnection(Channel *tempPublChan);
   void makeSure();
 
   Channel *m_secChannel;
+  unsigned int m_bufferSize;
 };
 
 #endif // __SECURITYPIPESERVER_H__

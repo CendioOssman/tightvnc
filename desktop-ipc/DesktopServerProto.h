@@ -106,6 +106,7 @@ protected:
   static const UINT8 DISPLAY_NUMBER_COORDS_REQ = 38;
   static const UINT8 APPLICATION_REGION_REQ = 39;
   static const UINT8 NORMALIZE_RECT_REQ = 40;
+  static const UINT8 APPLICATION_CHECK_FOCUS = 41;
 
   static const UINT8 CONFIG_RELOAD_REQ = 50;
   static const UINT8 SOFT_INPUT_ENABLING_REQ = 51;

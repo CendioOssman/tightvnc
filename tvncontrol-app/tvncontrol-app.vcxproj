@@ -263,6 +263,7 @@
     <ClCompile Include="ControlProxy.cpp" />
     <ClCompile Include="ControlTrayIcon.cpp" />
     <ClCompile Include="DisconnectAllCommand.cpp" />
+    <ClCompile Include="DispatchCommand.cpp" />
     <ClCompile Include="MakeRfbConnectionCommand.cpp" />
     <ClCompile Include="MakeTcpDispatcherConnCommand.cpp" />
     <ClCompile Include="NamedPipeTransport.cpp" />
@@ -303,6 +304,7 @@
     <ClInclude Include="ControlProxy.h" />
     <ClInclude Include="ControlTrayIcon.h" />
     <ClInclude Include="DisconnectAllCommand.h" />
+    <ClInclude Include="DispatchCommand.h" />
     <ClInclude Include="MakeRfbConnectionCommand.h" />
     <ClInclude Include="MakeTcpDispatcherConnCommand.h" />
     <ClInclude Include="NamedPipeTransport.h" />

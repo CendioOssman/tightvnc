@@ -35,7 +35,6 @@ ConnectToTcpDispatcherThread::ConnectToTcpDispatcherThread(
   UINT32 connectionId,
   const AnsiStringStorage *keyword,
   RfbClientManager *clientManager,
-  TcpDispatcherConnectionListener *connListener,
   LogWriter *log)
 
 : m_connectHost(connectHost),
@@ -44,7 +43,6 @@ ConnectToTcpDispatcherThread::ConnectToTcpDispatcherThread(
   m_connectionId(connectionId),
   m_keyword(*keyword),
   m_clientManager(clientManager),
-  m_connListener(connListener),
   m_socket(new SocketIPv4()),
   m_pendingToRemove(false),
   m_log(log)
@@ -66,7 +64,7 @@ void ConnectToTcpDispatcherThread::onTerminate()
   AutoLock al(&m_socketDelegationMutex);
   m_pendingToRemove = true;
   if (m_socket != 0) {
-    // Interrupt an socket blocking operation.
+    // Interrupt blocking operations on the socket.
     try { m_socket->shutdown(SD_BOTH); } catch (...) { }
     try { m_socket->close(); } catch (...) { }
   }
@@ -86,13 +84,12 @@ void ConnectToTcpDispatcherThread::execute()
     tcpDisp.readProtocolType();
 
     tcpDisp.continueTcpDispatchProtocol();
-    AnsiStringStorage gotDispatcherName;
-    tcpDisp.getRecivedDispatcherName(&gotDispatcherName);
-    m_connListener->onGetId(tcpDisp.getConnectionId(),
-                            &gotDispatcherName);
+
+    // // NOTE: Currently, we don't use the received Dispatcher name.
+    // AnsiStringStorage gotDispatcherName;
+    // tcpDisp.getRecivedDispatcherName(&gotDispatcherName);
 
     tcpDisp.waitNextProtocolContinue();
-    m_connListener->onClearId();
 
     {
       AutoLock al(&m_socketDelegationMutex);
@@ -106,8 +103,8 @@ void ConnectToTcpDispatcherThread::execute()
   } catch (Exception &someEx) {
     m_log->error(_T("Failed to connect to %s:%d with reason: '%s'"),
                m_connectHost.getString(), m_connectPort, someEx.getMessage());
-    m_connListener->onClearId();
 
-    AutoLock al(&m_socketDelegationMutex);
+    // FIXME: Check what will happen on catching exception here.
+    //        Should we reset m_socket to 0? Should we close it?
   }
 }

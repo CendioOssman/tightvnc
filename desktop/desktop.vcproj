@@ -782,7 +782,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\WinVideoRegionFounderImpl.cpp"
+				RelativePath=".\WinVideoRegionUpdaterImpl.cpp"
 				>
 			</File>
 		</Filter>
@@ -1064,7 +1064,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\WinVideoRegionFounderImpl.h"
+				RelativePath=".\WinVideoRegionUpdaterImpl.h"
 				>
 			</File>
 		</Filter>

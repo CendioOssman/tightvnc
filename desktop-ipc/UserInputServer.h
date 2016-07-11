@@ -58,6 +58,7 @@ protected:
   virtual void ansWindowHandle(BlockingGate *backGate);
   virtual void ansDisplayNumberCoords(BlockingGate *backGate);
   virtual void ansApplicationRegion(BlockingGate *backGate);
+  virtual void ansApplicationInFocus(BlockingGate *backGate);
   virtual void ansNormalizeRect(BlockingGate *backGate);
 
   // At first time server must get init information.

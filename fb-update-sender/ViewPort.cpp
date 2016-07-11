@@ -131,6 +131,11 @@ bool ViewPort::getOnlyApplication()
   return m_state.m_mode == ViewPortState::APPLICATION;
 }
 
+unsigned int ViewPort::getApplicationId()
+{
+  return m_state.m_processId;
+}
+
 void ViewPort::getApplicationRegion(Region *region)
 {
   *region = m_appRegion;

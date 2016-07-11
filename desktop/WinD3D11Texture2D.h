@@ -31,7 +31,7 @@
 class WinD3D11Texture2D
 {
 public:
-  WinD3D11Texture2D(ID3D11Device *device, D3D11_TEXTURE2D_DESC *deskTexture);
+  WinD3D11Texture2D(ID3D11Device *device, const D3D11_TEXTURE2D_DESC *deskTexture);
   // Texture will be created by the IDXGIResource->QueryInterface() function call.
   WinD3D11Texture2D(IDXGIResource *dxgiResource);
 

@@ -131,7 +131,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugNoUnicode|Win32'">
@@ -143,7 +143,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -154,7 +154,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugNoUnicode|x64'">
@@ -165,7 +165,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -178,7 +178,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseNoUnicode|Win32'">
@@ -191,7 +191,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -204,7 +204,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseNoUnicode|x64'">
@@ -217,7 +217,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NOMINMAX;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalOptions>
+      </AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -227,6 +233,7 @@
     <ClCompile Include="CoreEventsAdapter.cpp" />
     <ClCompile Include="CursorPainter.cpp" />
     <ClCompile Include="DecoderOfRectangle.cpp" />
+    <ClCompile Include="DispatchIdProvider.cpp" />
     <ClCompile Include="FbUpdateNotifier.cpp" />
     <ClCompile Include="FileTransferCapability.cpp" />
     <ClCompile Include="LastRectDecoder.cpp" />
@@ -241,6 +248,7 @@
     <ClCompile Include="RfbSetEncodingsClientMessage.cpp" />
     <ClCompile Include="RfbSetPixelFormatClientMessage.cpp" />
     <ClCompile Include="TcpConnection.cpp" />
+    <ClCompile Include="UpdateRequestSender.cpp" />
     <ClCompile Include="VncAuthentication.cpp" />
     <ClCompile Include="CompressionLevel.cpp" />
     <ClCompile Include="CopyRectDecoder.cpp" />
@@ -255,6 +263,7 @@
     <ClCompile Include="RreDecoder.cpp" />
     <ClCompile Include="TightDecoder.cpp" />
     <ClCompile Include="VncAuthenticationHandler.cpp" />
+    <ClCompile Include="WatermarksController.cpp" />
     <ClCompile Include="ZrleDecoder.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -264,6 +273,8 @@
     <ClInclude Include="CoreEventsAdapter.h" />
     <ClInclude Include="CursorPainter.h" />
     <ClInclude Include="DecoderOfRectangle.h" />
+    <ClInclude Include="DispatchDataProvider.h" />
+    <ClInclude Include="DispatchIdProvider.h" />
     <ClInclude Include="FbUpdateNotifier.h" />
     <ClInclude Include="FileTransferCapability.h" />
     <ClInclude Include="LastRectDecoder.h" />
@@ -278,6 +289,7 @@
     <ClInclude Include="RfbSetEncodingsClientMessage.h" />
     <ClInclude Include="RfbSetPixelFormatClientMessage.h" />
     <ClInclude Include="TcpConnection.h" />
+    <ClInclude Include="UpdateRequestSender.h" />
     <ClInclude Include="VncAuthentication.h" />
     <ClInclude Include="CompressionLevel.h" />
     <ClInclude Include="CopyRectDecoder.h" />
@@ -292,6 +304,8 @@
     <ClInclude Include="RreDecoder.h" />
     <ClInclude Include="TightDecoder.h" />
     <ClInclude Include="VncAuthenticationHandler.h" />
+    <ClInclude Include="watermark-bmp.h" />
+    <ClInclude Include="WatermarksController.h" />
     <ClInclude Include="ZrleDecoder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

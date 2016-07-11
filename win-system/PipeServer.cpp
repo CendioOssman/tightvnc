@@ -25,13 +25,13 @@
 #include "PipeServer.h"
 #include "util/Exception.h"
 
-#define BUFSIZE 512 * 1024
-
-PipeServer::PipeServer(const TCHAR *name, SecurityAttributes *secAttr,
+PipeServer::PipeServer(const TCHAR *name, unsigned int bufferSize,
+                       SecurityAttributes *secAttr,
                        DWORD milliseconds)
 : m_milliseconds(milliseconds),
   m_secAttr(secAttr),
-  m_serverPipe(INVALID_HANDLE_VALUE)
+  m_serverPipe(INVALID_HANDLE_VALUE),
+  m_bufferSize(bufferSize)
 {
   m_pipeName.format(_T("\\\\.\\pipe\\%s"), name);
 
@@ -47,8 +47,8 @@ void PipeServer::createServerPipe()
                                  PIPE_READMODE_BYTE |      // message-read mode
                                  PIPE_WAIT,                // blocking mode
                                  PIPE_UNLIMITED_INSTANCES, // max. instances
-                                 BUFSIZE,                  // output buffer size
-                                 BUFSIZE,                  // input buffer size
+                                 m_bufferSize,             // output buffer size
+                                 m_bufferSize,             // input buffer size
                                  0,                        // client time-out
                                  m_secAttr != 0 ?          // security attributes
                                  m_secAttr->getSecurityAttributes() : 0
@@ -100,7 +100,7 @@ NamedPipe *PipeServer::accept()
     }
   }
 
-  NamedPipe *result = new NamedPipe(m_serverPipe, true);
+  NamedPipe *result = new NamedPipe(m_serverPipe, m_bufferSize, true);
 
   m_serverPipe = INVALID_HANDLE_VALUE;
 

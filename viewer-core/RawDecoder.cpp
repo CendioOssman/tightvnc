@@ -24,6 +24,8 @@
 
 #include "RawDecoder.h"
 
+#include <algorithm>
+
 RawDecoder::RawDecoder(LogWriter *logWriter)
 : DecoderOfRectangle(logWriter)
 {
@@ -67,7 +69,7 @@ void RawDecoder::process(RfbInputGate *input,
   }
 
   // And process remainder parts of rectangle.
-  deltaRect.top = max(rect->top, deltaRect.bottom - deltaHeight);
+  deltaRect.top = std::max(rect->top, deltaRect.bottom - deltaHeight);
   deltaRect.bottom = rect->bottom;
   DecoderOfRectangle::process(input,
                               frameBuffer, secondFrameBuffer, &deltaRect, fbLock,

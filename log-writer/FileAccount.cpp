@@ -174,6 +174,9 @@ void FileAccount::format(unsigned int processId,
   if (m_file != 0) {
     m_file->write(resultLine.getString(), resultLine.getSize() - sizeof(TCHAR));
     m_file->write(endLine, sizeof(endLine));
+    if (logBarrier > 9) {
+      m_file->flush();
+    }
   }
 }
 

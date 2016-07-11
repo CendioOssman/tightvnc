@@ -33,6 +33,7 @@
 ConnectionData::ConnectionData()
 : m_isEmpty(true),
   m_isSetPassword(false),
+  m_isSetDispatchId(false),
   m_isIncoming(false)
 {
 }
@@ -40,6 +41,7 @@ ConnectionData::ConnectionData()
 ConnectionData::ConnectionData(const ConnectionData &connectionData)
 : m_isEmpty(connectionData.m_isEmpty),
   m_isSetPassword(connectionData.m_isSetPassword),
+  m_isSetDispatchId(connectionData.m_isSetDispatchId),
   m_isIncoming(connectionData.m_isIncoming)
 {
   if (!connectionData.isEmpty()) {
@@ -47,6 +49,9 @@ ConnectionData::ConnectionData(const ConnectionData &connectionData)
   }
   if (m_isSetPassword) {
     m_defaultPassword = connectionData.m_defaultPassword;
+  }
+  if (m_isSetDispatchId) {
+    m_dispatchId = connectionData.m_dispatchId;
   }
 }
 
@@ -75,11 +80,32 @@ void ConnectionData::resetPassword()
   m_isSetPassword = false;
 }
 
+UINT32 ConnectionData::getDispatchId() const
+{
+  return (m_isSetDispatchId ? m_dispatchId : 0);
+}
+
+bool ConnectionData::isSetDispatchId() const
+{
+  return m_isSetDispatchId;
+}
+
+void ConnectionData::setDispatchId(UINT32 id)
+{
+  m_dispatchId = id;
+  m_isSetDispatchId = true;
+}
+
+void ConnectionData::unsetDispatchId()
+{
+  m_isSetDispatchId = false;
+}
+
 void ConnectionData::setHost(const StringStorage *host)
 {
   StringStorage chompedString = *host;
   TCHAR spaceChar[] = _T(" \t\n\r");
-  chompedString.removeChars(spaceChar, sizeof(spaceChar));
+  chompedString.removeChars(spaceChar, sizeof(spaceChar)/sizeof(TCHAR));
 
   AnsiStringStorage ansiStr(&chompedString);
 

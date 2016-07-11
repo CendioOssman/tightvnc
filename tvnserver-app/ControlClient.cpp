@@ -314,9 +314,8 @@ void ControlClient::getServerInfoMsgRcvd()
   {
     AutoLock al(&m_tcpDispValuesMutex);
     if (m_tcpDispId != 0) {
-      status.format(_T("ID = %u; Dispatcher Name = %s; %s"),
+      status.format(_T("[ID = %u] %s"),
                     m_tcpDispId,
-                    m_gotDispatcherName.getString(),
                     info.m_statusText.getString());
     } else {
       status.setString(info.m_statusText.getString());
@@ -342,7 +341,6 @@ void ControlClient::disconnectAllMsgRcvd()
   m_gate->writeUInt32(ControlProto::REPLY_OK);
 
   m_rfbClientManager->disconnectAllClients();
-  m_connectingSocketThreadCollector.destroyAllThreads();
 }
 
 void ControlClient::shutdownMsgRcvd()
@@ -432,9 +430,9 @@ void ControlClient::connectToTcpDispatcher()
                                      connectionId,
                                      &ansiKeyword,
                                      m_rfbClientManager,
-                                     this, m_log);
+                                     m_log);
 
-  m_connectingSocketThreadCollector.addThread(newConnectionThread);
+  ZombieKiller::getInstance()->addZombie(newConnectionThread);
 }
 
 void ControlClient::setServerConfigMsgRcvd()
@@ -536,19 +534,4 @@ void ControlClient::shareAppIdMsgRcvd()
   ViewPortState dynViewPort;
   dynViewPort.setProcessId(procId);
   m_rfbClientManager->setDynViewPort(&dynViewPort);
-}
-
-void ControlClient::onGetId(unsigned int id,
-                            const AnsiStringStorage *dispatcherName)
-{
-  AutoLock al(&m_tcpDispValuesMutex);
-  m_tcpDispId = id;
-  dispatcherName->toStringStorage(&m_gotDispatcherName);
-}
-
-void ControlClient::onClearId()
-{
-  AutoLock al(&m_tcpDispValuesMutex);
-  m_tcpDispId = 0;
-  m_gotDispatcherName.setString(_T(""));
 }

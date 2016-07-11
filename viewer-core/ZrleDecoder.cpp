@@ -27,6 +27,7 @@
 #include "io-lib/ByteArrayInputStream.h"
 
 #include <vector>
+#include <algorithm>
 
 ZrleDecoder::ZrleDecoder(LogWriter *logWriter)
 : DecoderOfRectangle(logWriter)
@@ -89,8 +90,8 @@ void ZrleDecoder::decode(RfbInputGate *input,
   for (int y = dstRect->top; y < dstRect->bottom; y += TILE_SIZE) {
     for (int x = dstRect->left; x < dstRect->right; x += TILE_SIZE) {
       Rect tileRect(x, y, 
-                    min(x + TILE_SIZE, dstRect->right),
-                    min(y + TILE_SIZE, dstRect->bottom));
+                    std::min(x + TILE_SIZE, dstRect->right),
+                    std::min(y + TILE_SIZE, dstRect->bottom));
 
       if (!frameBuffer->getDimension().getRect().intersection(&tileRect).isEqualTo(&tileRect)) {
         throw Exception(_T("Error in protocol: incorrect size of tile (zrle-decoder)"));

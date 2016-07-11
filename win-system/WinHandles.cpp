@@ -57,3 +57,23 @@ HANDLE WinHandles::assignHandleFor(HANDLE hSource, HANDLE hTargetProc,
   }
   return hDest;
 }
+
+HANDLE WinHandles::assignHandleFor(HANDLE hSource,
+                                   unsigned int procId,
+                                   bool neededToCloseSource,
+                                   bool keepCloseRight)
+{
+  HANDLE processHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, procId);
+  if (processHandle == 0) {
+    throw Exception(_T("Couldn't open process to assign a handle"));
+  }
+  HANDLE dstHandle;
+  try {
+    dstHandle = assignHandleFor(hSource, processHandle, neededToCloseSource, keepCloseRight);
+    CloseHandle(processHandle);
+    return dstHandle;
+  } catch (...) {
+    CloseHandle(processHandle);
+    throw;
+  }
+}

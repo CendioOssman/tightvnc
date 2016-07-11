@@ -46,5 +46,6 @@
 #include <tchar.h>
 #include <commctrl.h>
 #include <Dbghelp.h>
+#include <ShellAPI.h>
 
 #endif // __WINHDR_H__

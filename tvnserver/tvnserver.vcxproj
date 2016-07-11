@@ -182,7 +182,7 @@
       <Command>cl /MTd /Fo"$(IntDir) "  /nologo /D_UNICODE /c BuildTime.cpp</Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>comctl32.lib;$(SolutionDir)libjpeg-turbo\jpeg-static-64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalManifestDependencies>type=%27Win32%27 name=%27Microsoft.Windows.Common-Controls%27 version=%276.0.0.0%27 processorArchitecture=%27amd64%27 publicKeyToken=%276595b64144ccf1df%27 language=%27*%27;%(AdditionalManifestDependencies)</AdditionalManifestDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -218,6 +218,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <UACUIAccess>false</UACUIAccess>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>DPIAware.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -252,6 +253,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
+      <UACUIAccess>false</UACUIAccess>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>DPIAware.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -441,6 +443,9 @@
     <ProjectReference Include="..\io-lib\io-lib.vcxproj">
       <Project>{bbbc0986-6499-483d-a608-905d6930c55a}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\libjpeg\libjpeg.vcxproj">
+      <Project>{4793826b-b077-4d75-a36c-66c9724c08f4}</Project>
     </ProjectReference>
     <ProjectReference Include="..\log-server\log-server.vcxproj">
       <Project>{7d22b0dc-d240-47db-ac6b-165ae3c0c54d}</Project>

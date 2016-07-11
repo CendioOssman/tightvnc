@@ -42,6 +42,7 @@ public:
   static const TCHAR CONFIG_RELOAD[];
   static const TCHAR DISCONNECT_ALL[];
   static const TCHAR CONNECT[];
+  static const TCHAR DISPATCH[];
   static const TCHAR SHUTDOWN[];
   static const TCHAR SHARE_PRIMARY[];
   static const TCHAR SHARE_RECT[];
@@ -68,7 +69,9 @@ public:
   bool hasReloadFlag();
   bool hasKillAllFlag();
   bool hasConnectFlag();
+  bool hasDispatchFlag();
   void getConnectHostName(StringStorage *hostName) const;
+  void getDispatcherSpec(StringStorage *dispatcherSpec) const;
   bool hasShutdownFlag();
   bool hasSetVncPasswordFlag();
   bool hasSetControlPasswordFlag();
@@ -105,6 +108,7 @@ private:
   StringStorage m_controlPassword;
 
   StringStorage m_connectHostName;
+  StringStorage m_dispatcherSpec;
   StringStorage m_passwordFile;
 
   Rect m_shareRect;

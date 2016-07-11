@@ -86,8 +86,8 @@ void AnsiStringStorage::fromStringStorage(const StringStorage *src)
 #ifndef _UNICODE
   setString(src->getString());
 #else
-  int symbolCount = (int)(src->getLength() + 1);
-  _ASSERT(symbolCount == src->getLength() + 1);
+  int symbolCount = WideCharToMultiByte(CP_ACP, 0, src->getString(), -1, 
+                                        NULL, 0, NULL, NULL) + 1;
 
   // Allocate space for the requred size
   m_buffer.resize(symbolCount);
@@ -95,7 +95,7 @@ void AnsiStringStorage::fromStringStorage(const StringStorage *src)
   // Convert to ansi
   int constrSize = (int)m_buffer.size();
   _ASSERT(constrSize == m_buffer.size());
-  WideCharToMultiByte(CP_ACP, 0, src->getString(), symbolCount,
+  WideCharToMultiByte(CP_ACP, 0, src->getString(), (int)src->getLength() + 1,
                       &m_buffer.front(), symbolCount, NULL, NULL);
 #endif
 }
@@ -133,4 +133,18 @@ void AnsiStringStorage::format(const char *format, ...)
   va_start(vl, format);
   vsprintf_s(&m_buffer.front(), count + 1, format, vl);
   va_end(vl);
+}
+
+void AnsiStringStorage::appendString(const char *string)
+{
+  if (string == 0) {
+    return;
+  }
+  AnsiStringStorage src(string);
+
+  BufferType::iterator to = m_buffer.begin() + getLength();
+  BufferType::iterator fromFirst = src.m_buffer.begin();
+  BufferType::iterator fromLast = src.m_buffer.begin() + src.getLength();
+
+  m_buffer.insert(to, fromFirst, fromLast);
 }

@@ -35,13 +35,14 @@
 #include "win-system/WindowsEvent.h"
 
 #include "CursorPainter.h"
+#include "WatermarksController.h"
 
 class CoreEventsAdapter;
 
 class FbUpdateNotifier : public Thread
 {
 public:
-  FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logger);
+  FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logger, WatermarksController* wmController);
   virtual ~FbUpdateNotifier();
 
   void setAdapter(CoreEventsAdapter *adapter);
@@ -74,6 +75,9 @@ protected:
   WindowsEvent m_eventUpdate;
 
   LogWriter *m_logWriter;
+
+  //It is used for adding watermarks in demo version.
+  WatermarksController* m_watermarksController;
 
   // In this region added all updates of frame buffer and cursor updates.
   Region m_update;

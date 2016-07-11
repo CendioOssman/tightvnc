@@ -25,8 +25,10 @@
 #include "AnonymousPipeFactory.h"
 #include "win-system/SecurityAttributes.h"
 
-AnonymousPipeFactory::AnonymousPipeFactory(LogWriter *log)
-: m_log(log)
+AnonymousPipeFactory::AnonymousPipeFactory(unsigned int bufferSize,
+                                           LogWriter *log)
+: m_bufferSize(bufferSize),
+  m_log(log)
 {
 }
 
@@ -47,11 +49,11 @@ void AnonymousPipeFactory::generatePipes(AnonymousPipe **firstSide,
 
   try {
     if (CreatePipe(&hFirstSideRead, &hSecondSideWrite,
-                   secAttr.getSecurityAttributes(), 1024 * 512) == 0) {
+                   secAttr.getSecurityAttributes(), m_bufferSize) == 0) {
       SystemException(_T("Cannot create anonymous pipe"));
     }
     if (CreatePipe(&hSecondSideRead, &hFirstSideWrite,
-                   secAttr.getSecurityAttributes(), 1024 * 512) == 0) {
+                   secAttr.getSecurityAttributes(), m_bufferSize) == 0) {
       SystemException(_T("Cannot create anonymous pipe"));
     }
   } catch (...) {
@@ -80,6 +82,6 @@ void AnonymousPipeFactory::generatePipes(AnonymousPipe **firstSide,
     }
   }
 
-  *firstSide = new AnonymousPipe(hFirstSideWrite, hFirstSideRead, m_log);
-  *secondSide = new AnonymousPipe(hSecondSideWrite, hSecondSideRead, m_log);
+  *firstSide = new AnonymousPipe(hFirstSideWrite, hFirstSideRead, m_bufferSize, m_log);
+  *secondSide = new AnonymousPipe(hSecondSideWrite, hSecondSideRead, m_bufferSize, m_log);
 }

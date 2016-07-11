@@ -14,9 +14,15 @@
     <ClCompile Include="TcpDispatcherInitializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DispatcherProtocol.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TcpDispatcherInitializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DispatcherProtocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

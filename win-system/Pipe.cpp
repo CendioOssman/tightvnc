@@ -28,7 +28,21 @@
 #include "win-system/Environment.h"
 #include "thread/AutoLock.h"
 
-#define MAX_PORTION_SIZE 512 * 1024
+Pipe::Pipe(unsigned int maxPortionSize)
+: m_totalRead(0),
+  m_totalWrote(0),
+  m_maxPortionSize(maxPortionSize)
+{
+}
+
+Pipe::~Pipe()
+{
+}
+
+unsigned int Pipe::getMaxPortionSize()
+{
+  return m_maxPortionSize;
+}
 
 size_t Pipe::writeByHandle(const void *buffer, size_t len, HANDLE pipeHandle)
 {
@@ -38,11 +52,14 @@ size_t Pipe::writeByHandle(const void *buffer, size_t len, HANDLE pipeHandle)
   overlapped.hEvent = m_writeEvent.getHandle();
 
   bool success;
+  DWORD length = (DWORD)len;
+  _ASSERT(length == len);
+  if (m_maxPortionSize != 0 && length > m_maxPortionSize) {
+    length = m_maxPortionSize;
+  }
   {
     AutoLock al(&m_hPipeMutex);
     checkPipeHandle(pipeHandle);
-    DWORD length = (DWORD)len;
-    _ASSERT(length == len);
     success = WriteFile(pipeHandle, // pipe handle
                         buffer,    // message
                         length,  // message length
@@ -70,9 +87,12 @@ size_t Pipe::writeByHandle(const void *buffer, size_t len, HANDLE pipeHandle)
         throw IOException(errMess.getString());
       }
     } else {
+      StringStorage errText;
+      errText.format(_T("The Pipe's write function failed after WriteFile calling")
+                     _T("(pipe handle is %p, total write %llu, try to write %u)"),
+                     pipeHandle, m_totalWrote, length);
       StringStorage errMess;
-      Environment::getErrStr(_T("The Pipe's write function failed")
-                             _T(" after WriteFile calling"), &errMess);
+      Environment::getErrStr(errText.getString(), &errMess);
       throw IOException(errMess.getString());
     }
   } // else operation already successful has been completed
@@ -80,6 +100,8 @@ size_t Pipe::writeByHandle(const void *buffer, size_t len, HANDLE pipeHandle)
   if (result == 0) {
     throw IOException(_T("Unknown pipe error"));
   }
+
+  m_totalWrote += result;
   return result;
 }
 
@@ -91,10 +113,13 @@ size_t Pipe::readByHandle(void *buffer, size_t len, HANDLE pipeHandle)
   overlapped.hEvent = m_readEvent.getHandle();
 
   bool success;
+  DWORD length = (DWORD)len;
+  _ASSERT(length == len);
+  if (m_maxPortionSize != 0 && length > m_maxPortionSize) {
+    length = m_maxPortionSize;
+  }
   {
     AutoLock al(&m_hPipeMutex);
-    DWORD length = (DWORD)len;
-    _ASSERT(length == len);
     checkPipeHandle(pipeHandle);
     success = ReadFile(pipeHandle,         // pipe handle
                        buffer,            // message
@@ -115,16 +140,20 @@ size_t Pipe::readByHandle(void *buffer, size_t len, HANDLE pipeHandle)
           cbRet != 0) {
         result = cbRet;
       } else {
+        StringStorage errText;
+        errText.format(_T("The Pipe's read function failed after GetOverlappedResult calling (pipe handle is %p)"), pipeHandle);
         StringStorage errMess;
-        Environment::getErrStr(_T("The Pipe's read function failed")
-                               _T(" after GetOverlappedResult calling"),
+        Environment::getErrStr(errText.getString(),
                                &errMess);
         throw IOException(errMess.getString());
       }
     } else {
+      StringStorage errText;
+      errText.format(_T("The Pipe's write function failed after ReadFile calling")
+                     _T("(pipe handle is %p, total read %llu, try to read %u)"),
+                     pipeHandle, m_totalRead, length);
       StringStorage errMess;
-      Environment::getErrStr(_T("The Pipe's read function failed")
-                             _T(" after ReadFile calling"), &errMess);
+      Environment::getErrStr(errText.getString(), &errMess);
       throw IOException(errMess.getString());
     }
   } // else operation already successful has been completed
@@ -132,6 +161,7 @@ size_t Pipe::readByHandle(void *buffer, size_t len, HANDLE pipeHandle)
   if (result == 0) {
     throw IOException(_T("Unknown pipe error"));
   }
+  m_totalRead += result;
   return result;
 }
 

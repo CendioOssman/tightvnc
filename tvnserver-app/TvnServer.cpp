@@ -105,8 +105,6 @@ TvnServer::TvnServer(bool runsInServiceContext,
     desktopFactory = &m_applicationDesktopFactory;
   }
 
-   // Instanize zombie killer singleton.
-   // FIXME: may be need to do it in another place or use "lazy" initialization.
   m_rfbClientManager = new RfbClientManager(0, newConnectionEvents, &m_log, desktopFactory);
 
   m_rfbClientManager->addListener(this);
@@ -348,7 +346,8 @@ void TvnServer::restartControlServer()
     pipeSecurity->setInheritable();
     pipeSecurity->shareToAllUsers();
 
-    PipeServer *pipeServer = new PipeServer(pipeName.getString(), pipeSecurity);
+    const unsigned int maxControlServerPipeBufferSize = 0x10000;
+    PipeServer *pipeServer = new PipeServer(pipeName.getString(), maxControlServerPipeBufferSize, pipeSecurity);
     m_controlServer = new ControlServer(pipeServer , m_rfbClientManager, &m_log);
   } catch (Exception &ex) {
     m_log.error(_T("Failed to start control server: \"%s\""), ex.getMessage());

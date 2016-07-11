@@ -15,79 +15,6 @@
                         Wait="yes" />
         <!-- tvnserver.exe -->
         <File Id='tvnserverEXE' Name='tvnserver.exe' DiskId='1' Source='$(var.BinFolder)\tvnserver.exe' KeyPath='yes'>
-          <!-- Aplication shortcuts -->
-          <Shortcut Id="menuTvnServerApp"
-                    Directory="ServerMenuDir"
-                    Name="Run TightVNC Server"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes" />
-          <Shortcut Id="menuTvnControlApp"
-                    Arguments="-controlapp"
-                    Directory="ServerMenuDir"
-                    Name="TightVNC Server - Control Interface"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
-          <Shortcut Id="menuTvnOfflineControlApp"
-                    Arguments="-configapp"
-                    Directory="ServerMenuDir"
-                    Name="TightVNC Server - Offline Configuration"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
-          <!-- Service shortcuts -->
-          <Shortcut Id="menuRegisterTvnService"
-                    Arguments="-install"
-                    Directory="ServiceMenuDir"
-                    Name="Register TightVNC Service"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes" />
-          <Shortcut Id="menuStartTvnService"
-                    Arguments="-start"
-                    Directory="ServiceMenuDir"
-                    Name="Start TightVNC Service"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
-          <Shortcut Id="menuStopTvnService"
-                    Arguments="-stop"
-                    Directory="ServiceMenuDir"
-                    Name="Stop TightVNC Service"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
-          <Shortcut Id="menuTvnControlService"
-                    Arguments="-controlservice"
-                    Directory="ServiceMenuDir"
-                    Name="TightVNC Service - Control Interface"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
-          <Shortcut Id="menuTvnOfflineControlService"
-                    Arguments="-configservice"
-                    Directory="ServiceMenuDir"
-                    Name="TightVNC Service - Offline Configuration"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
-          <Shortcut Id="menuUnregisterTvnService"
-                    Arguments="-remove"
-                    Directory="ServiceMenuDir"
-                    Name="Unregister TightVNC Service"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='tvnserver.ico'
-                    IconIndex="0"
-                    Advertise="yes"/>
         </File>
         <!-- screenhooks -->
         <File Id='screenHooksFile' Name='screenhooks32.dll' DiskId='1' Source='$(var.SrcFolder)\Release\screenhooks32.dll'/>
@@ -110,24 +37,12 @@
       <Component Id='UrlComponent' Guid='{9282ED3F-A2F7-4727-909B-02614DEA23EA}'>
         <File Id='UrlFile' Name='TightVNC Web Site.url' Source='TightVNC Web Site.url'
               KeyPath='yes'>
-          <Shortcut Id="UrlShortcut"
-                    Directory="ProgramMenuDir"
-                    Name="Visit TightVNC Web Site"
-                    WorkingDirectory='INSTALLDIR'
-                    Advertise="yes" />
         </File>
       </Component>
 
       <?ifndef VIEWER_FREE ?>
       <Component Id='ViewerExe' Guid='{7E013E9C-D95F-4381-AEDB-FAD5B182AC1A}'>
         <File Id='viewerEXE' Name='tvnviewer.exe' DiskId='1' Source='$(var.BinFolder)\tvnviewer.exe' KeyPath='yes'>
-          <Shortcut Id="startmenuViewer"
-                    Directory="ProgramMenuDir"
-                    Name="TightVNC Viewer"
-                    WorkingDirectory='INSTALLDIR'
-                    Icon='viewer.ico'
-                    IconIndex="0"
-                    Advertise="yes" />
         </File>
       </Component>
       <?endif?>
@@ -178,18 +93,95 @@
 
     <DirectoryRef Id="ProgramMenuDir" DiskId="1">
       <Component Id="ProgramMenuDir" Guid="CE57B8CF-448C-48c4-ADBA-171079F714C9">
+        <Shortcut Id="UrlShortcut"
+          Target ="[#UrlFile]"
+          Directory="ProgramMenuDir"
+          Name="Visit TightVNC Web Site"
+          WorkingDirectory='INSTALLDIR'/>
+        <Shortcut Id="startmenuViewer"
+          Target ="[#viewerEXE]"
+          Directory="ProgramMenuDir"
+          Name="TightVNC Viewer"
+          WorkingDirectory='INSTALLDIR'
+          Icon='viewer.ico'
+          IconIndex="0"/>
         <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
         <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]1' Type='string' Value='' KeyPath='yes' />
       </Component>
     </DirectoryRef>
     <DirectoryRef Id="ServerMenuDir" DiskId="1">
       <Component Id="ServerMenuDir" Guid="{FE06A99B-0809-4199-9759-E55AF044F537}">
+        <Shortcut Id="menuTvnServerApp"
+                  Target ="[#tvnserverEXE]"
+                  Directory="ServerMenuDir"
+                  Name="Run TightVNC Server"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuTvnControlApp"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-controlapp"
+                  Directory="ServerMenuDir"
+                  Name="TightVNC Server - Control Interface"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuTvnOfflineControlApp"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-configapp"
+                  Directory="ServerMenuDir"
+                  Name="TightVNC Server - Offline Configuration"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
         <RemoveFolder Id='ServerMenuDir' On='uninstall' />
         <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]2' Type='string' Value='' KeyPath='yes' />
       </Component>
     </DirectoryRef>
     <DirectoryRef Id="ServiceMenuDir" DiskId="1">
       <Component Id="ServiceMenuDir" Guid="{1B4D5796-39DB-4189-BD0C-9BBF49B1D9C6}">
+        <Shortcut Id="menuRegisterTvnService"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-install"
+                  Name="Register TightVNC Service"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuStartTvnService"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-start"
+                  Name="Start TightVNC Service"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuStopTvnService"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-stop"
+                  Name="Stop TightVNC Service"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuTvnControlService"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-controlservice"
+                  Name="TightVNC Service - Control Interface"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuTvnOfflineControlService"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-configservice"
+                  Name="TightVNC Service - Offline Configuration"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
+        <Shortcut Id="menuUnregisterTvnService"
+                  Target ="[#tvnserverEXE]"
+                  Arguments="-remove"
+                  Name="Unregister TightVNC Service"
+                  WorkingDirectory='INSTALLDIR'
+                  Icon='tvnserver.ico'
+                  IconIndex="0"/>
         <RemoveFolder Id='ServiceMenuDir' On='uninstall' />
         <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]3' Type='string' Value='' KeyPath='yes' />
       </Component>

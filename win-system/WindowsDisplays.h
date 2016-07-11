@@ -28,6 +28,7 @@
 #include "region/Rect.h"
 #include "util/DateTime.h"
 #include <vector>
+#include "thread/LocalMutex.h"
 
 class WindowsDisplays
 {
@@ -57,7 +58,8 @@ private:
   int m_yVirtualScreen;
 
   std::vector<Rect> m_displayRects;
-
+  LocalMutex m_displayRectsMutex;
+  
   static const unsigned int UPDATE_INTERVAL = 3000;
   DateTime m_latestUpdateTime;
 };

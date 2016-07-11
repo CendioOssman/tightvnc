@@ -120,8 +120,8 @@ void ViewerConfig::setLogLevel(int logLevel)
 
   if (logLevel < 0) {
     logLevel = 0;
-  } else if (logLevel > 9){
-    logLevel = 9;
+  } else if (logLevel > 10){
+    logLevel = 10;
   }
 
   m_logLevel = logLevel;

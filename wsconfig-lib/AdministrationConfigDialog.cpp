@@ -114,7 +114,7 @@ bool AdministrationConfigDialog::validateInput()
 
   UIDataAccess::queryValueAsUInt(&m_logLevel, &logLevel);
 
-  if (logLevel > 9) {
+  if (logLevel > 10) {
     CommonInputValidation::notifyValidationError(
       &m_logLevel,
       StringTable::getString(IDS_INVALID_LOG_LEVEL));
@@ -304,7 +304,7 @@ void AdministrationConfigDialog::initControls()
   m_logSpin.setWindow(GetDlgItem(hwnd, IDC_LOG_LEVEL_SPIN));
 
   m_logSpin.setBuddy(&m_logLevel);
-  m_logSpin.setRange(0, 9);
+  m_logSpin.setRange(0, 10);
   m_logSpin.setAccel(0, 1);
 
   m_cpControl = new PasswordControl(&m_setControlPasswordButton, &m_unsetControlPasswordButton);

@@ -134,6 +134,7 @@ void WinEventLog::reportEvent(unsigned int messageId,
                            &errStr);
     m_log->error(_T("%s"), errStr.getString());
   }
+  CloseHandle(hEventLog); //fixing #1326
 }
 
 #pragma warning(pop)

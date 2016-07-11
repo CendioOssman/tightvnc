@@ -89,8 +89,11 @@ void LogConn::changeLogLevel(unsigned char newLevel)
 void LogConn::assignConnection()
 {
   try {
-    SecurityPipeServer secLogPipeServer(m_serviceChannel);
-    SecurityPipeServer secLevelPipeServer(m_serviceChannel);
+    const unsigned int maxLogLineLength = 0x10000;
+    const unsigned int maxChangeLevelMessageLength = 0x10;
+
+    SecurityPipeServer secLogPipeServer(m_serviceChannel, maxLogLineLength);
+    SecurityPipeServer secLevelPipeServer(m_serviceChannel, maxChangeLevelMessageLength);
 
     {
       AutoLock al(&m_channelMutex);

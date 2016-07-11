@@ -49,6 +49,7 @@ public:
   virtual void getWindowCoords(HWND hwnd, Rect *rect);
   virtual HWND getWindowHandleByName(const StringStorage *windowName);
   virtual void getApplicationRegion(unsigned int procId, Region *region);
+  virtual bool isApplicationInFocus(unsigned int procId);
 
 private:
   UserInputClient *m_client;

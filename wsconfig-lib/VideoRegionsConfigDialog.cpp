@@ -30,7 +30,7 @@
 #include "util/StringParser.h"
 
 VideoRegionsConfigDialog::VideoRegionsConfigDialog()
-: BaseDialog(IDD_CONFIG_VIDEO_CLASSES_PAGE), m_parentDialog(NULL)
+: BaseDialog(IDD_CONFIG_VIDEO_PAGE), m_parentDialog(NULL)
 {
 }
 
@@ -65,11 +65,11 @@ BOOL VideoRegionsConfigDialog::onNotify(UINT controlID, LPARAM data)
 BOOL VideoRegionsConfigDialog::onCommand(UINT controlID, UINT notificationID)
 {
   if (notificationID == EN_UPDATE) {
-    if (controlID == IDC_VIDEO_CLASS_NAMES) {
+    if (controlID == IDC_VIDEO_CLASS_NAMES || controlID == IDC_VIDEO_RECTS) {
       onVideoRegionsUpdate();
     } else if (controlID == IDC_VIDEO_RECOGNITION_INTERVAL) {
       onRecognitionIntervalUpdate();
-    }
+    } 
   }
   return TRUE;
 }
@@ -87,12 +87,13 @@ bool VideoRegionsConfigDialog::validateInput()
 void VideoRegionsConfigDialog::updateUI()
 {
   StringVector *videoClasses = m_config->getVideoClassNames();
+  std::vector<Rect> *videoRects = m_config->getVideoRects();
   StringStorage textAreaData;
+  TCHAR endLine[3] = {13, 10, 0};
   {
     AutoLock al(m_config);
     textAreaData.setString(_T(""));
     for (size_t i = 0; i < videoClasses->size(); i++) {
-      TCHAR endLine[3] = {13, 10, 0};
       textAreaData.appendString(videoClasses->at(i).getString());
       textAreaData.appendString(&endLine[0]);
     }
@@ -100,45 +101,77 @@ void VideoRegionsConfigDialog::updateUI()
     _ltot(m_config->getVideoRecognitionInterval(), &buffer[0], 10);
     m_videoRecognitionInterval.setText(buffer);
   }
-  m_videoRegions.setText(textAreaData.getString());
+  m_videoClasses.setText(textAreaData.getString());
+
+  {
+    AutoLock al(m_config);
+    textAreaData.setString(_T(""));
+    for (size_t i = 0; i < videoRects->size(); i++) {
+      Rect r = videoRects->at(i);
+      StringStorage s;
+      RectSerializer::toString(&r, &s);
+      textAreaData.appendString(s.getString());
+      textAreaData.appendString(&endLine[0]);
+    }
+  }
+  m_videoRects.setText(textAreaData.getString());
 }
 
 void VideoRegionsConfigDialog::apply()
 {
   // FIXME: Bad code
 
+  
+  AutoLock al(m_config);
+
   //
   // Clear old video classes names container
   //
 
-    AutoLock al(m_config);
+  StringVector *videoClasses = m_config->getVideoClassNames();
+  videoClasses->clear();
+  std::vector<Rect> *videoRects = m_config->getVideoRects();
+  videoRects->clear();
 
-    StringVector *videoClasses = m_config->getVideoClassNames();
+  //
+  // Split text from text area to string array
+  //
   
-    videoClasses->clear();
-  
-    //
-    // Split text from text area to string array
-    //
-  
-    StringStorage classNamesStringStorage;
-    m_videoRegions.getText(&classNamesStringStorage);
+  StringStorage classNames;
+  m_videoClasses.getText(&classNames);
+  size_t count = 0;
+  TCHAR delimiters[] = _T(" \n\r\t,;");
 
-  size_t len = _tcslen(classNamesStringStorage.getString());
-  std::vector<TCHAR> classNames(len + 1);
-  memcpy(&classNames.front(), classNamesStringStorage.getString(),
-         classNames.size() * sizeof(TCHAR));
-  TCHAR delimiter[3] = {13, 10, 0};
-  TCHAR *pch = _tcstok(&classNames.front(), delimiter);
-  while (pch != NULL) {
-    size_t length = _tcslen(pch);
-    if (length > 0) {
-      // FIXME: Use other container without pointers.
-      TCHAR *className = new TCHAR[length + 1];
-      _tcscpy(className, pch);
-      videoClasses->push_back(className);
+  classNames.split(delimiters, NULL, &count);
+  if (count != 0) {
+    std::vector<StringStorage> chunks(count);
+    classNames.split(delimiters, &chunks.front(), &count);
+
+    for (size_t i = 0; i < count; i++) {
+      if (!chunks[i].isEmpty()) {
+          videoClasses->push_back(chunks[i].getString());
+      }
     }
-    pch = _tcstok(NULL, &delimiter[0]);
+  }
+
+  StringStorage videoRectsStringStorage;
+  m_videoRects.getText(&videoRectsStringStorage);
+  count = 0;
+
+  videoRectsStringStorage.split(delimiters, NULL, &count);
+  if (count != 0) {
+    std::vector<StringStorage> chunks(count);
+    videoRectsStringStorage.split(delimiters, &chunks.front(), &count);
+
+    for (size_t i = 0; i < count; i++) {
+      if (!chunks[i].isEmpty()) {
+        try {
+          videoRects->push_back(RectSerializer::toRect(&chunks[i]));
+        } catch (...) {
+          // Ignore wrong formatted strings
+        }
+      }
+    }
   }
 
   //
@@ -157,7 +190,8 @@ void VideoRegionsConfigDialog::apply()
 void VideoRegionsConfigDialog::initControls()
 {
   HWND hwnd = m_ctrlThis.getWindow();
-  m_videoRegions.setWindow(GetDlgItem(hwnd, IDC_VIDEO_CLASS_NAMES));
+  m_videoClasses.setWindow(GetDlgItem(hwnd, IDC_VIDEO_CLASS_NAMES));
+  m_videoRects.setWindow(GetDlgItem(hwnd, IDC_VIDEO_RECTS));
   m_videoRecognitionInterval.setWindow(GetDlgItem(hwnd, IDC_VIDEO_RECOGNITION_INTERVAL));
   m_videoRecognitionIntervalSpin.setWindow(GetDlgItem(hwnd, IDC_VIDEO_RECOGNITION_INTERVAL_SPIN));
 

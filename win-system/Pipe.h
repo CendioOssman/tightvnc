@@ -34,7 +34,13 @@
 // methods/source codes for derived classes to work with pipe handles.
 class Pipe
 {
+public:
+  unsigned int getMaxPortionSize();
+
 protected:
+  Pipe(unsigned int maxPortionSize);
+  virtual ~Pipe();
+
   // This read and write functions is common way to read and write
   // by pipe handles asynchronously.
 
@@ -53,6 +59,10 @@ protected:
 
 private:
   void checkPipeHandle(HANDLE pipeHandle);
+
+  UINT64 m_totalWrote;
+  UINT64 m_totalRead;
+  unsigned int m_maxPortionSize;
 };
 
 #endif // __PIPE_H__

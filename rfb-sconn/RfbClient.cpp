@@ -38,6 +38,7 @@ RfbClient::RfbClient(NewConnectionEvents *newConnectionEvents,
                      bool isOutgoing, unsigned int id,
                      const ViewPortState *constViewPort,
                      const ViewPortState *dynViewPort,
+                     int idleTimeout,
                      LogWriter *log)
 : m_socket(socket), // now we own the socket
   m_newConnectionEvents(newConnectionEvents),
@@ -56,6 +57,7 @@ RfbClient::RfbClient(NewConnectionEvents *newConnectionEvents,
   m_desktop(0),
   m_constViewPort(constViewPort, log),
   m_dynamicViewPort(dynViewPort, log),
+  m_idleTimer(idleTimeout), m_idleTimeout(idleTimeout),
   m_log(log)
 {
   resume();
@@ -289,6 +291,11 @@ void RfbClient::sendUpdate(const UpdateContainer *updateContainer,
                            const CursorShape *cursorShape)
 {
   m_updateSender->newUpdates(updateContainer, cursorShape);
+
+  if (m_idleTimeout != 0  && m_idleTimer.isElapsed()) {
+    m_log->error(_T("Connection will be closed due to client inactivity. IdleTimeout = %d ms"), m_idleTimeout);
+    disconnect();
+  }
 }
 
 void RfbClient::sendClipboard(const StringStorage *newClipboard)
@@ -298,11 +305,28 @@ void RfbClient::sendClipboard(const StringStorage *newClipboard)
 
 void RfbClient::onKeyboardEvent(UINT32 keySym, bool down)
 {
-  m_desktop->setKeyboardEvent(keySym, down);
+  // FIXME: How to deal with the situations when we inject a "key down" event, then foreground
+  //        window changes and is no longer owned by the shared app so we cannot pass "key up"
+  //        to the desktop?
+
+  bool mayPass = true;
+  bool shareApp = m_dynamicViewPort.getOnlyApplication();
+  if (shareApp) {
+    unsigned int pid = m_dynamicViewPort.getApplicationId();
+    mayPass = m_desktop->isApplicationInFocus(pid);
+  }
+
+  if (mayPass) {
+    m_desktop->setKeyboardEvent(keySym, down);
+  m_idleTimer.reset();
+  }
 }
 
 void RfbClient::onMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
 {
+  // FIXME: Too much extra work. Typically we would share the whole desktop and would not need
+  //        to compute regions on each mouse move.
+
   PixelFormat pfStub;
   Dimension fbDim;
   m_desktop->getFrameBufferProperties(&fbDim, &pfStub);
@@ -321,6 +345,7 @@ void RfbClient::onMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
   if (pointInside) {
     m_updateSender->blockCursorPosSending();
     m_desktop->setMouseEvent(x + vp.left, y + vp.top, buttonMask);
+    m_idleTimer.reset();
   }
 }
 

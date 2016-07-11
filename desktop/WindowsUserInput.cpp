@@ -241,3 +241,16 @@ void WindowsUserInput::getApplicationRegion(unsigned int procId, Region *region)
   region->translate(-GetSystemMetrics(SM_XVIRTUALSCREEN),
                     -GetSystemMetrics(SM_YVIRTUALSCREEN));
 }
+
+bool WindowsUserInput::isApplicationInFocus(unsigned int procId)
+{
+  HWND hKeyboardInputWindow = GetForegroundWindow();
+  if (hKeyboardInputWindow == NULL) {
+    return false;
+  }
+
+  DWORD procForeground;
+  GetWindowThreadProcessId(hKeyboardInputWindow, &procForeground);
+
+  return (procForeground == (DWORD)procId);
+}

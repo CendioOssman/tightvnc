@@ -194,7 +194,7 @@
     <ClCompile Include="WinCursorShapeUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WinVideoRegionFounderImpl.cpp">
+    <ClCompile Include="WinVideoRegionUpdaterImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -400,7 +400,7 @@
     <ClInclude Include="WinCursorShapeUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WinVideoRegionFounderImpl.h">
+    <ClInclude Include="WinVideoRegionUpdaterImpl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

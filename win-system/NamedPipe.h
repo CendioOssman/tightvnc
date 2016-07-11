@@ -36,13 +36,13 @@
  *
  * @author yuri, enikey.
  */
-class NamedPipe : public Channel, private Pipe
+class NamedPipe : public Channel, public Pipe
 {
 public:
   /**
    * Creates pipe transport.
    */
-  NamedPipe(HANDLE hPipe, bool asServer);
+  NamedPipe(HANDLE hPipe, unsigned int maxPortionSize, bool asServer);
   /**
    * Destroys instance.
    */

@@ -62,14 +62,16 @@ void ClientLogger::connect()
   NamedPipe *svcChan = 0;
   try {
     // Try connect to log server
-    svcChan = PipeClient::connect(m_publicPipeName.getString());
+    svcChan = PipeClient::connect(m_publicPipeName.getString(), 0);
     // Try get security channel from the server.
-    SecurityPipeClient secLogPipeClient(svcChan);
+    // Pass zero as maxPortionSize under the assumption that the pipe buffer is always greater
+    // than max log line length is always.
+    SecurityPipeClient secLogPipeClient(svcChan, 0);
     m_logSendingChan = secLogPipeClient.getChannel();
     m_logInput = new DataInputStream(m_logSendingChan);
     m_logOutput = new DataOutputStream(m_logSendingChan);
 
-    SecurityPipeClient secLevelPipeClient(svcChan);
+    SecurityPipeClient secLevelPipeClient(svcChan, 0);
     m_levListenChan = secLevelPipeClient.getChannel();
 
     m_logOutput->writeUTF8(m_logFileName.getString());

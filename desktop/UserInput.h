@@ -61,6 +61,8 @@ public:
   virtual HWND getWindowHandleByName(const StringStorage *windowName) = 0;
 
   virtual void getApplicationRegion(unsigned int procId, Region *region) = 0;
+  virtual bool isApplicationInFocus(unsigned int procId) = 0;
+
 };
 
 #endif // __USERINPUT_H__

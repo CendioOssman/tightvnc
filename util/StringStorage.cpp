@@ -29,6 +29,8 @@
 
 #include <crtdbg.h>
 
+#include <algorithm>
+
 StringStorage::StringStorage()
 {
   setString(_T(""));
@@ -111,8 +113,8 @@ void StringStorage::getSubstring(StringStorage *substr,
                                  size_t endIndex) const
 {
   endIndex++; // to simplify calculations
-  startIndex = min(startIndex, getLength());
-  endIndex = min(endIndex, getLength());
+  startIndex = std::min(startIndex, getLength());
+  endIndex = std::min(endIndex, getLength());
   if (endIndex < startIndex) {
     endIndex = startIndex;
   }
@@ -290,14 +292,14 @@ void StringStorage::remove(size_t startIndex, size_t count)
   }
   BufferType newBuffer = m_buffer;
 
-  size_t copyCount = getSize() - (startIndex + 1) * sizeof(TCHAR);
+  size_t copyCount = getSize() - (startIndex + count) * sizeof(TCHAR);
   memcpy(&newBuffer[startIndex], &newBuffer[startIndex + count], copyCount);
   setString(&newBuffer.front());
 }
 
 void StringStorage::truncate(size_t count)
 {
-  count = min(getLength(), count);
+  count = std::min(getLength(), count);
 
   remove(getLength() - count, count);
 }

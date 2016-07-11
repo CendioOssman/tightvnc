@@ -46,13 +46,17 @@ Win8DeskDuplicationThread::Win8DeskDuplicationThread(FrameBuffer *targetFb,
   m_targetCurShape(targetCurShape),
   m_cursorTimeStamp(cursorTimeStamp),
   m_cursorMutex(cursorMutex),
+  m_rotation(dxgiOutput->getRotation()),
   m_duplListener(duplListener),
   m_dxgiOutput1(dxgiOutput),
   m_device(log),
   m_outDupl(&m_dxgiOutput1, &m_device),
   m_hasCriticalError(false),
   m_hasRecoverableError(false),
-  m_stageTexture2D(m_device.getDevice(), (UINT)targetRect->getWidth(), (UINT)targetRect->getHeight()),
+  m_stageTexture2D(m_device.getDevice(),
+                   (UINT)targetRect->getWidth(),
+                   (UINT)targetRect->getHeight(),
+                   m_rotation),
   m_threadNumber(threadNumber),
   m_log(log)
 {
@@ -127,19 +131,31 @@ void Win8DeskDuplicationThread::setRecoverableError(const TCHAR *reason)
   m_duplListener->onRecoverableError(reason);
 }
 
+Dimension Win8DeskDuplicationThread::getStageDimension() const
+{
+  return Dimension(m_stageTexture2D.getDesc()->Width, m_stageTexture2D.getDesc()->Height);
+}
+
 void Win8DeskDuplicationThread::processMoveRects(size_t moveCount)
 {
   _ASSERT(moveCount <= m_moveRects.size());
-  Rect rect;
+  Rect destinationRect;
+  Rect sourceRect;
   for (size_t iRect = 0; iRect < moveCount; iRect++) {
-    rect.fromWindowsRect(&m_moveRects[iRect].DestinationRect);
+    destinationRect.fromWindowsRect(&m_moveRects[iRect].DestinationRect);
+    sourceRect = destinationRect;
+    POINT srcPoint = m_moveRects[iRect].SourcePoint;
+    sourceRect.setLocation(srcPoint.x, srcPoint.y);
+    rotateRectInsideStage(&destinationRect, &getStageDimension(), m_rotation);
+    rotateRectInsideStage(&sourceRect, &getStageDimension(), m_rotation);
     // Translate the rect and point to the frame buffer coordinates.
-    rect.move(m_targetRect.left, m_targetRect.top);
-    int x = m_moveRects[iRect].SourcePoint.x + m_targetRect.left;
-    int y = m_moveRects[iRect].SourcePoint.y + m_targetRect.top;
-    m_targetFb->move(&rect, x, y);
+    destinationRect.move(m_targetRect.left, m_targetRect.top);
+    sourceRect.move(m_targetRect.left, m_targetRect.top);
+    int x = sourceRect.left;
+    int y = sourceRect.top;
+    m_targetFb->move(&destinationRect, x, y);
 
-    m_duplListener->onCopyRect(&rect, x, y);
+    m_duplListener->onCopyRect(&destinationRect, x, y);
   }
 }
 
@@ -150,14 +166,14 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
 
   Region changedRegion;
 
-  Rect rect;
-  Dimension stageDim(&m_targetRect);
+  Rect dirtyRect;
+  Dimension stageDim = getStageDimension();
   Rect stageRect = stageDim.getRect();
   for (size_t iRect = 0; iRect < dirtyCount; iRect++) {
-    rect.fromWindowsRect(&m_dirtyRects[iRect]);
+    dirtyRect.fromWindowsRect(&m_dirtyRects[iRect]);
 
-    if (!stageRect.isFullyContainRect(&rect)) {
-      rect = rect.intersection(&stageRect);
+    if (!stageRect.isFullyContainRect(&dirtyRect)) {
+      dirtyRect = dirtyRect.intersection(&stageRect);
       /* Disabled the followed throwing because it realy may happen and better is to see any picture
       // instead of a black screen.
       StringStorage errMess;
@@ -169,13 +185,14 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
       */
     }
 
-    m_device.copySubresourceRegion(m_stageTexture2D.getTexture(), rect.left, rect.top,
-                                   acquiredDesktopImage->getTexture(), &rect, 0, 1);
+    m_device.copySubresourceRegion(m_stageTexture2D.getTexture(), dirtyRect.left, dirtyRect.top,
+      acquiredDesktopImage->getTexture(), &dirtyRect, 0, 1);
 
     WinDxgiSurface surface(m_stageTexture2D.getTexture());
     WinAutoMapDxgiSurface autoMapSurface(&surface, DXGI_MAP_READ);
 
-    Rect dstRect(rect);
+    Rect dstRect(dirtyRect);
+    rotateRectInsideStage(&dstRect, &stageDim, m_rotation);
     // Translate the rect to the frame buffer coordinates.
     dstRect.move(m_targetRect.left, m_targetRect.top);
     m_log->debug(_T("Destination dirty rect = %d, %d, %dx%d"), dstRect.left, dstRect.top, dstRect.getWidth(), dstRect.getHeight());
@@ -183,7 +200,30 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
     stageDim.width = static_cast<int> (autoMapSurface.getStride() / 4);
     m_auxiliaryFrameBuffer.setPropertiesWithoutResize(&stageDim, &m_targetFb->getPixelFormat());
     m_auxiliaryFrameBuffer.setBuffer(autoMapSurface.getBuffer());
-    m_targetFb->copyFrom(&dstRect, &m_auxiliaryFrameBuffer, rect.left, rect.top);
+    switch (m_rotation)
+    {
+      case DXGI_MODE_ROTATION_UNSPECIFIED:
+      case DXGI_MODE_ROTATION_IDENTITY:
+      {
+        m_targetFb->copyFrom(&dstRect, &m_auxiliaryFrameBuffer, dirtyRect.left, dirtyRect.top);
+        break;
+      }
+      case DXGI_MODE_ROTATION_ROTATE90:
+      {
+        m_targetFb->copyFromRotated90(&dstRect, &m_auxiliaryFrameBuffer, dirtyRect.left, dirtyRect.top);
+        break;
+      }
+      case DXGI_MODE_ROTATION_ROTATE180:
+      {
+        m_targetFb->copyFromRotated180(&dstRect, &m_auxiliaryFrameBuffer, dirtyRect.left, dirtyRect.top);
+        break;
+      }
+      case DXGI_MODE_ROTATION_ROTATE270:
+      {
+        m_targetFb->copyFromRotated270(&dstRect, &m_auxiliaryFrameBuffer, dirtyRect.left, dirtyRect.top);
+        break;
+      }
+    }
     m_auxiliaryFrameBuffer.setBuffer(0);
 
     changedRegion.addRect(&dstRect);
@@ -192,7 +232,40 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
   m_duplListener->onFrameBufferUpdate(&changedRegion);
 }
 
-void  Win8DeskDuplicationThread::processCursor(const DXGI_OUTDUPL_FRAME_INFO *info)
+void Win8DeskDuplicationThread::rotateRectInsideStage(Rect *toTranspose,
+                                                      const Dimension *stageDim,
+                                                      DXGI_MODE_ROTATION rotation)
+{
+  int left = toTranspose->left;
+  int top = toTranspose->top;
+  int width = toTranspose->getWidth();
+  int height = toTranspose->getHeight();
+  switch (rotation)
+  {
+    case DXGI_MODE_ROTATION_UNSPECIFIED:
+    case DXGI_MODE_ROTATION_IDENTITY:
+    {
+      return;
+    }
+    case DXGI_MODE_ROTATION_ROTATE90:
+    {
+      toTranspose->rotateOn90InsideDimension(stageDim->height);
+      break;
+    }
+    case DXGI_MODE_ROTATION_ROTATE180:
+    {
+      toTranspose->rotateOn180InsideDimension(stageDim->width, stageDim->height);
+      break;
+    }
+    case DXGI_MODE_ROTATION_ROTATE270:
+    {
+      toTranspose->rotateOn270InsideDimension(stageDim->width);
+      break;
+    }
+  }
+}
+
+void Win8DeskDuplicationThread::processCursor(const DXGI_OUTDUPL_FRAME_INFO *info)
 {
   AutoLock al(m_cursorMutex);
   LONGLONG lastUpdateTime = info->LastMouseUpdateTime.QuadPart;

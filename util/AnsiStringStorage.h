@@ -57,6 +57,8 @@ public:
 
   void format(const char *format, ...);
 
+  void appendString(const char *string);
+
 private:
   typedef std::vector<char> BufferType;
   BufferType m_buffer;

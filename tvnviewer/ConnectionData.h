@@ -65,6 +65,11 @@ public:
   bool isSetPassword() const;
   void resetPassword();
 
+  UINT32 getDispatchId() const;
+  bool isSetDispatchId() const;
+  void setDispatchId(UINT32 id);
+  void unsetDispatchId();
+
   void setIncoming(bool isIncoming);
   bool isIncoming() const;
 
@@ -82,6 +87,9 @@ protected:
 
   // Saved password is crypted.
   StringStorage m_defaultPassword;
+
+  bool m_isSetDispatchId;
+  UINT32 m_dispatchId;
 };
 
 

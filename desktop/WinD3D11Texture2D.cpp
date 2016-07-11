@@ -27,7 +27,7 @@
 // The header including of this cpp file must be at last place to avoid build conflicts.
 #include "WinD3D11Texture2D.h"
 
-WinD3D11Texture2D::WinD3D11Texture2D(ID3D11Device *device, D3D11_TEXTURE2D_DESC *deskTexture)
+WinD3D11Texture2D::WinD3D11Texture2D(ID3D11Device *device, const D3D11_TEXTURE2D_DESC *deskTexture)
 : m_dxgiTexture(0)
 {
   HRESULT hr = device->CreateTexture2D(deskTexture, 0, &m_dxgiTexture);

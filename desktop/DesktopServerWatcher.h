@@ -29,7 +29,6 @@
 #include "win-system/Process.h"
 #include "log-writer/LogWriter.h"
 #include "desktop-ipc/ReconnectionListener.h"
-#include "win-system/SharedMemory.h"
 
 /**
  * Thread that used to execute desktop server application.
@@ -58,9 +57,6 @@ protected:
 
   Process *m_process;
   ReconnectionListener *m_recListener;
-
-  SharedMemory *m_sharedMem;
-  StringStorage m_shMemName;
 
   LogWriter *m_log;
 };

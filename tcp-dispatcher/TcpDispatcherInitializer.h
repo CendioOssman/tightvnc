@@ -1,4 +1,4 @@
-// Copyright (C) 2011,2012 GlavSoft LLC.
+// Copyright (C) 2011,2012,2013,2014 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -21,6 +21,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //-------------------------------------------------------------------------
 //
+
+// FIXME: This code is almost a duplicate of DispatcherProtocol.
+//        We should always use DispatcherProtocol instead of this one.
 
 #ifndef _TCPDISPATCHERINITIALIZER_H_
 #define _TCPDISPATCHERINITIALIZER_H_

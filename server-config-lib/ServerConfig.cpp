@@ -44,7 +44,8 @@ ServerConfig::ServerConfig()
   m_allowLoopbackConnections(false),
   m_videoRecognitionInterval(3000), m_grabTransparentWindows(true),
   m_saveLogToAllUsersPath(false), m_hasControlPassword(false),
-  m_showTrayIcon(true)
+  m_showTrayIcon(true),
+  m_idleTimeout(0)
 {
   memset(m_primaryPassword,  0, sizeof(m_primaryPassword));
   memset(m_readonlyPassword, 0, sizeof(m_readonlyPassword));
@@ -94,12 +95,23 @@ void ServerConfig::serialize(DataOutputStream *output)
   output->writeInt8(m_allowLoopbackConnections ? 1 : 0);
 
   _ASSERT((UINT32)m_videoClassNames.size() == m_videoClassNames.size());
+  
   output->writeUInt32((UINT32)m_videoClassNames.size());
   for (size_t i = 0; i < m_videoClassNames.size(); i++) {
     output->writeUTF8(m_videoClassNames.at(i).getString());
   }
 
   output->writeUInt32(m_videoRecognitionInterval);
+  
+  output->writeUInt32(m_idleTimeout);
+  _ASSERT((UINT32)m_videoRects.size() == m_videoRects.size());
+  output->writeUInt32((UINT32)m_videoRects.size());
+  for (size_t i = 0; i < m_videoRects.size(); i++) {
+    StringStorage s;
+    RectSerializer::toString(&(m_videoRects.at(i)),&s);
+    output->writeUTF8(s.getString());
+  }
+	
   output->writeInt8(m_grabTransparentWindows ? 1 : 0);
 
   output->writeInt8(m_saveLogToAllUsersPath ? 1 : 0);
@@ -158,6 +170,16 @@ void ServerConfig::deserialize(DataInputStream *input)
   }
 
   m_videoRecognitionInterval = input->readUInt32();
+
+  m_idleTimeout = input->readUInt32();
+  m_videoRects.clear();
+  count = input->readUInt32();
+  StringStorage strVideoRect;
+  for (size_t i = 0; i < count; i++) {
+    input->readUTF8(&strVideoRect);
+    m_videoRects.push_back(RectSerializer::toRect(&strVideoRect));
+  }
+
   m_grabTransparentWindows = input->readInt8() == 1;
 
   m_saveLogToAllUsersPath = input->readInt8() == 1;
@@ -488,8 +510,8 @@ void ServerConfig::setLogLevel(int logLevel)
   AutoLock lock(&m_objectCS);
   if (logLevel < 0) {
     m_logLevel = 0;
-  } else if (logLevel > 9) {
-    m_logLevel = 9;
+  } else if (logLevel > 10) {
+    m_logLevel = 10;
   } else {
     m_logLevel = logLevel;
   }
@@ -670,6 +692,23 @@ void ServerConfig::setVideoRecognitionInterval(unsigned int interval)
   AutoLock lock(&m_objectCS);
 
   m_videoRecognitionInterval = interval;
+}
+
+std::vector<Rect> *ServerConfig::getVideoRects()
+{
+  return &m_videoRects;
+}
+
+int ServerConfig::getIdleTimeout()
+{
+  AutoLock lock(&m_objectCS);
+  return m_idleTimeout;
+}
+
+void ServerConfig::setIdleTimeout(int timeout)
+{
+  AutoLock lock(&m_objectCS);
+  m_idleTimeout = timeout;
 }
 
 void ServerConfig::saveLogToAllUsersPath(bool enabled)

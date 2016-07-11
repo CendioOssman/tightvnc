@@ -370,6 +370,18 @@ void RfbClientManager::addNewConnection(SocketIPv4 *socket,
 {
   AutoLock al(&m_clientListLocker);
 
+  ServerConfig *config = Configurator::getInstance()->getServerConfig();
+  int timeout = 1000 * config->getIdleTimeout();
+
+  m_log->error(_T("Set socket idle timeout, %d ms"), timeout);
+
+  try { 
+    socket->setSocketOptions(SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+    socket->setSocketOptions(SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+  } catch ( SocketException ){
+    m_log->error(_T("Can't set socket timeout, error: %d"), WSAGetLastError());
+  }
+
   _ASSERT(constViewPort != 0);
   m_nonAuthClientList.push_back(new RfbClient(m_newConnectionEvents,
                                               socket, this, this, viewOnly,
@@ -377,6 +389,7 @@ void RfbClientManager::addNewConnection(SocketIPv4 *socket,
                                               m_nextClientId,
                                               constViewPort,
                                               &m_dynViewPort,
+                                              timeout,
                                               m_log));
   m_nextClientId++;
 }

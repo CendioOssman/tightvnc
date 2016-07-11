@@ -143,6 +143,19 @@ void DesktopBaseImpl::getApplicationRegion(unsigned int procId, Region *region)
   }
 }
 
+bool DesktopBaseImpl::isApplicationInFocus(unsigned int procId)
+{
+  _ASSERT(m_userInput != 0);
+  _ASSERT(m_extDeskTermListener != 0);
+  m_log->info(_T("checking if application is in focus"));
+  try {
+    return m_userInput->isApplicationInFocus(procId);
+  } catch (...) {
+    m_extDeskTermListener->onAbnormalDesktopTerminate();
+  }
+  return false;
+}
+
 bool DesktopBaseImpl::isRemoteInputAllowed()
 {
   m_log->info(_T("checking remote input allowing"));
@@ -270,9 +283,16 @@ void DesktopBaseImpl::onClipboardUpdate(const StringStorage *newClipboard)
   _ASSERT(m_extClipListener != 0);
 
   m_log->info(_T("clipboard update detected"));
-
-  // Send new clipboard text, even if it is empty.
-  m_extClipListener->onClipboardUpdate(newClipboard);
+  bool isEqual;
+  {
+    AutoLock al(&m_storedClipCritSec);
+    isEqual = m_receivedClip.isEqualTo(newClipboard);
+  }
+  if (!isEqual) {
+    // Send new clipboard text, even if it is empty.
+    m_log->info(_T("Send new clipboard content"));
+    m_extClipListener->onClipboardUpdate(newClipboard);
+  }
 }
 
 void DesktopBaseImpl::onConfigReload(ServerConfig *serverConfig)

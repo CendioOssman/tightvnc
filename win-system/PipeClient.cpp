@@ -29,7 +29,7 @@ PipeClient::PipeClient()
 {
 }
 
-NamedPipe *PipeClient::connect(const TCHAR *name)
+NamedPipe *PipeClient::connect(const TCHAR *name, unsigned int maxPortionSize)
 {
   StringStorage pipeName;
   pipeName.format(_T("\\\\.\\pipe\\%s"), name);
@@ -63,5 +63,5 @@ NamedPipe *PipeClient::connect(const TCHAR *name)
     throw Exception(errMess.getString());
   }
 
-  return new NamedPipe(hPipe, false);
+  return new NamedPipe(hPipe, maxPortionSize, false);
 }

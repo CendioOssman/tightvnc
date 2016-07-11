@@ -37,12 +37,15 @@
 
 #include "CapsContainer.h"
 #include "CoreEventsAdapter.h"
+#include "DispatchDataProvider.h"
 #include "DecoderStore.h"
 #include "FbUpdateNotifier.h"
 #include "ServerMessageListener.h"
 #include "TcpConnection.h"
+#include "WatermarksController.h"
 
 #include <map>
+#include "UpdateRequestSender.h"
 
 //
 // RemoteViewerCore implements a local representation of a live remote screen
@@ -250,10 +253,11 @@ public:
   //
   void stop();
 
-  // FIXME: check this commentary.
-
   //
-  // Wait until all threads have been finished.
+  // Wait until all threads have been finished. Always call this function
+  // prior to destroying this object and connected objects (CoreEventsAdapter,
+  // DispatchDataProvider), but only if remote viewer core was actually
+  // started.
   //
   // This function does not terminate threads. That can be done by calling
   // stop(). If stop() was not and will not be called, and no error occures,
@@ -288,6 +292,29 @@ public:
   void setPixelFormat(const PixelFormat *viewerPixelFormat);
 
   //
+  // Enable support for Dispatcher software which acts as a proxy and connects
+  // viewers with compatible servers using specially allocated ID numbers.
+  // Connections to Dispatcher are initiated the same way as connections to
+  // normal VNC-compatible servers, all differences between servers and
+  // dispatchers will be handled automatically.
+  //
+  // This function must be called prior to calling start(). It should not be
+  // used with constructors calling start() function implicitly. If this
+  // function has not been called prior to starting the protocol, dispatched
+  // connections will not be supported and protocol incompatibility error will
+  // be returned.
+  //
+  // The argument points to an object that should implement getDispatchData()
+  // function which will be called when actually connecting to a Dispatcher.
+  // That function should return all necessary information for establishing
+  // dispatched connection, including server's ID. See more information in the
+  // DispatchDataProvider class specification.
+  //
+  // If 0 is passed as an argument, support for Dispatcher will be disabled.
+  //
+  void enableDispatching(DispatchDataProvider *src = 0);
+
+  //
   // Pause/resume updating the frame buffer.
   //
   void stopUpdating(bool isStopped);
@@ -301,6 +328,19 @@ public:
   // the protocol (when the framebuffer does not exist yet).
   //
   void refreshFrameBuffer();
+
+  //
+  // Specifies whether viewer force full update requests.
+  //
+  void forceFullUpdateRequests(const bool& forceUpdate);
+
+  //
+  // Defers an update requests till timeout(in milliseconds) is expired.
+  // Timeout starts when a previous request is sent. But anyway the next update
+  // request will not send until the response on the previous request is 
+  // recieved even if timeout is expired.
+  //
+  void deferUpdateRequests(const int& milliseconds);
 
   //
   // Send a keyboard event. Arguments specify the event as defined in the
@@ -476,6 +516,8 @@ private:
   //
   void receiveSetColorMapEntries();
 
+  void handleDispatcherProtocol(DispatchDataProvider *callback);
+
   bool isRfbProtocolString(const char protocol[12]) const;
   void connectToHost();
   void handshake();
@@ -542,6 +584,11 @@ private:
 
   CoreEventsAdapter *m_adapter;
 
+  mutable LocalMutex m_dispatchDataProviderLock;
+  DispatchDataProvider *m_dispatchDataProvider;
+
+  WatermarksController m_watermarksController;
+
   // m_decoderStore depends on m_logWriter and must be defined after it.
   // See also: C++ standard 12.6.2 - Initializing bases and members.
   DecoderStore m_decoderStore;
@@ -604,6 +651,12 @@ private:
   int m_minor;
   bool m_isTight;
   StringStorage m_remoteDesktopName;
+
+  bool m_forceFullUpdate;
+  
+  int m_updateTimeout;
+
+  UpdateRequestSender m_updateRequestSender;
 
 private:
   // Do not allow copying objects.

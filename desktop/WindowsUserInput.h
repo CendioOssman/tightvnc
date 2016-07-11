@@ -53,6 +53,7 @@ public:
   virtual void getWindowCoords(HWND hwnd, Rect *rect);
   virtual HWND getWindowHandleByName(const StringStorage *windowName);
   virtual void getApplicationRegion(unsigned int procId, Region *region);
+  virtual bool isApplicationInFocus(unsigned int procId);
 
   virtual void initKeyFlag(UINT8 initValue) { m_prevKeyFlag = initValue; }
 

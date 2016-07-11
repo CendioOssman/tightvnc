@@ -33,14 +33,14 @@
 #include "thread/LocalMutex.h"
 #include "log-writer/LogWriter.h"
 
-class AnonymousPipe : public Channel, private Pipe
+class AnonymousPipe : public Channel, public Pipe
 {
 public:
   // @param hWrite is a write handle getting by the CreatePipe()
   // function calling.
   // @param hRead is a read handle getting by the CreatePipe()
   // function calling but is not the same as for hWrite.
-  AnonymousPipe(HANDLE hWrite, HANDLE hRead, LogWriter *log);
+  AnonymousPipe(HANDLE hWrite, HANDLE hRead, unsigned int maxPortionSize, LogWriter *log);
   virtual ~AnonymousPipe();
 
   /**

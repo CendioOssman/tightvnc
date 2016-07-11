@@ -39,7 +39,8 @@
 
 #ifdef WIN32
 #include "winhdr.h"
-#define LIBJPEG_TURBO
+// LIBJPEG_TURBO was disbled only for SDK.
+//#define LIBJPEG_TURBO
 #endif // WIN32
 
 

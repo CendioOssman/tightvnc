@@ -28,14 +28,15 @@
 
 #include "CoreEventsAdapter.h"
 
-FbUpdateNotifier::FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logWriter)
+FbUpdateNotifier::FbUpdateNotifier(FrameBuffer *fb, LocalMutex *fbLock, LogWriter *logWriter, WatermarksController* wmController)
 : m_frameBuffer(fb),
   m_fbLock(fbLock),
   m_logWriter(logWriter),
   m_cursorPainter(fb, logWriter),
   m_isNewSize(false),
   m_isCursorChange(false),
-  m_adapter(0)
+  m_adapter(0),
+  m_watermarksController(wmController)
 {
   m_oldPosition = m_cursorPainter.hideCursor();
 
@@ -117,22 +118,42 @@ void FbUpdateNotifier::execute()
       noUpdates = false;
 
       AutoLock al(m_fbLock);
-      Rect cursor = m_cursorPainter.showCursor();
-      update.addRect(&cursor);
-      update.addRect(&m_oldPosition);
+	  Rect cursor = m_cursorPainter.showCursor();
+	  update.addRect(&cursor);
+	  update.addRect(&m_oldPosition);
+
+#ifdef _DEMO_VERSION_
+	  const Rect* curWmRect = m_watermarksController->CurrentRect();
+	  Region reg(curWmRect);
+	  reg.intersect(&update);
+	  bool isIntersect = !reg.isEmpty();
+	  if (isIntersect)
+	  {
+		m_watermarksController->showWaterMarks(m_frameBuffer, m_fbLock);
+		update.addRect(curWmRect);
+	  }
+#endif
 
       vector<Rect> updateList;
       update.getRectVector(&updateList);
       m_logWriter->detail(_T("FbUpdateNotifier (event): %u updates"), updateList.size());
 
       try {
-        for (vector<Rect>::iterator i = updateList.begin(); i != updateList.end(); i++) {
-          m_adapter->onFrameBufferUpdate(m_frameBuffer, &*i);
+        for (vector<Rect>::iterator i = updateList.begin(); i != updateList.end(); ++i) {
+			m_adapter->onFrameBufferUpdate(m_frameBuffer, &*i);
         }
       } catch (...) {
         m_logWriter->error(_T("FbUpdateNotifier (event): error in update"));
       }
-      m_oldPosition = m_cursorPainter.hideCursor();
+      
+
+#ifdef _DEMO_VERSION_
+	  if (isIntersect)
+		m_watermarksController->hideWatermarks(m_frameBuffer, m_fbLock);
+#endif
+
+	  m_oldPosition = m_cursorPainter.hideCursor();
+
     }
 
     // Pause this thread, if there are no updates (cursor, frame buffer).

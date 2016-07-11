@@ -94,6 +94,9 @@ public:
   // file pointer position. Can move forward and backward.
   void seek(INT64 n);
 
+  // @throw exception on a system error.
+  void flush();
+
 private:
   HANDLE m_hFile;
   StringStorage m_pathToFile;

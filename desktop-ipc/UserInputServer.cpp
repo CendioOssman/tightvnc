@@ -46,6 +46,7 @@ UserInputServer::UserInputServer(BlockingGate *forwGate,
   dispatcher->registerNewHandle(WINDOW_HANDLE_REQ, this);
   dispatcher->registerNewHandle(DISPLAY_NUMBER_COORDS_REQ, this);
   dispatcher->registerNewHandle(APPLICATION_REGION_REQ, this);
+  dispatcher->registerNewHandle(APPLICATION_CHECK_FOCUS, this);
   dispatcher->registerNewHandle(NORMALIZE_RECT_REQ, this);
   dispatcher->registerNewHandle(USER_INPUT_INIT, this);
 }
@@ -102,6 +103,9 @@ void UserInputServer::onRequest(UINT8 reqCode, BlockingGate *backGate)
     break;
   case APPLICATION_REGION_REQ:
     ansApplicationRegion(backGate);
+    break;
+  case APPLICATION_CHECK_FOCUS:
+    ansApplicationInFocus(backGate);
     break;
   case NORMALIZE_RECT_REQ:
     ansNormalizeRect(backGate);
@@ -204,4 +208,11 @@ void UserInputServer::ansApplicationRegion(BlockingGate *backGate)
   Region region;
   m_userInput->getApplicationRegion(procId, &region);
   sendRegion(&region, backGate);
+}
+
+void UserInputServer::ansApplicationInFocus(BlockingGate *backGate)
+{
+  UINT32 procId = backGate->readUInt32();
+  bool result = m_userInput->isApplicationInFocus((unsigned int)procId);
+  backGate->writeUInt8(result ? 1 : 0);
 }

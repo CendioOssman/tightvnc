@@ -29,7 +29,8 @@ ListenLogServer::ListenLogServer(const TCHAR *publicPipeName,
 : m_connListener(connListener)
 {
   m_pipeSecurity.shareToAllUsers();
-  m_listenPipe = new PipeServer(publicPipeName);
+  const unsigned int logBufferSizeForServiceChannel = 0x10000;
+  m_listenPipe = new PipeServer(publicPipeName, logBufferSizeForServiceChannel);
   resume();
 }
 

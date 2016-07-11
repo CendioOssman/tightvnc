@@ -31,6 +31,7 @@
 #include "rfb/EncodingDefs.h"
 #include "rfb/VendorDefs.h"
 #include "util/AnsiStringStorage.h"
+#include "tcp-dispatcher/DispatcherProtocol.h"
 
 #include "AuthHandler.h"
 #include "RichCursorDecoder.h"
@@ -40,6 +41,7 @@
 #include "RfbPointerEventClientMessage.h"
 #include "RfbSetEncodingsClientMessage.h"
 #include "RfbSetPixelFormatClientMessage.h"
+#include "WatermarksController.h"
 
 #include "RawDecoder.h"
 #include "CopyRectDecoder.h"
@@ -61,8 +63,9 @@
 RemoteViewerCore::RemoteViewerCore(Logger *logger)
 : m_logWriter(logger),
   m_tcpConnection(&m_logWriter),
-  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter),
-  m_decoderStore(&m_logWriter)
+  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
+  m_decoderStore(&m_logWriter),
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
 {
   init();
 }
@@ -73,8 +76,9 @@ RemoteViewerCore::RemoteViewerCore(const TCHAR *host, UINT16 port,
                                    bool sharedFlag)
 : m_logWriter(logger),
   m_tcpConnection(&m_logWriter),
-  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter),
-  m_decoderStore(&m_logWriter)
+  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
+  m_decoderStore(&m_logWriter),
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
 {
   init();
 
@@ -87,8 +91,9 @@ RemoteViewerCore::RemoteViewerCore(SocketIPv4 *socket,
                                    bool sharedFlag)
 : m_logWriter(logger),
   m_tcpConnection(&m_logWriter),
-  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter),
-  m_decoderStore(&m_logWriter)
+  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
+  m_decoderStore(&m_logWriter),
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
 {
   init();
 
@@ -101,8 +106,9 @@ RemoteViewerCore::RemoteViewerCore(RfbInputGate *input, RfbOutputGate *output,
                                    bool sharedFlag)
 : m_logWriter(logger),
   m_tcpConnection(&m_logWriter),
-  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter),
-  m_decoderStore(&m_logWriter)
+  m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
+  m_decoderStore(&m_logWriter),
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
 {
   init();
 
@@ -131,6 +137,9 @@ void RemoteViewerCore::init()
   m_isNewPixelFormat = false;
   m_isFreeze = false;
   m_isNeedRequestUpdate = true;
+  m_forceFullUpdate = false;
+
+  m_updateTimeout = 0;
 }
 
 RemoteViewerCore::~RemoteViewerCore()
@@ -145,6 +154,7 @@ RemoteViewerCore::~RemoteViewerCore()
       waitTermination();
     } else {
       m_fbUpdateNotifier.wait();
+	  m_updateRequestSender.wait();
     }
   } catch (...) {
   }
@@ -217,6 +227,15 @@ bool RemoteViewerCore::wasConnected() const
 
 void RemoteViewerCore::stop()
 {
+  {
+    // We should use locking to prevent simultaneous reading and writing of
+    // the m_dispatchDataProvider pointer.
+    AutoLock al(&m_dispatchDataProviderLock);
+    m_dispatchDataProvider = 0;
+  }
+
+  m_updateRequestSender.terminate();
+
   m_tcpConnection.close();
   m_fbUpdateNotifier.terminate();
   terminate();
@@ -225,6 +244,7 @@ void RemoteViewerCore::stop()
 void RemoteViewerCore::waitTermination()
 {
   m_fbUpdateNotifier.wait();
+  m_updateRequestSender.wait();
   wait();
 }
 
@@ -234,6 +254,17 @@ void RemoteViewerCore::setPixelFormat(const PixelFormat *pixelFormat)
   AutoLock al(&m_pixelFormatLock);
   m_isNewPixelFormat = true;
   m_viewerPixelFormat = *pixelFormat;
+}
+
+void RemoteViewerCore::enableDispatching(DispatchDataProvider *src)
+{
+  AutoLock al(&m_startLock);
+  if (!m_wasStarted) {
+    // In other places, we use locking to access this pointer
+    // (see m_dispatchDataProviderLock), but not here, as we assume there is
+    // no concurrent access to this variable prior to calling start().
+    m_dispatchDataProvider = src;
+  }
 }
 
 bool RemoteViewerCore::updatePixelFormat()
@@ -277,6 +308,18 @@ void RemoteViewerCore::refreshFrameBuffer()
   m_isRefreshing = true;
 }
 
+void RemoteViewerCore::forceFullUpdateRequests(const bool& forceUpdate)
+{
+	m_forceFullUpdate = forceUpdate;
+	m_updateRequestSender.setIsIncremental(!forceUpdate);
+}
+
+void RemoteViewerCore::deferUpdateRequests(const int& milliseconds)
+{
+	m_updateTimeout = milliseconds;
+	m_updateRequestSender.setTimeout(milliseconds);
+}
+
 void RemoteViewerCore::sendFbUpdateRequest(bool incremental)
 {
   {
@@ -301,24 +344,31 @@ void RemoteViewerCore::sendFbUpdateRequest(bool incremental)
     }
   }
 
-  bool isIncremental = incremental && !isRefresh && !isUpdateFbProperties;
-  Rect updateRect;
+  if (isRefresh || isUpdateFbProperties || m_updateRequestSender.getTimeout() <= 0)
   {
-    AutoLock al(&m_fbLock);
-    updateRect = m_frameBuffer.getDimension().getRect();
-  }
+	bool isIncremental = incremental && !isRefresh && !isUpdateFbProperties;
+	Rect updateRect;
+	{
+	  AutoLock al(&m_fbLock);
+	  updateRect = m_frameBuffer.getDimension().getRect();
+	}
 
-  if (isIncremental) {
-    m_logWriter.debug(_T("Sending frame buffer incremental update request [%dx%d]..."),
-                      updateRect.getWidth(), updateRect.getHeight());
-  } else {
-    m_logWriter.debug(_T("Sending frame buffer full update request [%dx%d]..."),
-                      updateRect.getWidth(), updateRect.getHeight());
-  }
+	if (isIncremental) {
+	  m_logWriter.debug(_T("Sending frame buffer incremental update request [%dx%d]..."),
+	                    updateRect.getWidth(), updateRect.getHeight());
+	} else {
+	  m_logWriter.debug(_T("Sending frame buffer full update request [%dx%d]..."),
+	                    updateRect.getWidth(), updateRect.getHeight());
+	}
 
-  RfbFramebufferUpdateRequestClientMessage fbUpdReq(isIncremental, updateRect);
-  fbUpdReq.send(m_output);
-  m_logWriter.debug(_T("Frame buffer update request is sent"));
+	RfbFramebufferUpdateRequestClientMessage fbUpdReq(isIncremental, updateRect);
+	fbUpdReq.send(m_output);
+	m_logWriter.debug(_T("Frame buffer update request is sent"));
+  }
+  else
+  {
+	  m_updateRequestSender.setWasUpdated();
+  }
 }
 
 void RemoteViewerCore::sendKeyboardEvent(bool downFlag, UINT32 key)
@@ -453,7 +503,7 @@ void RemoteViewerCore::stopUpdating(bool isStopped)
   }
   if (!isStopped) {
     m_logWriter.detail(_T("Sending of frame buffer update request..."));
-    sendFbUpdateRequest();
+    sendFbUpdateRequest(!m_forceFullUpdate);
   }
 }
 
@@ -485,6 +535,9 @@ void RemoteViewerCore::connectToHost()
   m_tcpConnection.connect();
   m_input = m_tcpConnection.getInput();
   m_output = m_tcpConnection.getOutput();
+
+  m_updateRequestSender.setOutput(m_output);
+
   m_logWriter.detail(_T("Connection is established"));
   try {
     m_adapter->onEstablished();
@@ -722,6 +775,10 @@ int RemoteViewerCore::initAuthentication()
 void RemoteViewerCore::setFbProperties(const Dimension *fbDimension,
                                        const PixelFormat *fbPixelFormat)
 {
+#ifdef _DEMO_VERSION_
+	m_watermarksController.setNewFbProperties(&fbDimension->getRect(), fbPixelFormat);
+#endif
+
   const PixelFormat &pxFormat = *fbPixelFormat;
   StringStorage pxString;
   pxString.format(_T("[bits-per-pixel: %d, depth: %d, big-endian-flag: %d, ")
@@ -941,7 +998,7 @@ void RemoteViewerCore::receiveFbUpdate()
       return;
   }
   m_logWriter.detail(_T("Sending of frame buffer update request..."));
-  sendFbUpdateRequest();
+  sendFbUpdateRequest(!m_forceFullUpdate);
 }
 
 bool RemoteViewerCore::receiveFbUpdateRectangle()
@@ -1131,6 +1188,31 @@ void RemoteViewerCore::handshake()
   serverProtocol[12] = 0;
   m_input->readFully(serverProtocol, 12);
 
+  //
+  // Here we safely save a local copy of m_dispatchDataProvider, so that it
+  // does not change during the following execution flow.
+  //
+  // NOTE: It's possible that this->m_dispatchDataProvider is not null here
+  // but will become null at the moment of calling the callback function of
+  // DispatchDataProvider. It should be ok as long as that instance of
+  // DispatchDataProvider is kept valid until this->waitTermination() exits.
+  //
+  // FIXME: First make sure that's a dispatched connection, then look at m_dispatchDataProvider?
+  DispatchDataProvider *dispatchDataProvider;
+  {
+    AutoLock al(&m_dispatchDataProviderLock);
+    dispatchDataProvider = m_dispatchDataProvider;
+  }
+
+  // Support connections to Dispatcher.
+  if (dispatchDataProvider != 0) {
+    bool connectedToDispatcher = DispatcherProtocol::checkProtocolSignature(serverProtocol);
+    if (connectedToDispatcher) {
+      handleDispatcherProtocol(dispatchDataProvider);
+      m_input->readFully(serverProtocol, 12); // now expecting "RFB XXX.XXX"
+    }
+  }
+
   m_major = strtol(&serverProtocol[4], 0, 10);
   m_minor = strtol(&serverProtocol[8], 0, 10);
   m_isTight = false;
@@ -1170,6 +1252,22 @@ void RemoteViewerCore::handshake()
   m_output->flush();
 }
 
+void RemoteViewerCore::handleDispatcherProtocol(DispatchDataProvider *callback)
+{
+  StringStorage dispatcherName;
+  StringStorage keyword;
+  UINT32 id;
+  bool gotData = callback->getDispatchData(&id, &dispatcherName, &keyword);
+  if (!gotData) {
+    throw BadDispatcherProtocolException(_T("Connection ID is not specified"));
+  }
+
+  DispatcherProtocol proto(m_input, m_output, "", true, id, "", &m_logWriter);
+
+  proto.continueTcpDispatchProtocol();
+  proto.waitNextProtocolContinue();
+}
+
 /**
  * Client send:
  * 2           - U8          - shared flag
@@ -1203,7 +1301,7 @@ void RemoteViewerCore::clientAndServerInit()
   }
 
   UINT32 sizeInBytes = m_input->readUInt32();
-  std::vector<const char> buffer(sizeInBytes + 1);
+  std::vector<char> buffer(sizeInBytes + 1);
   m_input->read(&buffer.front(), sizeInBytes);
   buffer[sizeInBytes] = '\0';
   AnsiStringStorage ansiStr;

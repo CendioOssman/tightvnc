@@ -31,7 +31,6 @@
 #include "tvncontrol-app/ControlAuthException.h"
 #include "tvncontrol-app/Transport.h"
 #include "ControlAppAuthenticator.h"
-#include "TcpDispatcherConnectionListener.h"
 #include "thread/ThreadCollector.h"
 #include "log-writer/LogWriter.h"
 
@@ -57,8 +56,7 @@ public:
  * @remark class uses TvnServer singleton and actual TvnServer instance must exist
  * while any control client is runnin. If this rule is broken, it can cause application crash.
  */
-class ControlClient : public Thread,
-                      private TcpDispatcherConnectionListener
+class ControlClient : public Thread
 {
 public:
   /**
@@ -94,10 +92,6 @@ protected:
   virtual void onTerminate();
 
 private:
-  virtual void onGetId(unsigned int id,
-                       const AnsiStringStorage *dispatcherName);
-  virtual void onClearId();
-
   /**
    * Sends error (server exception message) to client side.
    * @param message description of error.
@@ -231,8 +225,6 @@ private:
   unsigned int m_tcpDispId;
   StringStorage m_gotDispatcherName;
   LocalMutex m_tcpDispValuesMutex;
-
-  ThreadCollector m_connectingSocketThreadCollector;
 
   LogWriter *m_log;
 

@@ -158,6 +158,9 @@
     <ClCompile Include="WsaStartup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="EmulatedAnonymousPipeFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnonymousPipe.h">
@@ -308,6 +311,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WinHooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EmulatedAnonymousPipeFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

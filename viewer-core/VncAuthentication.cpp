@@ -27,6 +27,8 @@
 #include "util/AnsiStringStorage.h"
 #include "util/DesCrypt.h"
 
+#include <algorithm>
+
 void VncAuthentication::vncAuthenticate(DataInputStream *input,
                                         DataOutputStream *output,
                                         const StringStorage *password)
@@ -42,7 +44,7 @@ void VncAuthentication::vncAuthenticate(DataInputStream *input,
   UINT8 m_password[VNC_PASSWORD_SIZE];
   memset(m_password, 0, sizeof(m_password));
   memcpy(m_password, passwordAnsi.getString(),
-         min(passwordAnsi.getLength(), sizeof(m_password)));
+         std::min(passwordAnsi.getLength(), sizeof(m_password)));
 
   UINT8 challenge[16];
   UINT8 response[16];

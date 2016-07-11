@@ -23,6 +23,7 @@
 //
 
 #include "WindowsDisplays.h"
+#include "thread/AutoLock.h"
 
 WindowsDisplays::WindowsDisplays()
 {
@@ -64,6 +65,7 @@ void WindowsDisplays::update()
 void WindowsDisplays::getDisplayCoordinates(unsigned char displayNumber,
                                             Rect *rect)
 {
+  AutoLock al(&m_displayRectsMutex);
   update();
   displayNumber--;
   if (displayNumber < m_displayRects.size()) {

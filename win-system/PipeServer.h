@@ -48,7 +48,8 @@ public:
    *
    * @fixme stub.
    */
-  PipeServer(const TCHAR *name, SecurityAttributes *secAttr = 0,
+  PipeServer(const TCHAR *name, unsigned int bufferSize,
+             SecurityAttributes *secAttr = 0,
              DWORD milliseconds = INFINITE) throw(Exception);
   /**
    * Destroys pipe server.
@@ -88,6 +89,7 @@ private:
   DWORD m_milliseconds;
   SecurityAttributes *m_secAttr;
   HANDLE m_serverPipe;
+  unsigned int m_bufferSize;
 };
 
 #endif // __PIPESERVER_H__

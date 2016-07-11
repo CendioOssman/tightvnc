@@ -33,6 +33,7 @@
 #include "Shell.h"
 #include "DynamicLibrary.h"
 #include <vector>
+#include <algorithm>
 
 OSVERSIONINFO Environment::m_osVerInfo = { 0 };
 typedef VOID (WINAPI *SendSas)(BOOL asUser);
@@ -146,7 +147,7 @@ bool Environment::getCurrentModuleFolderPath(StringStorage *out)
   size_t lastPos = out->findLast(_T('\\'));
 
   if (lastPos != (size_t)-1) {
-    out->getSubstring(out, 0, max(lastPos - 1, 0));
+    out->getSubstring(out, 0, std::max(lastPos - 1, (size_t) 0));
   }
 
   return true;

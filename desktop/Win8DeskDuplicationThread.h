@@ -65,6 +65,10 @@ private:
                          WinD3D11Texture2D *acquiredDesktopImage);
   void processCursor(const DXGI_OUTDUPL_FRAME_INFO *info);
 
+  Dimension getStageDimension() const;
+
+  void rotateRectInsideStage(Rect *toTranspose, const Dimension *stageDim, DXGI_MODE_ROTATION rotation);
+
   int m_threadNumber;
 
   FrameBuffer *m_targetFb;
@@ -73,6 +77,8 @@ private:
   Win8CursorShape *m_targetCurShape;
   LONGLONG *m_cursorTimeStamp;
   LocalMutex *m_cursorMutex;
+
+  DXGI_MODE_ROTATION m_rotation;
 
   Win8DuplicationListener *m_duplListener;
 

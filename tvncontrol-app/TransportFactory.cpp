@@ -61,7 +61,7 @@ Transport *TransportFactory::createSocketServerTransport(const TCHAR *bindHost,
 
 Transport *TransportFactory::createPipeClientTransport(const TCHAR *name)
 {
-  return new NamedPipeTransport(PipeClient::connect(name));
+  return new NamedPipeTransport(PipeClient::connect(name, 0));
 }
 
 Transport *TransportFactory::createPipeServerTransport(const TCHAR *name)
@@ -72,5 +72,5 @@ Transport *TransportFactory::createPipeServerTransport(const TCHAR *name)
   pipeSecurity->setInheritable();
   pipeSecurity->shareToAllUsers();
 
-  return new NamedPipeTransport(new PipeServer(name, pipeSecurity));
+  return new NamedPipeTransport(new PipeServer(name, 0, pipeSecurity));
 }

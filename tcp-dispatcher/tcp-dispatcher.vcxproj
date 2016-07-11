@@ -248,9 +248,11 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DispatcherProtocol.cpp" />
     <ClCompile Include="TcpDispatcherInitializer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DispatcherProtocol.h" />
     <ClInclude Include="TcpDispatcherInitializer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

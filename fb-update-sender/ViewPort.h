@@ -61,6 +61,10 @@ public:
   // Returns true if checked share only application.
   bool getOnlyApplication();
 
+  // Returns application PID if we share one application. Check getOnlyApplication() as well,
+  // to make sure the returned value is relevant.
+  unsigned int getApplicationId();
+
   // Returns a region that has rectangles of application which was visible
   // window parts at latest calling of the update() function. The region
   // doesn't changes by the update function if checked mode isn't "shareapp".

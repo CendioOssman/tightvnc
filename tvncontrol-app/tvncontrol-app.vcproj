@@ -593,6 +593,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DispatchCommand.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\MakeRfbConnectionCommand.cpp"
 				>
 			</File>
@@ -748,6 +752,10 @@
 			</File>
 			<File
 				RelativePath=".\DisconnectAllCommand.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DispatchCommand.h"
 				>
 			</File>
 			<File

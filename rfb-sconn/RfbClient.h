@@ -40,6 +40,7 @@
 #include "ClientTerminationListener.h"
 #include "ClientInputEventListener.h"
 #include "tvnserver-app/NewConnectionEvents.h"
+#include "util/DemandTimer.h"
 
 class ClientAuthListener;
 
@@ -63,6 +64,7 @@ public:
             bool isOutgoing, unsigned int id,
             const ViewPortState *constViewPort,
             const ViewPortState *dynViewPort,
+            int idleTimeout,
             LogWriter *log);
   virtual ~RfbClient();
 
@@ -146,6 +148,10 @@ private:
   unsigned int m_id;
 
   NewConnectionEvents *m_newConnectionEvents;
+  // This timer sets by IdleTimeout value from server config 
+  // and resets on mouse or keyboard event
+  DemandTimer m_idleTimer;
+  int m_idleTimeout;
 };
 
 #endif // __RFBCLIENT_H__

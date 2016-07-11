@@ -34,10 +34,12 @@
 class PipeClient
 {
 public:
-  static NamedPipe *connect(const TCHAR *name) throw(Exception);
+  static NamedPipe *connect(const TCHAR *name, unsigned int maxPortionSize) throw(Exception);
 
 private:
   PipeClient();
+
+  unsigned int m_maxPortionSize;
 };
 
 #endif // __PIPECLIENT_H__

@@ -25,10 +25,16 @@
 // The header including of this cpp file must be at last place to avoid build conflicts.
 #include "WinCustomD3D11Texture2D.h"
 
-WinCustomD3D11Texture2D::Texture2DDescInitializer::Texture2DDescInitializer(UINT width, UINT height)
+WinCustomD3D11Texture2D::Texture2DDescInitializer::Texture2DDescInitializer(UINT width, UINT height,
+                                                                            DXGI_MODE_ROTATION rotation)
 {
-  m_desc.Width = width;
-  m_desc.Height = height;
+  if (rotation == DXGI_MODE_ROTATION_ROTATE90 || rotation == DXGI_MODE_ROTATION_ROTATE270) {
+    m_desc.Width = height;
+    m_desc.Height = width;
+  } else {
+    m_desc.Width = width;
+    m_desc.Height = height;
+  }
   m_desc.MipLevels = 1;
   m_desc.ArraySize = 1;
   m_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -40,14 +46,14 @@ WinCustomD3D11Texture2D::Texture2DDescInitializer::Texture2DDescInitializer(UINT
   m_desc.MiscFlags = 0;
 }
 
-D3D11_TEXTURE2D_DESC *WinCustomD3D11Texture2D::Texture2DDescInitializer::getDesc()
+const D3D11_TEXTURE2D_DESC *WinCustomD3D11Texture2D::Texture2DDescInitializer::getDesc() const
 {
   return &m_desc;
 }
 
-
-WinCustomD3D11Texture2D::WinCustomD3D11Texture2D(ID3D11Device *device, UINT width, UINT height)
-: m_textDescInitializer(width, height),
+WinCustomD3D11Texture2D::WinCustomD3D11Texture2D(ID3D11Device *device, UINT width, UINT height,
+                                                 DXGI_MODE_ROTATION rotation)
+: m_textDescInitializer(width, height, rotation),
   m_textureWrapper(device, m_textDescInitializer.getDesc())
 {
 }
@@ -60,4 +66,9 @@ WinCustomD3D11Texture2D::~WinCustomD3D11Texture2D()
 ID3D11Texture2D *WinCustomD3D11Texture2D::getTexture() const
 {
   return m_textureWrapper.getTexture();
+}
+
+const D3D11_TEXTURE2D_DESC *WinCustomD3D11Texture2D::getDesc() const
+{
+  return m_textDescInitializer.getDesc();
 }

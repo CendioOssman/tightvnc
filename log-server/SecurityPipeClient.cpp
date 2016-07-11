@@ -27,7 +27,7 @@
 #include "io-lib/DataOutputStream.h"
 #include "win-system/NamedPipe.h"
 
-SecurityPipeClient::SecurityPipeClient(Channel *tempPublChan)
+SecurityPipeClient::SecurityPipeClient(Channel *tempPublChan, unsigned int maxPortionSize)
 : m_secChannel(0)
 {
   try {
@@ -37,7 +37,7 @@ SecurityPipeClient::SecurityPipeClient(Channel *tempPublChan)
     svcOutput.writeUInt32(GetCurrentProcessId());
     // Get working channel.
     HANDLE pipeHandle = (HANDLE)svcInput.readUInt64();
-    m_secChannel = new NamedPipe(pipeHandle, false);
+    m_secChannel = new NamedPipe(pipeHandle, maxPortionSize, false);
     DataOutputStream output(m_secChannel);
     // Send sure message.
     output.writeUInt8(255);

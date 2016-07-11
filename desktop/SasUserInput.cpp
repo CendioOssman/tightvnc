@@ -119,3 +119,8 @@ void SasUserInput::getApplicationRegion(unsigned int procId, Region *region)
 {
   m_client->getApplicationRegion(procId, region);
 }
+
+bool SasUserInput::isApplicationInFocus(unsigned int procId)
+{
+  return m_client->isApplicationInFocus(procId);
+}

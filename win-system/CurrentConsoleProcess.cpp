@@ -45,6 +45,8 @@ void CurrentConsoleProcess::start()
   cleanup();
 
   DWORD sessionId = WTS::getActiveConsoleSessionId(m_log);
+  DWORD uiAccess  = 1; // Nonzero enables UI control
+
   m_log->info(_T("Try to start \"%s %s\" process as current user at %d session"),
             m_path.getString(),
             m_args.getString(),
@@ -91,6 +93,19 @@ void CurrentConsoleProcess::start()
       &sessionId,
       sizeof(sessionId)) == 0) {
         throw SystemException();
+    }
+    // Fix Windows 8/8.1 UIAccess restrictions (Alt-Tab) for server as service
+    // http://stackoverflow.com/questions/13972165/pressing-winx-alt-tab-programatically
+    // For application we need to set /uiAccess='true' in linker manifest, sign binary 
+    // and run from "Program Files/"
+    m_log->debug(_T("Try SetTokenInformation(%p, , , ) with UIAccess=1"),
+               (void *)userToken);
+    if (SetTokenInformation(userToken,
+      (TOKEN_INFORMATION_CLASS) TokenUIAccess,
+      &uiAccess,
+      sizeof(uiAccess)) == 0) {
+        m_log->info(_T("Can't set UIAccess=1, ignore it"),
+               (void *)userToken);
     }
 
     StringStorage commandLine = getCommandLineString();

@@ -28,7 +28,6 @@
 #include "util/StringStorage.h"
 #include "thread/Thread.h"
 #include "RfbClientManager.h"
-#include "TcpDispatcherConnectionListener.h"
 #include "util/AnsiStringStorage.h"
 #include "log-writer/LogWriter.h"
 
@@ -54,7 +53,6 @@ public:
                                UINT32 connectionId,
                                const AnsiStringStorage *keyword,
                                RfbClientManager *clientManager,
-                               TcpDispatcherConnectionListener *connListener,
                                LogWriter *log);
   virtual ~ConnectToTcpDispatcherThread();
 
@@ -69,17 +67,17 @@ private:
   UINT32 m_connectionId;
   AnsiStringStorage m_keyword;
 
+  // FIXME: Make sure it always points to a live object.
   RfbClientManager *m_clientManager;
-  // FIXME: Check that a listener die later than this object.
-  TcpDispatcherConnectionListener *m_connListener;
 
-  // This class is owner of the socket until the socket will gived up to
-  // another object. The socket delegation must be covered a mutex to
-  // solve who is owner at socket closing moment.
+  // This class owns the socket until the socket will be passed to another
+  // object. Socket delegation must be protected by a mutex to make sure we
+  // know who is the owner at the moment of closing the socket.
   SocketIPv4 *m_socket;
   bool m_pendingToRemove;
   LocalMutex m_socketDelegationMutex;
 
+  // FIXME: Make sure it always points to a live object.
   LogWriter *m_log;
 };
 

@@ -32,8 +32,9 @@
 #include "ConnectionTimer.h"
 #include <time.h>
 
-SecurityPipeServer::SecurityPipeServer(Channel *tempPublChan)
-: m_secChannel(0)
+SecurityPipeServer::SecurityPipeServer(Channel *tempPublChan, unsigned int bufferSize)
+: m_secChannel(0),
+  m_bufferSize(bufferSize)
 {
   try {
     generateSecConnection(tempPublChan);
@@ -55,26 +56,6 @@ Channel *SecurityPipeServer::getChannel()
   return chan;
 }
 
-HANDLE SecurityPipeServer::assignHandleFor(unsigned int procId,
-                                           HANDLE srcHandle)
-{
-  HANDLE processHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, procId);
-  if (processHandle == 0) {
-    throw Exception(_T("Cannot open process to assign pipe")
-                    _T(" handles for it"));
-  }
-  HANDLE dstHandle;
-  try {
-    dstHandle = WinHandles::assignHandleFor(srcHandle, processHandle,
-                                            false, false);
-    CloseHandle(processHandle);
-    return dstHandle;
-  } catch (...) {
-    CloseHandle(processHandle);
-    throw;
-  }
-}
-
 void SecurityPipeServer::generateSecConnection(Channel *tempPublChan)
 {
   NamedPipe *otherSideChannel = 0;
@@ -90,19 +71,19 @@ void SecurityPipeServer::generateSecConnection(Channel *tempPublChan)
       throw Exception(_T("The process that has requested connection")
                       _T(" to the log server has not access right"));
     }
-    // Give to process exclusive pipe handles
 
+    // Give to process exclusive pipe handles
     StringStorage randomName;
     srand((unsigned)time(0));
     for (int i = 0; i < 20; i++) {
       randomName.appendChar('a' + rand() % ('z' - 'a'));
     }
-    PipeServer pipeServer(randomName.getString(), 0, 1000);
-    otherSideChannel = PipeClient::connect(randomName.getString());
+    PipeServer pipeServer(randomName.getString(), m_bufferSize, 0, 1000);
+    otherSideChannel = PipeClient::connect(randomName.getString(), m_bufferSize);
     m_secChannel = pipeServer.accept();
 
     HANDLE otherSideHandle = otherSideChannel->getHandle();
-    svcOutput.writeUInt64((UINT64)assignHandleFor(procId, otherSideHandle));
+    svcOutput.writeUInt64((UINT64)WinHandles::assignHandleFor(otherSideHandle, procId, false, false));
   } catch (...) {
     if (otherSideChannel != 0) delete otherSideChannel;
     throw;

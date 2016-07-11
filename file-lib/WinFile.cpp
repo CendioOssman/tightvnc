@@ -154,6 +154,13 @@ void WinFile::seek(INT64 n)
   }
 }
 
+void WinFile::flush()
+{
+  if (!FlushFileBuffers(m_hFile)) {
+    throw SystemException(_T("Cannot flush file"));
+  }
+}
+
 size_t WinFile::read(void *buff, size_t count)
 {
   DWORD count32 = (DWORD)count;

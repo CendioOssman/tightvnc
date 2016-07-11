@@ -356,6 +356,7 @@ bool Configurator::saveVideoRegionConfig(SettingsManager *sm)
   StringStorage buffer;
   StringVector *videoClasses = m_serverConfig.getVideoClassNames();
   size_t size = videoClasses->size();
+ std::vector<Rect> *videoRects = m_serverConfig.getVideoRects();
 
   AutoLock al(&m_serverConfig);
   buffer.setString(_T(""));
@@ -368,6 +369,20 @@ bool Configurator::saveVideoRegionConfig(SettingsManager *sm)
   if (!sm->setString(_T("VideoClasses"), buffer.getString())) {
     saveResult = false;
   }
+ 
+  size = videoRects->size();
+  buffer.setString(_T(""));
+  for (size_t i = 0; i < size; i++) {
+    StringStorage s;
+    RectSerializer::toString(&(videoRects->at(i)),&s);
+    buffer.appendString(s.getString());
+    if (i != size - 1) {
+      buffer.appendString(_T("\n"));
+    }
+  }
+  if (!sm->setString(_T("VideoRects"), buffer.getString())) {
+    saveResult = false;
+  }
   return saveResult;
 }
 
@@ -376,6 +391,7 @@ bool Configurator::loadVideoRegionConfig(SettingsManager *sm, ServerConfig *conf
   bool loadResult = true;
 
   StringVector *videoClasses = m_serverConfig.getVideoClassNames();
+  std::vector<Rect> *videoRects = m_serverConfig.getVideoRects();
 
   // Lock configuration
   AutoLock al(&m_serverConfig);
@@ -402,10 +418,10 @@ bool Configurator::loadVideoRegionConfig(SettingsManager *sm, ServerConfig *conf
 
   size_t count = 0;
 
-  storage.split(_T("\n"), NULL, &count);
+  storage.split(_T("\n\t ,;"), NULL, &count);
   if (count != 0) {
     std::vector<StringStorage> chunks(count);
-    storage.split(_T("\n"), &chunks.front(), &count);
+    storage.split(_T("\n\t ,;"), &chunks.front(), &count);
 
     for (size_t i = 0; i < count; i++) {
       if (!chunks[i].isEmpty()) {
@@ -414,6 +430,40 @@ bool Configurator::loadVideoRegionConfig(SettingsManager *sm, ServerConfig *conf
     }
   }
 
+  // Clear storage content
+  storage.setString(_T(""));
+
+  //
+  // Delete old video rects entries
+  //
+
+  videoRects->clear();
+
+  //
+  // Try to load.
+  //
+  
+  if (!sm->getString(_T("VideoRects"), &storage)) {
+    loadResult = false;
+  }
+
+  //
+  // Split.
+  //
+
+  count = 0;
+
+  storage.split(_T("\n\t ,;"), NULL, &count);
+  if (count != 0) {
+    std::vector<StringStorage> chunks(count);
+    storage.split(_T("\n\t ,;"), &chunks.front(), &count);
+
+    for (size_t i = 0; i < count; i++) {
+      if (!chunks[i].isEmpty()) {
+        videoRects->push_back(RectSerializer::toRect(&chunks[i]));
+      }
+    }
+  }
   return loadResult;
 }
 
@@ -582,6 +632,9 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
   if (!sm->setBoolean(_T("RunControlInterface"), m_serverConfig.getShowTrayIconFlag())) {
     saveResult = false;
   }
+  if (!sm->setUINT(_T("IdleTimeout"), (UINT)m_serverConfig.getIdleTimeout())) {
+    saveResult = false;
+  }
   return saveResult;
 }
 
@@ -742,6 +795,12 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   } else {
     m_isConfigLoadedPartly = true;
     m_serverConfig.setVideoRecognitionInterval(uintVal);
+  }
+  if (!sm->getUINT(_T("IdleTimeout"), &uintVal)) {
+    loadResult = false;
+  } else {
+    m_isConfigLoadedPartly = true;
+    m_serverConfig.setIdleTimeout((int)uintVal);
   }
   if (!sm->getBoolean(_T("GrabTransparentWindows"), &boolVal)) {
     loadResult = false;

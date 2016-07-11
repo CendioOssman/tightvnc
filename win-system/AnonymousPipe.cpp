@@ -26,8 +26,9 @@
 #include "win-system/Environment.h"
 #include "thread/AutoLock.h"
 
-AnonymousPipe::AnonymousPipe(HANDLE hWrite, HANDLE hRead, LogWriter *log)
-: m_hWrite(hWrite),
+AnonymousPipe::AnonymousPipe(HANDLE hWrite, HANDLE hRead, unsigned int maxPortionSize, LogWriter *log)
+: Pipe(maxPortionSize),
+  m_hWrite(hWrite),
   m_hRead(hRead),
   m_neededToClose(true),
   m_log(log)

@@ -61,6 +61,8 @@ public:
   virtual void getWindowCoords(HWND hwnd, Rect *rect);
   virtual HWND getWindowHandleByName(const StringStorage *windowName);
   virtual void getApplicationRegion(unsigned int procId, Region *region);
+  virtual bool isApplicationInFocus(unsigned int procId);
+
   virtual void setKeyboardEvent(UINT32 keySym, bool down);
   virtual void setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask);
   virtual void setNewClipText(const StringStorage *newClipboard);
