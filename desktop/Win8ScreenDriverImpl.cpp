@@ -98,13 +98,24 @@ FrameBuffer *Win8ScreenDriverImpl::getScreenBuffer()
 
 void Win8ScreenDriverImpl::initDxgi()
 {
+  {
+    m_log->debug(_T("Begin dxgi Output Duplication test"));
+    WinD3D11Device d3D11Device(m_log);
+    WinDxgiDevice dxgiDevice(&d3D11Device);
+    WinDxgiAdapter dxgiAdapter(&dxgiDevice, 0);
+    WinDxgiOutput dxgiOutput(&dxgiAdapter, 0);
+    WinDxgiOutput1 dxgiOutput1(&dxgiOutput);
+    WinDxgiOutputDuplication m_outDupl(&dxgiOutput1, &d3D11Device);
+  }
+  m_log->debug(_T("Dxgi Output Duplication test passed"));
+
   // First try to find adapter for default device, next its parent factory.
   // Next use the factory to enum adapters. Finally use adapters to enum outputs.
   Region virtDeskRegion;
-  m_log->debug(_T("Try to enumerate dxgi outputs"));
   std::vector<WinDxgiOutput> dxgiOutputArray;
   std::vector<Rect> deskCoordArray;
 
+  m_log->debug(_T("Try to enumerate dxgi outputs"));
   for (UINT iAdapter = 0; iAdapter < 65535; iAdapter++) { 
     try {
       for (UINT iOutput = 0; iOutput < 65535; iOutput++) {
