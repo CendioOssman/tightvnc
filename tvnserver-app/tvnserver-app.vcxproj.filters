@@ -187,5 +187,8 @@
     <ClInclude Include="CrashHook.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="WinServiceEvents.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

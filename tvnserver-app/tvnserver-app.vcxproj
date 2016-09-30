@@ -339,6 +339,7 @@
     <ClInclude Include="TvnServerListener.h" />
     <ClInclude Include="TvnService.h" />
     <ClInclude Include="WinEventLogWriter.h" />
+    <ClInclude Include="WinServiceEvents.h" />
     <ClInclude Include="WsConfigRunner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

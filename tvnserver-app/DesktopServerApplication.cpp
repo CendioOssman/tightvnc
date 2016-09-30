@@ -91,13 +91,13 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
     readPipeHandle = (HANDLE)mem[1];
     writePipeHandle = (HANDLE)mem[2];
     maxPortionSize = (unsigned int)mem[3];
-    m_clToSrvChan = new AnonymousPipe(readPipeHandle, writePipeHandle, maxPortionSize, false);
+    m_clToSrvChan = new AnonymousPipe(readPipeHandle, writePipeHandle, maxPortionSize, &m_log);
     m_log.info(_T("Client->server readPipeHandle = %p, writePipeHandle = %p"), readPipeHandle, writePipeHandle);
 
     readPipeHandle = (HANDLE)mem[4];
     writePipeHandle = (HANDLE)mem[5];
     maxPortionSize = (unsigned int)mem[6];
-    m_srvToClChan = new AnonymousPipe(readPipeHandle, writePipeHandle, maxPortionSize, false);
+    m_srvToClChan = new AnonymousPipe(readPipeHandle, writePipeHandle, maxPortionSize, &m_log);
     m_log.info(_T("Server->client readPipeHandle = %p, writePipeHandle = %p"), readPipeHandle, writePipeHandle);
 
     m_clToSrvGate = new BlockingGate(m_clToSrvChan);

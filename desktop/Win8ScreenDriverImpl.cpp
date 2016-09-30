@@ -28,6 +28,7 @@
 #include "WinDxRecoverableException.h"
 #include <crtdbg.h>
 #include "win-system/Screen.h"
+#include "win-system/Environment.h"
 
 #include "WinDxgiOutput.h"
 #include "Win8DeskDuplicationThread.h"
@@ -98,17 +99,9 @@ FrameBuffer *Win8ScreenDriverImpl::getScreenBuffer()
 
 void Win8ScreenDriverImpl::initDxgi()
 {
-  {
-    m_log->debug(_T("Begin dxgi Output Duplication test"));
-    WinD3D11Device d3D11Device(m_log);
-    WinDxgiDevice dxgiDevice(&d3D11Device);
-    WinDxgiAdapter dxgiAdapter(&dxgiDevice, 0);
-    WinDxgiOutput dxgiOutput(&dxgiAdapter, 0);
-    WinDxgiOutput1 dxgiOutput1(&dxgiOutput);
-    WinDxgiOutputDuplication m_outDupl(&dxgiOutput1, &d3D11Device);
+  if (!Environment::isWin8OrLater()) {
+    throw Exception(_T("Dxgi Output Duplication needs Windows 8 or later"));
   }
-  m_log->debug(_T("Dxgi Output Duplication test passed"));
-
   // First try to find adapter for default device, next its parent factory.
   // Next use the factory to enum adapters. Finally use adapters to enum outputs.
   Region virtDeskRegion;
@@ -188,7 +181,7 @@ void Win8ScreenDriverImpl::execute()
     m_hasCriticalError = true;
   } catch (Exception &e) {
     m_log->error(_T("Catched Exception in the Win8ScreenDriverImpl::execute() function: %s.")
-                 _T(" The exception will consider as critical") , e.getMessage());
+                 _T(" The exception will be considered as critical") , e.getMessage());
     m_hasCriticalError = true;
   }
 

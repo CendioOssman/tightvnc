@@ -38,10 +38,12 @@ WinEventLog::WinEventLog(LogWriter *log)
 
 WinEventLog::~WinEventLog()
 {
+  deRegisterEventSource();
 }
 
 void WinEventLog::enable()
 {
+  deRegisterEventSource();
   try {
     updateEventSourcesSubkey();
   } catch (Exception &e) {
@@ -55,6 +57,14 @@ void WinEventLog::registerEventSource()
 {
   AutoLock al(&m_hEventLogMutex);
   m_hEventLog = RegisterEventSource(0, LogNames::WIN_EVENT_PROVIDER_NAME);
+}
+
+void WinEventLog::deRegisterEventSource()
+{
+  AutoLock al(&m_hEventLogMutex);
+  if (m_hEventLog)
+    DeregisterEventSource(m_hEventLog);
+  m_hEventLog = 0;
 }
 
 void WinEventLog::updateEventSourcesSubkey()
@@ -134,7 +144,6 @@ void WinEventLog::reportEvent(unsigned int messageId,
                            &errStr);
     m_log->error(_T("%s"), errStr.getString());
   }
-  CloseHandle(hEventLog); //fixing #1326
 }
 
 #pragma warning(pop)

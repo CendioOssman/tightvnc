@@ -53,6 +53,7 @@ private:
                    va_list argList);
 
   void registerEventSource();
+  void deRegisterEventSource();
   // Updates event sources pathes to the self in the registry.
   void updateEventSourcesSubkey();
 
