@@ -158,6 +158,9 @@ protected:
   // Throws SocketException on an error.
   SOCKET getAcceptedSocket(struct sockaddr_in *addr);
 
+  // Closes old socket and sets handler to new one
+  void set(SOCKET socket);
+
   /**
    * Mutex for thread-safety.
    */

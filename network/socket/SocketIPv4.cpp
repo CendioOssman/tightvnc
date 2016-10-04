@@ -161,20 +161,32 @@ SocketIPv4 *SocketIPv4::accept()
     throw SocketException();
   }
 
-  AutoLock l(&accepted->m_mutex);
-
   // Fall out with exception, no need to check if accepted is NULL
-  accepted->m_socket = result;
+  accepted->set(result);
+  return accepted; // Valid and initialized
+}
 
-  // Set local and peer addresses for accepted socket
-  accepted->m_peerAddr = new SocketAddressIPv4(addr);
-  struct sockaddr_in localAddr;
+void SocketIPv4::set(SOCKET socket)
+{
+  AutoLock l(&m_mutex);
+
+#ifdef _WIN32
+  ::closesocket(m_socket);
+#else
+  ::close(m_socket);
+#endif
+  m_socket = socket;
+
+  // Set local and peer addresses for new socket
+  struct sockaddr_in addr;
   socklen_t addrlen = sizeof(struct sockaddr_in);
-  if (getsockname(result, (struct sockaddr *)&localAddr, &addrlen) == 0) {
-    accepted->m_localAddr = new SocketAddressIPv4(localAddr);
+  if (getsockname(socket, (struct sockaddr *)&addr, &addrlen) == 0) {
+    m_localAddr = new SocketAddressIPv4(addr);
   }
 
-  return accepted; // Valid and initialized
+  if (getpeername(socket, (struct sockaddr *)&addr, &addrlen) == 0) {
+    m_peerAddr = new SocketAddressIPv4(addr);
+  }
 }
 
 SOCKET SocketIPv4::getAcceptedSocket(struct sockaddr_in *addr)

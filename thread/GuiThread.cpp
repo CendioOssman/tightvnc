@@ -32,11 +32,16 @@ GuiThread::GuiThread()
 
 GuiThread::~GuiThread()
 {
+  if (m_hDesk) {
+    DesktopSelector::closeDesktop(m_hDesk);
+  }
 }
 
 void GuiThread::initByDerived()
 {
   DesktopSelector::setDesktopToCurrentThread(m_hDesk);
-  DesktopSelector::closeDesktop(m_hDesk);
-  m_hDesk = 0;
+  // If unsuccessful, desktop will be closed in destructor
+  if (DesktopSelector::closeDesktop(m_hDesk)) {
+    m_hDesk = 0;
+  }
 }
