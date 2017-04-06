@@ -86,6 +86,7 @@ void AnsiStringStorage::fromStringStorage(const StringStorage *src)
 #ifndef _UNICODE
   setString(src->getString());
 #else
+  // WideCharToMultiByte returns result length including terminating null character	
   int symbolCount = WideCharToMultiByte(CP_ACP, 0, src->getString(), -1, 
                                         NULL, 0, NULL, NULL) + 1;
 
@@ -95,7 +96,7 @@ void AnsiStringStorage::fromStringStorage(const StringStorage *src)
   // Convert to ansi
   int constrSize = (int)m_buffer.size();
   _ASSERT(constrSize == m_buffer.size());
-  WideCharToMultiByte(CP_ACP, 0, src->getString(), (int)src->getLength() + 1,
+  WideCharToMultiByte(CP_ACP, 0, src->getString(), -1,
                       &m_buffer.front(), symbolCount, NULL, NULL);
 #endif
 }

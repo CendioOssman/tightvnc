@@ -164,7 +164,7 @@ void DesktopServerWatcher::start()
       return;
     } catch (SystemException &sysEx) {
       // It can be XP specific error.
-      if (sysEx.getErrorCode() == 233) {
+      if (sysEx.getErrorCode() == 233 || sysEx.getErrorCode() == 87) {
         pipeNotConnectedErrorCount++;
 
         DWORD sessionId = WTS::getActiveConsoleSessionId(m_log);

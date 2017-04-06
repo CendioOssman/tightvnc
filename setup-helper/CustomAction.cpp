@@ -32,6 +32,7 @@
 
 #include <msiquery.h>
 #include <shlwapi.h>
+#include <algorithm>
 //#include <wcautil.h>
 
 const TCHAR SAS_REG_ENTRY[] = _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System");
@@ -66,7 +67,8 @@ void getCryptedPassword(UINT8 cryptedPass[8], const StringStorage *plainPass)
 
   // Convert to a byte array.
   UINT8 byteArray[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  memcpy(byteArray, ansiPass.getString(), ansiPass.getLength());
+  size_t len = std::min(ansiPass.getLength(), (size_t)8);
+  memcpy(byteArray, ansiPass.getString(), len);
 
   // Encrypt with a fixed key.
   VncPassCrypt::getEncryptedPass(cryptedPass, byteArray);

@@ -33,21 +33,13 @@
 class WinDxgiAdapter
 {
 public:
-  // Refers to default adapter for the device
   WinDxgiAdapter(WinDxgiDevice *winDxgiDevice);
-  // This constructor first finds parent factory for default 
-  // adapter and use it to get adapter with iAdapter number.
-  // Throws WinDxRecoverableException if there is 
-  // no adapter with iAdapter number.
-  // Throws WinDxCriticalException on other errors.
-  WinDxgiAdapter(WinDxgiDevice *winDxgiDevice, int iAdapter);
   virtual ~WinDxgiAdapter();
 
   // This function try to get output for iOutput from the adapter.
-  // Throws WinDxCriticalException on errors.
-  // Returns S_OK on success and DXGI_ERROR_NOT_FOUND if there is 
-  // no output with iOutput number
-  HRESULT getDxgiOutput(UINT iOutput, IDXGIOutput **iDxgiOutput);
+  // Throws the WinDxRecoverableException exception if output not found,
+  // and throws WinDxCriticalException on other errors.
+  void getDxgiOutput(UINT iOutput, IDXGIOutput **iDxgiOutput);
 
 private:
   IDXGIAdapter *m_dxgiAdapter;

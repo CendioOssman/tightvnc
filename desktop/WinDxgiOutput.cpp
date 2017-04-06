@@ -32,19 +32,10 @@
 WinDxgiOutput::WinDxgiOutput(WinDxgiAdapter *dxgiAdapter, UINT iOutput)
 : m_dxgiOutput(0)
 {
-  StringStorage errMess;
-  HRESULT hr = dxgiAdapter->getDxgiOutput(iOutput, &m_dxgiOutput);
-  if (hr == DXGI_ERROR_NOT_FOUND) {
-    StringStorage errMess;
-    errMess.format(_T("IDXGIOutput not found for iOutput = %u"), iOutput);
-    throw WinDxRecoverableException(errMess.getString(), hr);
-  } 
-  if (FAILED(hr)) {
-    throw WinDxCriticalException(_T("Can't get output"), hr);
-  }
+  dxgiAdapter->getDxgiOutput(iOutput, &m_dxgiOutput);
 
   memset(&m_description, 0, sizeof(m_description));
-  hr = m_dxgiOutput->GetDesc(&m_description);
+  HRESULT hr = m_dxgiOutput->GetDesc(&m_description);
   if (FAILED(hr)) {
     throw WinDxCriticalException(_T("Can't get output description"), hr);
   }

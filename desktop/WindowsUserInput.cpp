@@ -164,8 +164,12 @@ void WindowsUserInput::setKeyboardEvent(UINT32 keySym, bool down)
 void WindowsUserInput::getCurrentUserInfo(StringStorage *desktopName,
                                           StringStorage *userName)
 {
-  DesktopSelector::getCurrentDesktopName(desktopName); // FIXME: Check return value.
-  Environment::getCurrentUserName(userName, m_log); // FIXME: Check return value.
+  if (!DesktopSelector::getCurrentDesktopName(desktopName) &&
+	  !Environment::getCurrentUserName(userName, m_log)) {
+        StringStorage errMess;
+        Environment::getErrStr(_T("Can't get current user info"), &errMess);
+		throw Exception(errMess.getString());
+  }
 }
 
 void WindowsUserInput::getPrimaryDisplayCoords(Rect *rect)

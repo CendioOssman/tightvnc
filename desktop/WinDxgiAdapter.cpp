@@ -31,28 +31,9 @@
 WinDxgiAdapter::WinDxgiAdapter(WinDxgiDevice *winDxgiDevice)
 : m_dxgiAdapter(0)
 {
-  winDxgiDevice->getAdapter(&m_dxgiAdapter);
-}
-
-WinDxgiAdapter::WinDxgiAdapter(WinDxgiDevice *winDxgiDevice, int iAdapter)
-: m_dxgiAdapter(0)
-{
-  winDxgiDevice->getAdapter(&m_dxgiAdapter);
-  IDXGIFactory *m_dxgiFactory;
-  HRESULT hr = m_dxgiAdapter->GetParent( __uuidof( IDXGIFactory ), (void**) (&m_dxgiFactory) );
+  HRESULT hr = winDxgiDevice->getParent(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&m_dxgiAdapter));
   if (FAILED(hr)) {
-    throw WinDxCriticalException(_T("Can't get IDXGIAdapter parent factory (%ld)"), (long)hr);
-  }
-
-  hr = m_dxgiFactory->EnumAdapters(iAdapter, &m_dxgiAdapter);
-  m_dxgiFactory->Release();
-  if (hr == DXGI_ERROR_NOT_FOUND) {
-    StringStorage errMess;
-    errMess.format(_T("IDXGIAdapter not found for iAdapter = %u"), iAdapter);
-    throw WinDxRecoverableException(errMess.getString(), hr);
-  }
-  if (FAILED(hr)) {
-    throw WinDxCriticalException(_T("Can't IDXGIFactory::EnumAdapters()"), hr);
+    throw WinDxCriticalException(_T("Can't GetParent for IDXGIAdapter"), hr);
   }
 }
 
@@ -64,11 +45,14 @@ WinDxgiAdapter::~WinDxgiAdapter()
   }
 }
 
-HRESULT WinDxgiAdapter::getDxgiOutput(UINT iOutput, IDXGIOutput **iDxgiOutput)
+void WinDxgiAdapter::getDxgiOutput(UINT iOutput, IDXGIOutput **iDxgiOutput)
 {
   HRESULT hr = m_dxgiAdapter->EnumOutputs(iOutput, iDxgiOutput);
-  if (hr != DXGI_ERROR_NOT_FOUND && FAILED(hr)) {
+  if (hr == DXGI_ERROR_NOT_FOUND) {
+    StringStorage errMess;
+    errMess.format(_T("IDXGIOutput not found for iOutput = %u"), iOutput);
+    throw WinDxRecoverableException(errMess.getString(), hr);
+  } else if (FAILED(hr)) {
     throw WinDxCriticalException(_T("Can't IDXGIAdapter::EnumOutputs()"), hr);
   }
-  return hr;
 }

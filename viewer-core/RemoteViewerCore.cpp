@@ -708,7 +708,7 @@ int RemoteViewerCore::selectSecurityType(const vector<UINT32> *secTypes,
 
   throw Exception(_T("No security types supported. ")
                   _T("Server sent security types, ")
-                  _T("but we do not support any of their."));
+                  _T("but we do not support any of them."));
 }
 
 void RemoteViewerCore::initTunnelling()

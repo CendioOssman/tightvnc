@@ -38,7 +38,6 @@ public:
   virtual ~WinDxgiDevice();
 
   HRESULT getParent(REFIID riid, void **ppvObject);
-  void getAdapter(IDXGIAdapter **dxgiAdapter);
 
 private:
   IDXGIDevice *m_dxgiDevice;

@@ -37,7 +37,6 @@ class WinDxgiOutput
 public:
   WinDxgiOutput(WinDxgiAdapter *dxgiAdapter, UINT iOutput);
   WinDxgiOutput(const WinDxgiOutput &src);
-  WinDxgiOutput(IDXGIOutput *dxgiOutput);
   virtual ~WinDxgiOutput();
 
   WinDxgiOutput &operator = (WinDxgiOutput const &src);

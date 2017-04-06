@@ -234,12 +234,6 @@ bool Environment::isVistaOrLater()
   return m_osVerInfo.dwMajorVersion >= 6;
 }
 
-bool Environment::isWin8OrLater()
-{
-  init();
-  return ((m_osVerInfo.dwMajorVersion > 6) || ((m_osVerInfo.dwMajorVersion == 6) && (m_osVerInfo.dwMinorVersion >= 2)));
-}
-
 void Environment::simulateCtrlAltDel(LogWriter *log)
 {
   // FIXME: Do not use log here.

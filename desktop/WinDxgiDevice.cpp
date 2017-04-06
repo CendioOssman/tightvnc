@@ -23,8 +23,6 @@
 //
 
 #include "util/Exception.h"
-#include "WinDxCriticalException.h"
-#include "WinDxRecoverableException.h"
 
 // The header including of this cpp file must be at last place to avoid build conflicts.
 #include "WinDxgiDevice.h"
@@ -32,10 +30,10 @@
 WinDxgiDevice::WinDxgiDevice(WinD3D11Device *winD3D11Device)
 : m_dxgiDevice(0)
 {
-  StringStorage errMess;
   HRESULT hr = winD3D11Device->deviceQueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&m_dxgiDevice));
   if (FAILED(hr)) {
-    errMess.format(_T("Can't QueryInterface for IDXGIDevice (%ld)"), (long)hr);
+    StringStorage errMess;
+    errMess.format(_T("Can't QueryInterface for IDXGIDevice (%l)"), (long)hr);
     throw Exception(errMess.getString());
   }
 }
@@ -52,13 +50,3 @@ HRESULT WinDxgiDevice::getParent(REFIID riid, void **ppvObject)
 {
   return m_dxgiDevice->GetParent(riid, ppvObject);
 }
-
-void WinDxgiDevice::getAdapter(IDXGIAdapter **dxgiAdapter) {
-  HRESULT hr = m_dxgiDevice->GetAdapter(dxgiAdapter);
-  if (FAILED(hr)) {
-    StringStorage errMess;
-    errMess.format(_T("Can't get default Adapter for IDXGIDevice (%ld)"), (long)hr);
-    throw Exception(errMess.getString());
-  }
-}
-

@@ -85,7 +85,7 @@ void ViewPort::update(const Dimension *fbDimension)
       try {
         m_desktop->getWindowCoords(m_state.m_hwnd, &rect);
       } catch (BrokenHandleException &e) {
-        m_log->error(_T("%s"), e.getMessage());
+		  m_log->error(_T("ViewPort::update: %s"), e.getMessage());
         // Now hwnd is broken. This should be reflected in the viewport state.
         m_state.unresolveHwnd();
       }

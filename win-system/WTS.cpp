@@ -73,7 +73,7 @@ void WTS::queryConsoleUserToken(HANDLE *token, LogWriter *log) throw(SystemExcep
 
   if (m_WTSQueryUserToken != 0) {
     if (!m_WTSQueryUserToken(sessionId, token)) {
-      throw SystemException();
+	  throw SystemException(_T("WTSQueryUserToken error:"));
     }
   } else {
     if (m_userProcessToken == INVALID_HANDLE_VALUE) {

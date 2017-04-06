@@ -50,7 +50,8 @@ void DesktopBaseImpl::getCurrentUserInfo(StringStorage *desktopName,
   m_log->info(_T("get current user information"));
   try {
     m_userInput->getCurrentUserInfo(desktopName, userName);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getCurrentUserInfo: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -62,7 +63,8 @@ void DesktopBaseImpl::getFrameBufferProperties(Dimension *dim, PixelFormat *pf)
   m_log->info(_T("get frame buffer properties"));
   try {
     m_updateHandler->getFrameBufferProp(dim, pf);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getFrameBufferProperties: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -74,7 +76,8 @@ void DesktopBaseImpl::getPrimaryDesktopCoords(Rect *rect)
   m_log->info(_T("get primary desktop coordinates"));
   try {
     m_userInput->getPrimaryDisplayCoords(rect);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getPrimaryDesktopCoords: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -87,7 +90,8 @@ void DesktopBaseImpl::getDisplayNumberCoords(Rect *rect,
   m_log->info(_T("get the %u display coordinates"), (unsigned int) dispNumber);
   try {
     m_userInput->getDisplayNumberCoords(rect, dispNumber);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getDisplayNumberCoords: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -99,7 +103,8 @@ void DesktopBaseImpl::getNormalizedRect(Rect *rect)
   m_log->info(_T("normilize a rect to frame buffer coordinates"));
   try {
     m_userInput->getNormalizedRect(rect);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getNormalizedRect: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -113,7 +118,8 @@ void DesktopBaseImpl::getWindowCoords(HWND hwnd, Rect *rect)
     m_userInput->getWindowCoords(hwnd, rect);
   } catch (BrokenHandleException &) {
     throw;
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getWindowCoords: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -125,7 +131,8 @@ HWND DesktopBaseImpl::getWindowHandleByName(const StringStorage *windowName)
   m_log->info(_T("get a window handle by a window name"));
   try {
     return m_userInput->getWindowHandleByName(windowName);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getWindowHandleByName: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
   return 0;
@@ -138,7 +145,8 @@ void DesktopBaseImpl::getApplicationRegion(unsigned int procId, Region *region)
   m_log->info(_T("get application region"));
   try {
     m_userInput->getApplicationRegion(procId, region);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::getApplicationRegion: %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -150,7 +158,8 @@ bool DesktopBaseImpl::isApplicationInFocus(unsigned int procId)
   m_log->info(_T("checking if application is in focus"));
   try {
     return m_userInput->isApplicationInFocus(procId);
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::isApplicationInFocus %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
   return false;
@@ -192,7 +201,8 @@ void DesktopBaseImpl::setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
     if (isRemoteInputAllowed()) {
       m_userInput->setMouseEvent(&point, buttonMask);
     }
-  } catch (...) {
+  } catch (Exception &e) {
+	m_log->error(_T("Exception in DesktopBaseImpl::setMouseEvent %s"), e.getMessage());
     m_extDeskTermListener->onAbnormalDesktopTerminate();
   }
 }
@@ -217,7 +227,8 @@ void DesktopBaseImpl::setNewClipText(const StringStorage *newClipboard)
     }
     try {
       m_userInput->setNewClipboard(newClipboard);
-    } catch (...) {
+    } catch (Exception &e) {
+	  m_log->error(_T("Exception in DesktopBaseImpl::setNewClipText %s"), e.getMessage());
       m_extDeskTermListener->onAbnormalDesktopTerminate();
     }
   }

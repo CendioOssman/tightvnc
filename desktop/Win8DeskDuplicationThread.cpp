@@ -78,8 +78,9 @@ void Win8DeskDuplicationThread::execute()
 {
   try {
     while (!isTerminating() && isValid()) {
-      WinDxgiAcquiredFrame acquiredFrame(&m_outDupl, 500);
+      WinDxgiAcquiredFrame acquiredFrame(&m_outDupl, 20);
       if (acquiredFrame.wasTimeOut()) {
+		m_log->debug(_T("Timeout on acquire frame for output:%d"), m_threadNumber);
         continue;
       }
 
