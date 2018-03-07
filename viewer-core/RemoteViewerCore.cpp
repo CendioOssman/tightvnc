@@ -65,7 +65,8 @@ RemoteViewerCore::RemoteViewerCore(Logger *logger)
   m_tcpConnection(&m_logWriter),
   m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
   m_decoderStore(&m_logWriter),
-  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter),
+  m_isTightEnabled(true)
 {
   init();
 }
@@ -596,6 +597,11 @@ void RemoteViewerCore::authenticate()
   }
 }
 
+void RemoteViewerCore::enableTightSecurityType(bool enabled)
+{
+  m_isTightEnabled = enabled;	
+}
+
 int RemoteViewerCore::negotiateAboutSecurityType()
 {
   m_logWriter.detail(_T("Reading list of security types..."));
@@ -622,7 +628,7 @@ int RemoteViewerCore::negotiateAboutSecurityType()
 
   // select type security
   m_logWriter.debug(_T("Selecting auth-handler"));
-  int typeSelected = selectSecurityType(&secTypes, &m_authHandlers);
+  int typeSelected = selectSecurityType(&secTypes, &m_authHandlers, m_isTightEnabled);
   m_logWriter.info(_T("Security type is selected: %d"), typeSelected);
   if (typeSelected == SecurityDefs::TIGHT) {
     m_logWriter.info(_T("Tight capabilities is enable"));
@@ -684,20 +690,22 @@ StringStorage RemoteViewerCore::getAuthenticationTypeName(UINT32 authenticationT
 }
 
 int RemoteViewerCore::selectSecurityType(const vector<UINT32> *secTypes,
-                                         const map<UINT32, AuthHandler *> *authHandlers) const
+                                         const map<UINT32, AuthHandler *> *authHandlers,
+										 const bool isTightEnabled) const
 {
   // Typedef const iterator.
   typedef vector<UINT32>::const_iterator SecTypesIterator;
 
-  // If server is support security type "Tight", then select him.
-  SecTypesIterator tightSecType = std::find(secTypes->begin(),
-                                            secTypes->end(),
-                                            SecurityDefs::TIGHT);
-  if (tightSecType != secTypes->end()) {
-    return *tightSecType;
+  if (isTightEnabled) {
+    // If server supports security type "Tight", select it.
+    SecTypesIterator tightSecType = std::find(secTypes->begin(),
+                                              secTypes->end(),
+                                              SecurityDefs::TIGHT);
+    if (tightSecType != secTypes->end()) {
+      return *tightSecType;
+    }
   }
-
-  // If server don't support security type "Tight", then search first type, which is supported.
+  // If server doesn't support security type "Tight", then search first type, which is supported.
   for (SecTypesIterator i = secTypes->begin();
        i != secTypes->end();
        i++) {

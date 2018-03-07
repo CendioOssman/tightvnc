@@ -112,9 +112,6 @@ typedef CHANGES_RECORD *PCHANGES_RECORD;
 
 struct	CHANGES_BUF
 {
-// если бы тут был элементарный размер и
-// информация о версии интерфейса,
-// можно было бы добавить информацию о формате экрана
 	ULONG	counter;
 	CHANGES_RECORD	pointrect[MAXCHANGES_BUF];
 };

@@ -407,6 +407,14 @@ public:
   void ignoreCursorShapeUpdates(bool ignored);
 
   //
+  // Enable or disable Tight security type (enabled by default). If enabled,
+  // security type Tight will be selected if server supports it. 
+  // If disabled, viewer does not select Tight security type even 
+  // the server claims that supports it.
+  //
+  void enableTightSecurityType(bool enabled);
+  
+  //
   // Work with capabilities is documented in interface CapabilitiesManager.
   // Next methods is implements of CapabilitiesManager.
   //
@@ -528,7 +536,8 @@ private:
   StringStorage getSecurityTypeName(UINT32 securityType) const;
   StringStorage getAuthenticationTypeName(UINT32 authenticationType) const;
   int selectSecurityType(const vector<UINT32> *secTypes,
-                         const map<UINT32, AuthHandler *> *authHandlers) const;
+                         const map<UINT32, AuthHandler *> *authHandlers,
+                         const bool isTightEnabled) const;
   void initTunnelling();
   int initAuthentication();
   void readCapabilities();
@@ -649,6 +658,7 @@ private:
   bool m_sharedFlag;
   int m_major;
   int m_minor;
+  bool m_isTightEnabled;
   bool m_isTight;
   StringStorage m_remoteDesktopName;
 

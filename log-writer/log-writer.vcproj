@@ -556,6 +556,10 @@
 				RelativePath=".\LogWriter.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\ProfileLogger.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -580,6 +584,10 @@
 			</File>
 			<File
 				RelativePath=".\LogWriter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ProfileLogger.h"
 				>
 			</File>
 		</Filter>

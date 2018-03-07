@@ -92,6 +92,8 @@ private:
   GateKickHandler *m_gateKickHandler;
 
   SessionChangesWatcher *m_sessionChangesWatcher;
+
+  UINT m_contextSwitchResolution; // in ms
 };
 
 #endif // __DESKTOPSERVER_H__

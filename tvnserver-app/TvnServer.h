@@ -206,6 +206,8 @@ protected:
   ExtraRfbServers m_extraRfbServers;
 
   LogInitListener *m_logInitListener;
+
+  UINT m_contextSwitchResolution; // in ms
 };
 
 #endif

@@ -41,6 +41,7 @@
 #include "util/DateTime.h"
 #include "CursorUpdates.h"
 #include "SenderControlInformationInterface.h"
+#include "log-writer/LogWriter.h"
 
 class UpdateSender : public Thread, public RfbDispatcherListener
 {

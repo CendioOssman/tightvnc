@@ -72,14 +72,31 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
   toCheck.getRectVector(&rects);
   // Grabbing
   m_log->debug(_T("grabbing region, %d rectangles"), (int)rects.size());
+  ProcessorTimes pt1 = m_log->checkPoint(_T("grabbing region"));
   try {
     m_grabOptimizator.grab(&toCheck, m_screenDriver);
   } catch (...) {
     return;
   }
+  ProcessorTimes pt2 = m_log->checkPoint(_T("end of grabbing region"));
+
+  toCheck.getRectVector(&rects);
+  double area = 0.0;
+  for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
+    area += (*iRect).area();
+  }
+  area /= 1000000.0; // in millions of pixels
+  double dt = pt2.wall.getTime(); // in milliseconds
+  m_log->debug(_T("Before grabbing region %f processor Mcycles, %f process time, %f kernel time, %f wall clock time "), 
+    pt1.cycle / 1000000., pt1.process, pt1.kernel, pt1.wall.getTime());
+  m_log->debug(_T("After grabbing region Mpoint grabbed: %f for %f processor Mcycles. %f ms"), 
+    area, pt2.cycle/1000000., dt);
+  m_log->debug(_T("After grabbing region %f process time, %f kernel time, %f wall clock time"), pt2.process, pt2.kernel, dt);
+
   m_log->debug(_T("end of grabbing region"));
 
   // Filtering
+  pt1 = m_log->checkPoint(_T("filtering changed"));
   updateContainer->changedRegion.clear();
   Rect *rect;
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
@@ -93,6 +110,13 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
     rect = &(*iRect);
     m_frameBuffer->copyFrom(rect, screenFrameBuffer, rect->left, rect->top);
   }
+  pt2 = m_log->checkPoint(_T("after filtering changed"));
+  dt = pt2.wall.getTime(); // in milliseconds
+  m_log->debug(_T("Before filtering changed %f processor Mcycles, %f process time, %f kernel time, %f wall clock time "),
+    pt1.cycle / 1000000., pt1.process, pt1.kernel, pt1.wall.getTime());
+  m_log->debug(_T("After filtering changed Mpoint filtered: %f for %f processor Mcycles. %f ms"),
+    area, pt2.cycle / 1000000., dt);
+  m_log->debug(_T("After filtering changed %f process time, %f kernel time, %f wall clock time"), pt2.process, pt2.kernel, dt);
 }
 
 void UpdateFilter::getChangedRegion(Region *rgn, const Rect *rect)

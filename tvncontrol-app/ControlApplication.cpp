@@ -66,6 +66,7 @@
 #include "util/AnsiStringStorage.h"
 #include "tvnserver-app/NamingDefs.h"
 #include "SetPasswordsDialog.h"
+#include <algorithm>
 
 ControlApplication::ControlApplication(HINSTANCE hinst,
                                        const TCHAR *windowClassName,

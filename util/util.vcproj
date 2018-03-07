@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="util"
 	ProjectGUID="{E45BF60D-C8FD-4F07-A307-25596BE1D256}"
 	RootNamespace="util"
@@ -617,6 +617,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GetCPUtime.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Inflater.cpp"
 				>
 			</File>
@@ -736,6 +740,10 @@
 			</File>
 			<File
 				RelativePath=".\Exception.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GetCPUtime.h"
 				>
 			</File>
 			<File

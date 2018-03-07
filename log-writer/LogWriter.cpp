@@ -29,10 +29,12 @@
 LogWriter::LogWriter(Logger *logger)
 : m_logger(logger)
 {
+  m_profiler = new ProfileLogger();
 }
 
 LogWriter::~LogWriter()
 {
+  delete m_profiler;
 }
 
 void LogWriter::interror(const TCHAR *fmt, ...)
@@ -112,6 +114,11 @@ void LogWriter::debug(const TCHAR *fmt, ...)
   }
 }
 
+ProcessorTimes LogWriter::checkPoint(const TCHAR * tag)
+{
+  return m_profiler->checkPoint(tag);
+}
+
 #pragma warning(push)
 #pragma warning(disable:4996)
 
@@ -124,6 +131,14 @@ void LogWriter::vprintLog(int logLevel, const TCHAR *fmt, va_list argList)
     _vstprintf(&formattedString.front(), fmt, argList);
 
     m_logger->print(logLevel, &formattedString.front());
+#if DROP_TIME_STAT // test code
+    std::vector<std::vector<TCHAR>> resultStrings = m_profiler->dropStat();
+    for (size_t i = 0; i < resultStrings.size(); i++) {
+      formattedString = resultStrings[i];
+      if (formattedString.size() != 0)
+        m_logger->print(9, &formattedString.front());
+    }
+#endif
   }
 }
 

@@ -75,7 +75,7 @@ public:
   // Implementions will ensure that this function is thread safety.
   virtual bool applyNewScreenProperties() = 0;
 
-  // Grabs current cursor shape with the за pixel format to internal buffer.
+  // Grabs current cursor shape with the pixel format to internal buffer.
   // Implementions will ensure that this function is thread safety.
   virtual bool grabCursorShape(const PixelFormat *pf) = 0;
 

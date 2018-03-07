@@ -108,6 +108,11 @@ public:
    */
   static void sleep(DWORD millis);
 
+  /**
+   * Yield execution to the next ready thread.
+   */
+  static void yield();
+
 protected:
   /**
    * Returns true if terminate() method was called.

@@ -171,6 +171,13 @@ public:
   inline bool isEmpty() const { return getWidth() <= 0 || getHeight() <= 0; }
   inline int area() const { return isEmpty() ? 0 : getWidth() * getHeight(); }
 
+  static int totalArea(std::vector<Rect> &v) {
+    int area = 0;
+    for (std::vector<Rect>::iterator i = v.begin(); i < v.end(); i++)
+      area += i->area();
+    return area;
+  }
+
   inline void clear() { left = top = right = bottom = 0; }
 
   Rect intersection(const Rect *other) const {

@@ -1,4 +1,4 @@
-// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,34 +22,44 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __WINHDR_H__
-#define __WINHDR_H__
+#ifndef __PROFILELOGGER_H__
+#define __PROFILELOGGER_H__
 
-#ifdef WINVER
-#undef WINVER
-#endif
+#include "util/DateTime.h"
+#include <vector>
+#include <map>
+#include "thread/LocalMutex.h"
 
-#define WINVER 0x0501
 
-#ifdef _WIN32_WINNT
-#undef _WIN32_WINNT
-#endif
+struct ProcessorTimes {
+  double process;
+  double kernel;
+  ULONG64 cycle;
+  DateTime wall;
+};
 
-#define _WIN32_WINNT 0x0501
+// Ñlass for acquiring processor load metrics.
+class ProfileLogger
+{
+public:
+  ProfileLogger(double rate = 5.)
+  : m_dropRate(rate) 
+  {
+    m_lastDrop = DateTime::now();
+  };
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <wspiapi.h>
-#include <windows.h>
-#include <psapi.h>
-#include <Wtsapi32.h>
-#include <tchar.h>
-#include <commctrl.h>
-// hide annoying warning c:\program files(x86)\windows kits\8.1\include\um\dbghelp.h(1544) : warning C4091 : 'typedef ' : ignored on left of '' when no variable is declared
-#pragma warning(push)
-#pragma warning(disable:4091)
-#include <Dbghelp.h>
-#pragma warning(pop)
-#include <ShellAPI.h>
+  ~ProfileLogger();
+  // returns cycles and times deltas from previouse checkpoint
+  ProcessorTimes checkPoint(const TCHAR *tag);
+  std::vector<std::vector<TCHAR>> dropStat();
 
-#endif // __WINHDR_H__
+private:
+  LocalMutex m_mapMut;
+  std::map<const TCHAR *, std::vector<ProcessorTimes>> m_checkPoints;
+  ProcessorTimes m_last;
+  double m_dropRate; // time interval in seconds to log statistics
+  DateTime m_lastDrop;
+
+};
+
+#endif // __PROFILELOGGER_H__

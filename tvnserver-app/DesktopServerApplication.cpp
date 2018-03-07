@@ -30,6 +30,7 @@
 #include "win-system/Environment.h"
 #include "win-system/SharedMemory.h"
 #include "tvnserver-app/NamingDefs.h"
+#include "TimeAPI.h"
 
 DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
                                                    const TCHAR *windowClassName,
@@ -48,11 +49,18 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
   m_configurator(true),
   m_clientLogger(LogNames::LOG_PIPE_PUBLIC_NAME,
                 LogNames::SERVER_LOG_FILE_STUB_NAME),
+  m_contextSwitchResolution(1),
   m_log(&m_clientLogger)
 {
   try {
     m_clientLogger.connect();
   } catch (...) {
+  }
+
+  if (timeBeginPeriod(m_contextSwitchResolution) == TIMERR_NOERROR) {
+    m_log.message(_T("Set context switch resolution: %d ms"), m_contextSwitchResolution);
+  } else {
+    m_log.message(_T("Can't change context switch resolution to: %d ms"), m_contextSwitchResolution);
   }
 
   DesktopServerCommandLine cmdLineParser;
@@ -125,6 +133,7 @@ DesktopServerApplication::DesktopServerApplication(HINSTANCE appInstance,
 
 DesktopServerApplication::~DesktopServerApplication()
 {
+  timeEndPeriod(m_contextSwitchResolution);
   m_log.info(_T("The Desktop server application destructor has been called"));
   freeResources();
   m_log.info(_T("Desktop server application has been terminated"));

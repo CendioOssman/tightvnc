@@ -1060,7 +1060,7 @@ bool Keymap::keySymToVirtualCode(UINT32 keySym, BYTE *vkCode, bool *extended)
 {
   // Is extended key in the Windows?
   *extended = false;
-  for (size_t j = 0; j < sizeof(EXTENDED_KEYS); j++) {
+  for (size_t j = 0; j < sizeof(EXTENDED_KEYS) / sizeof(UINT32); j++) {
     if (EXTENDED_KEYS[j] == keySym) {
       *extended = true;
       break;

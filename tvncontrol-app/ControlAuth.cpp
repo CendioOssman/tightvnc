@@ -29,6 +29,7 @@
 #include "thread/AutoLock.h"
 
 #include "util/DesCrypt.h"
+#include <algorithm>
 
 ControlAuth::ControlAuth(ControlGate *gate, const TCHAR *password)
 : m_gate(gate)
@@ -41,7 +42,7 @@ ControlAuth::ControlAuth(ControlGate *gate, const TCHAR *password)
 
   memset(m_password, 0, sizeof(m_password));
   memcpy(m_password, passwordAnsi.getString(),
-         min(passwordAnsi.getLength(), sizeof(m_password)));
+         std::min(passwordAnsi.getLength(), sizeof(m_password)));
 
   // FIXME: Why it's commented out?
   // AutoLock l(m_gate);

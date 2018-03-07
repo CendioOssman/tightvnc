@@ -259,7 +259,8 @@ void WindowsInputBlocker::execute()
     while (!isTerminating()) {
       if (m_isKeyboardBlocking && m_hKeyboardHook == 0) {
         // FIXME: write error handler
-        setKeyboardFilterHook(true);
+        bool res = setKeyboardFilterHook(true);
+		m_log->info(_T("setKeyboardFilterHook result = %d"), res);
       }
       if (!m_isKeyboardBlocking && m_hKeyboardHook != 0) {
         // FIXME: write error handler
@@ -268,7 +269,8 @@ void WindowsInputBlocker::execute()
 
       if (m_isMouseBlocking && m_hMouseHook == 0) {
         // FIXME: write error handler
-        setMouseFilterHook(true);
+        bool res = setMouseFilterHook(true);
+		m_log->info(_T("setMouseFilterHook result = %d"), res);
       }
       if (!m_isMouseBlocking && m_hMouseHook != 0) {
         // FIXME: write error handler
@@ -277,7 +279,8 @@ void WindowsInputBlocker::execute()
 
       if (m_isSoftKeyboardBlocking && m_hSoftKeyboardHook == 0) {
         // FIXME: write error handler
-        setSoftKeyboardFilterHook(true);
+        bool res = setSoftKeyboardFilterHook(true);
+		m_log->info(_T("setSoftKeyboardFilterHook result = %b"), res);
       }
       if (!m_isSoftKeyboardBlocking && m_hSoftKeyboardHook != 0) {
         // FIXME: write error handler
@@ -286,7 +289,8 @@ void WindowsInputBlocker::execute()
 
       if (m_isSoftMouseBlocking && m_hSoftMouseHook == 0) {
         // FIXME: write error handler
-        setSoftMouseFilterHook(true);
+        bool res = setSoftMouseFilterHook(true);
+		m_log->info(_T("setSoftMouseFilterHook result = %b"), res);
       }
       if (!m_isSoftMouseBlocking && m_hSoftMouseHook != 0) {
         // FIXME: write error handler

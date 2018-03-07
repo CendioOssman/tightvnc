@@ -1,4 +1,4 @@
-// Copyright (C) 2008,2009,2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2009,2010,2011,2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,34 +22,35 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __WINHDR_H__
-#define __WINHDR_H__
+#ifndef _GETCPUTIME_H_
+#define _GETCPUTIME_H_
 
-#ifdef WINVER
-#undef WINVER
+// returns current process time of work in seconds
+double getCPUTime();
+
+// returns kernel time of work in seconds
+double getKernelTime();
+
+// returns current processor tick number
+inline unsigned long long rdtsc() {
+  unsigned int lo, hi;
+#ifdef __GNUC__   
+  asm  volatile ("rdtsc\n" : "=a" (lo), "=d" (hi));
+#elif _MSC_VER
+#ifdef _M_IX86
+  __asm
+  {
+    rdtsc
+    mov DWORD PTR [lo], eax
+    mov DWORD PTR [hi], edx
+  }
+#else
+  return 0;
 #endif
-
-#define WINVER 0x0501
-
-#ifdef _WIN32_WINNT
-#undef _WIN32_WINNT
+#else
+  #error "Unsupported compiler"
 #endif
+  return ((unsigned long long)hi << 32) | lo;
+}
 
-#define _WIN32_WINNT 0x0501
-
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <wspiapi.h>
-#include <windows.h>
-#include <psapi.h>
-#include <Wtsapi32.h>
-#include <tchar.h>
-#include <commctrl.h>
-// hide annoying warning c:\program files(x86)\windows kits\8.1\include\um\dbghelp.h(1544) : warning C4091 : 'typedef ' : ignored on left of '' when no variable is declared
-#pragma warning(push)
-#pragma warning(disable:4091)
-#include <Dbghelp.h>
-#pragma warning(pop)
-#include <ShellAPI.h>
-
-#endif // __WINHDR_H__
+#endif _GETCPUTIME_H_

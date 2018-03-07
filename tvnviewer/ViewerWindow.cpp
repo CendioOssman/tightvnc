@@ -282,7 +282,14 @@ bool ViewerWindow::onMessage(UINT message, WPARAM wParam, LPARAM lParam)
   case WM_USER_DISCONNECT:
     return onDisconnect();
   case WM_ACTIVATE:
-    if ((LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE) && m_isFullScr) {
+    if (!m_isFullScr) {
+      return true;
+    }
+    if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE) {
+      // full screen viewer can be minimized from other screen
+      if (IsIconic(this->getHWnd())) {
+        return true;
+      }
       try {
         // Registration of keyboard hook.
         m_winHooks.registerKeyboardHook(this);
@@ -291,7 +298,7 @@ bool ViewerWindow::onMessage(UINT message, WPARAM wParam, LPARAM lParam)
       } catch (Exception &e) {
         m_logWriter.error(_T("%s"), e.getMessage());
       }
-    } else if (LOWORD(wParam) == WA_INACTIVE && m_isFullScr) {
+    } else if (LOWORD(wParam) == WA_INACTIVE) {
       // Unregistration of keyboard hook.
       m_winHooks.unregisterKeyboardHook(this);
       // Switching on ignoring win key.

@@ -75,6 +75,7 @@ void DesktopSrvDispatcher::execute()
       notifyOnError();
       terminate();
     }
+    Thread::yield();
   }
   m_log->message(_T("The DesktopServerApplication dispatcher has been stopped"));
 }

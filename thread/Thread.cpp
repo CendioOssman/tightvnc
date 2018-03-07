@@ -141,6 +141,11 @@ void Thread::sleep(DWORD millis)
   Sleep(millis);
 }
 
+void Thread::yield()
+{
+  SwitchToThread();
+}
+
 bool Thread::isTerminating()
 {
   return m_terminated;

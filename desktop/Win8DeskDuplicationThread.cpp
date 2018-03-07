@@ -100,6 +100,7 @@ void Win8DeskDuplicationThread::execute()
       {
         processCursor(info);
       } // Cursor
+      Thread::yield();
     }
   } catch (WinDxRecoverableException &e) {
     StringStorage errMess;

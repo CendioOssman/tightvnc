@@ -52,6 +52,8 @@
 
 #include <crtdbg.h>
 #include <time.h>
+#include "TimeAPI.h"
+
 
 TvnServer::TvnServer(bool runsInServiceContext,
                      NewConnectionEvents *newConnectionEvents,
@@ -65,11 +67,18 @@ TvnServer::TvnServer(bool runsInServiceContext,
   m_httpServer(0), m_controlServer(0), m_rfbServer(0),
   m_config(runsInServiceContext),
   m_log(logger),
+  m_contextSwitchResolution(1),
   m_extraRfbServers(&m_log)
 {
   m_log.message(_T("%s Build on %s"),
                  ProductNames::SERVER_PRODUCT_NAME,
                  BuildTime::DATE);
+
+  if (timeBeginPeriod(m_contextSwitchResolution) == TIMERR_NOERROR) {
+    m_log.message(_T("Set context switch resolution: %d ms"), m_contextSwitchResolution);
+  } else {
+    m_log.message(_T("Can't change context switch resolution to: %d ms"), m_contextSwitchResolution);
+  }
 
   // Initialize configuration.
   // FIXME: It looks like configurator may be created as a member object.
@@ -127,6 +136,7 @@ TvnServer::TvnServer(bool runsInServiceContext,
 
 TvnServer::~TvnServer()
 {
+  timeEndPeriod(m_contextSwitchResolution);
   Configurator::getInstance()->removeListener(this);
 
   stopControlServer();

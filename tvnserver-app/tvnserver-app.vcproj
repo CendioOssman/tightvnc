@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="tvnserver-app"
 	ProjectGUID="{EBFC3125-72A4-4029-9941-3BE9EE6444D5}"
 	RootNamespace="tvnserverapp"
@@ -65,6 +65,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -129,6 +130,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -193,6 +195,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -258,6 +261,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -321,6 +325,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -385,6 +390,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -449,6 +455,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -514,6 +521,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalDependencies="Winmm.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"

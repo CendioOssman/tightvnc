@@ -440,5 +440,6 @@ void MirrorDriverClient::execute()
         terminate();
       }
     }
+    Thread::yield();
   }
 }

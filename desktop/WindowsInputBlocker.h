@@ -26,7 +26,7 @@
 #define __WINDOWSINPUTBLOCKER_H__
 
 #include "util/CommonHeader.h"
-#include "thread/Thread.h"
+#include "thread/GuiThread.h"
 #include "thread/LocalMutex.h"
 #include "win-system/WinTimeMillis.h"
 #include "win-system/WindowsEvent.h"
@@ -35,7 +35,7 @@
 
 // Only one instance of this class may be created.
 
-class WindowsInputBlocker : public InputBlocker, protected Thread
+class WindowsInputBlocker : public InputBlocker, protected GuiThread
 {
 public:
   WindowsInputBlocker(LogWriter *log);

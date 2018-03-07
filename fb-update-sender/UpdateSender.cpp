@@ -27,6 +27,7 @@
 #include "rfb/EncodingDefs.h"
 #include "rfb/MsgDefs.h"
 #include <vector>
+#include <algorithm>
 #include "util/inttypes.h"
 #include "util/Exception.h"
 #include "UpdSenderMsgDefs.h"
@@ -296,6 +297,8 @@ void UpdateSender::sendUpdate()
 {
   m_log->debug(_T("Entered to the sendUpdate() function"));
 
+//  m_log->checkPoint(_T("1 sendUpdate() begins"));
+
   // Check requested regions and immediately return if the client did not
   // request anything.
   Region requestedFullReg, requestedIncrReg;
@@ -307,6 +310,8 @@ void UpdateSender::sendUpdate()
     m_log->debug(_T("No request, exiting from the sendUpdate()"));
     return;
   }
+  m_log->debug(_T("Time between request and a point after extractReqRegions (in milliseconds): %u"),
+    (unsigned int)(DateTime::now() - reqTimePoint).getTime());
   m_log->debug(_T("A request has been made, continuing"));
   m_log->debug(_T("The incremental region has %d rectangles"),
              (int)requestedIncrReg.getCount());
@@ -540,7 +545,19 @@ void UpdateSender::sendUpdate()
       m_log->debug(_T("Sending video rectangles"));
       sendRectangles(m_enbox.getJpegEncoder(), &videoRects, frameBuffer, &encodeOptions);
       m_log->debug(_T("Sending normal rectangles"));
+      double area = Rect::totalArea(normalRects) / 1000000.; //in millions of pixels
+      ProcessorTimes pt1 = m_log->checkPoint(_T("Before Sending normal rectangles"));
+
       sendRectangles(m_enbox.getEncoder(), &normalRects, frameBuffer, &encodeOptions);
+
+      ProcessorTimes pt2 = m_log->checkPoint(_T("After Sending normal rectangles"));
+      m_log->debug(_T("Before Sending normal rectangles %f processor Mcycles, %f process time, %f kernel time, %f wall clock time"), 
+        pt1.cycle / 1000000., pt1.process, pt1.kernel, (double)(pt1.wall.getTime()));
+      double dt = (double)(pt2.wall.getTime());
+      m_log->debug(_T("After Sending normal rectangles Mpoint encoded and send: %f for %f processor Mcycles"), 
+        area, pt2.cycle/1000000.);
+      m_log->debug(_T("After Sending normal rectangles %f process time, %f kernel time, %f wall clock time"), pt2.process, pt2.kernel, dt);
+
       m_log->debug(_T("Time between request and answer is (in milliseconds): %u"),
                  (unsigned int)(DateTime::now() - reqTimePoint).getTime());
     } else {
@@ -556,7 +573,9 @@ void UpdateSender::sendUpdate()
   }
 
   m_log->debug(_T("Flushing output"));
+//  m_log->checkPoint(_T("4 before flush"));
   m_output->flush();
+//  m_log->checkPoint(_T("5 sendUpdate() end"));
 }
 
 void UpdateSender::paintBlack(FrameBuffer *frameBuffer, const Region *blackRegion)
