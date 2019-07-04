@@ -566,6 +566,9 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
   if (!sm->setBoolean(_T("RemoveWallpaper"), m_serverConfig.isRemovingDesktopWallpaperEnabled())) {
     saveResult = false;
   }
+  if (!sm->setBoolean(_T("UseD3D"), m_serverConfig.getD3DIsAllowed())) {
+    saveResult = false;
+  }
   if (!sm->setBoolean(_T("UseMirrorDriver"), m_serverConfig.getMirrorIsAllowed())) {
     saveResult = false;
   }
@@ -573,33 +576,33 @@ bool Configurator::saveServerConfig(SettingsManager *sm)
     saveResult = false;
   }
   if (m_serverConfig.hasPrimaryPassword()) {
-    unsigned char password[VNC_PASSWORD_SIZE];
+    unsigned char password[ServerConfig::VNC_PASSWORD_SIZE];
 
     m_serverConfig.getPrimaryPassword(&password[0]);
 
-    if (!sm->setBinaryData(_T("Password"), &password[0], VNC_PASSWORD_SIZE)) {
+    if (!sm->setBinaryData(_T("Password"), &password[0], ServerConfig::VNC_PASSWORD_SIZE)) {
       saveResult = false;
     }
   } else {
     sm->deleteKey(_T("Password"));
   }
   if (m_serverConfig.hasReadOnlyPassword()) {
-    unsigned char password[VNC_PASSWORD_SIZE];
+    unsigned char password[ServerConfig::VNC_PASSWORD_SIZE];
 
     m_serverConfig.getReadOnlyPassword(&password[0]);
 
-    if (!sm->setBinaryData(_T("PasswordViewOnly"), &password[0], VNC_PASSWORD_SIZE)) {
+    if (!sm->setBinaryData(_T("PasswordViewOnly"), &password[0], ServerConfig::VNC_PASSWORD_SIZE)) {
       saveResult = false;
     }
   } else {
     sm->deleteKey(_T("PasswordViewOnly"));
   }
   if (m_serverConfig.hasControlPassword()) {
-    unsigned char password[VNC_PASSWORD_SIZE];
+    unsigned char password[ServerConfig::VNC_PASSWORD_SIZE];
 
     m_serverConfig.getControlPassword(&password[0]);
 
-    if (!sm->setBinaryData(_T("ControlPassword"), &password[0], VNC_PASSWORD_SIZE)) {
+    if (!sm->setBinaryData(_T("ControlPassword"), &password[0], ServerConfig::VNC_PASSWORD_SIZE)) {
       saveResult = false;
     }
   } else {
@@ -720,6 +723,13 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
     m_isConfigLoadedPartly = true;
     m_serverConfig.enableRemovingDesktopWallpaper(boolVal);
   }
+  if (!sm->getBoolean(_T("UseD3D"), &boolVal)) {
+    loadResult = false;
+  }
+  else {
+    m_isConfigLoadedPartly = true;
+    m_serverConfig.setD3DAllowing(boolVal);
+  }
   if (!sm->getBoolean(_T("UseMirrorDriver"), &boolVal)) {
     loadResult = false;
   } else {
@@ -734,7 +744,7 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
   }
 
   size_t passSize = 8;
-  unsigned char buffer[VNC_PASSWORD_SIZE] = {0};
+  unsigned char buffer[ServerConfig::VNC_PASSWORD_SIZE] = {0};
 
   if (!sm->getBinaryData(_T("Password"), (void *)&buffer, &passSize)) {
     loadResult = false;

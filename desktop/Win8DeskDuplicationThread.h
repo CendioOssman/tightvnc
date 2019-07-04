@@ -41,13 +41,12 @@ public:
   // The WinDxgiOutput *dxgiOutput passed object can be destroyed right after the constructor calling.
   // The WinD3D11Device *device passed object can be destroyed right after the constructor calling.
   Win8DeskDuplicationThread(FrameBuffer *targetFb,
-                            const Rect *targetRect,
+                            std::vector<Rect> &targetRect,
                             Win8CursorShape *targetCurShape,
                             LONGLONG *cursorTimeStamp,
                             LocalMutex *cursorMutex,
                             Win8DuplicationListener *duplListener,
-                            WinDxgiOutput *dxgiOutput,
-                            int threadNumber,
+                            std::vector<WinDxgiOutput> &dxgiOutput,
                             LogWriter *log);
   virtual ~Win8DeskDuplicationThread();
 
@@ -60,31 +59,30 @@ private:
   void setCriticalError(const TCHAR *reason);
   void setRecoverableError(const TCHAR *reason);
 
-  void processMoveRects(size_t moveCount);
+  void processMoveRects(size_t moveCount, size_t out);
   void processDirtyRects(size_t dirtyCount,
-                         WinD3D11Texture2D *acquiredDesktopImage);
-  void processCursor(const DXGI_OUTDUPL_FRAME_INFO *info);
+                         WinD3D11Texture2D *acquiredDesktopImage,
+                         size_t out);
+  void processCursor(const DXGI_OUTDUPL_FRAME_INFO *info, size_t out);
 
-  Dimension getStageDimension() const;
+  Dimension getStageDimension(size_t out) const;
 
   void rotateRectInsideStage(Rect *toTranspose, const Dimension *stageDim, DXGI_MODE_ROTATION rotation);
 
-  int m_threadNumber;
-
   FrameBuffer *m_targetFb;
 
-  Rect m_targetRect;
+  std::vector<Rect> m_targetRects;
   Win8CursorShape *m_targetCurShape;
   LONGLONG *m_cursorTimeStamp;
   LocalMutex *m_cursorMutex;
 
-  DXGI_MODE_ROTATION m_rotation;
+  std::vector<DXGI_MODE_ROTATION> m_rotations;
 
   Win8DuplicationListener *m_duplListener;
 
   WinD3D11Device m_device;
-  WinDxgiOutput1 m_dxgiOutput1;
-  WinDxgiOutputDuplication m_outDupl;
+  std::vector<WinDxgiOutput1> m_dxgiOutput1;
+  std::vector<WinDxgiOutputDuplication> m_outDupl;
 
   // The duplication interface can't be used
   bool m_hasCriticalError;
@@ -95,7 +93,7 @@ private:
   std::vector<RECT> m_dirtyRects;
   std::vector<DXGI_OUTDUPL_MOVE_RECT> m_moveRects;
 
-  WinCustomD3D11Texture2D m_stageTexture2D;
+  std::vector<WinCustomD3D11Texture2D> m_stageTextures2D;
   FrameBuffer m_auxiliaryFrameBuffer;
 
   LogWriter *m_log;

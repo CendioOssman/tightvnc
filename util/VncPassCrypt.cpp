@@ -38,27 +38,27 @@ VncPassCrypt::~VncPassCrypt()
   clearPlainPass();
 }
 
-void VncPassCrypt::updatePlain(const UINT8 cryptedPass[8])
+void VncPassCrypt::updatePlain(const UINT8 cryptedPass[VNC_PASSWORD_SIZE])
 {
   DesCrypt desCrypt;
   desCrypt.decrypt(&m_plainPassword.front(), cryptedPass,
                    m_plainPassword.size(), m_key);
 }
 
-void VncPassCrypt::getEncryptedPass(UINT8 encryptedPass[8],
-                                    const UINT8 plainPassword[8])
+void VncPassCrypt::getEncryptedPass(UINT8 encryptedPass[VNC_PASSWORD_SIZE],
+                                    const UINT8 plainPassword[VNC_PASSWORD_SIZE])
 {
   DesCrypt desCrypt;
   desCrypt.encrypt(encryptedPass, plainPassword,
-                   sizeof(encryptedPass), m_key);
+                   VNC_PASSWORD_SIZE, m_key);
 }
 
-void VncPassCrypt::getPlainPass(UINT8 plainPassword[8],
-                                const UINT8 encryptedPass[8])
+void VncPassCrypt::getPlainPass(UINT8 plainPassword[VNC_PASSWORD_SIZE],
+                                const UINT8 encryptedPass[VNC_PASSWORD_SIZE])
 {
   DesCrypt desCrypt;
   desCrypt.decrypt(plainPassword, encryptedPass,
-                   sizeof(plainPassword), m_key);
+                   VNC_PASSWORD_SIZE, m_key);
 }
 
 bool VncPassCrypt::challengeAndResponseIsValid(const UINT8 challenge[16],

@@ -45,6 +45,13 @@ WinD3D11Texture2D::WinD3D11Texture2D(IDXGIResource *dxgiResource)
   }
 }
 
+WinD3D11Texture2D::WinD3D11Texture2D(const WinD3D11Texture2D & other)
+{ 
+  m_dxgiTexture = other.getTexture(); 
+  m_dxgiTexture->AddRef(); 
+};
+
+
 WinD3D11Texture2D::~WinD3D11Texture2D()
 {
   if (m_dxgiTexture != 0) {

@@ -98,6 +98,7 @@ void DesktopWinImpl::execute()
   while (!isTerminating()) {
     m_newUpdateEvent.waitForEvent();
     if (!isTerminating()) {
+      m_log->debug(_T("DesktopWinImpl sendUpdate()"));
       sendUpdate();
     }
   }

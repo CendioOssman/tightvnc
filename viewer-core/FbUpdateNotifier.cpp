@@ -123,7 +123,7 @@ void FbUpdateNotifier::execute()
 	  update.addRect(&m_oldPosition);
 
 #ifdef _DEMO_VERSION_
-	  const Rect* curWmRect = m_watermarksController->CurrentRect();
+	  Rect curWmRect = m_watermarksController->CurrentRect();
 	  Region reg(curWmRect);
 	  reg.intersect(&update);
 	  bool isIntersect = !reg.isEmpty();

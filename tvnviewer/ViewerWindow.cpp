@@ -760,12 +760,14 @@ void ViewerWindow::showFileTransferDialog()
     // FIXME: FT check it
     if (m_ftDialog != 0) {
       if (!m_ftDialog->isCreated()) {
+        _ASSERT(m_fileTransfer != 0);
         m_fileTransfer->setInterface(0);
         delete m_ftDialog;
         m_ftDialog = 0;
       }
     }
     if (m_ftDialog == 0) {
+      _ASSERT(m_fileTransfer != 0);
       m_ftDialog = new FileTransferMainDialog(m_fileTransfer->getCore());
       m_fileTransfer->setInterface(m_ftDialog);
     }

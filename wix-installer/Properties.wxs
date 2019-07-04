@@ -89,6 +89,9 @@
     <Property Id='SET_SAVELOGTOALLUSERSPATH'> 0 </Property>
     <Property Id='VALUE_OF_SAVELOGTOALLUSERSPATH'> 0 </Property>
 
+    <Property Id='SET_USED3D'> 0 </Property>
+    <Property Id='VALUE_OF_USED3D'> 1 </Property>
+
     <Property Id='SET_USEMIRRORDRIVER'> 0 </Property>
     <Property Id='VALUE_OF_USEMIRRORDRIVER'> 1 </Property>
 
@@ -112,6 +115,7 @@
 
     <!-- Components to install above properties -->
     <DirectoryRef Id="TARGETDIR" DiskId="1">
+  <?ifndef SERVER_FREE ?>
       <Component Id='AcceptHttpConnections_Property_Component' Feature='Server' Guid='76ba0ad7-ad68-4ef1-aa1b-15a38c9d37ec' Permanent='yes'>
         <RegistryValue Id='AcceptHttpConnections_RegValue' Action='write'
                        Root='HKLM' Key='Software\TightVNC\Server'
@@ -126,7 +130,6 @@
                              Name="AcceptHttpConnections" />
         <Condition> SET_ACCEPTHTTPCONNECTIONS = -1 </Condition>
       </Component>
-
 
       <Component Id='AcceptRfbConnections_Property_Component' Feature='Server' Guid='a7a60f2a-9014-4ee3-9471-689b2bfcfa14' Permanent='yes'>
         <RegistryValue Id='AcceptRfbConnections_RegValue' Action='write'
@@ -503,6 +506,21 @@
         <Condition> SET_SAVELOGTOALLUSERSPATH = -1 </Condition>
       </Component>
 
+      <Component Id='UseD3D_Property_Component' Feature='Server' Guid='{F04790D5-9A64-4C35-BE4E-6AE717D1981B}' Permanent='yes'>
+        <RegistryValue Id='UseD3D_RegValue' Action='write'
+                       Root='HKLM' Key='Software\TightVNC\Server'
+                       Name='UseD3D' Value='[VALUE_OF_USED3D]' Type='integer'>
+          <Permission GenericAll='yes' User='System'/>
+          <Permission GenericAll='yes' User='Administrators'/>
+        </RegistryValue>
+        <Condition> SET_USED3D = 1 </Condition>
+      </Component>
+      <Component Id='UseD3D_Delete_Component' Feature='Server' Guid='{112AFBB6-D613-4103-AB7A-911DDA9D93C3}' Permanent='yes'>
+        <RemoveRegistryValue Id="UseD3D_Delete_RegValue" Root="HKLM" Key="Software\TightVNC\Server"
+                             Name="UseD3D" />
+        <Condition> SET_USED3D = -1 </Condition>
+      </Component>
+
       <Component Id='UseMirrorDriver_Property_Component' Feature='Server' Guid='{8E5345C9-C778-4c2f-87E1-869952BB2B03}' Permanent='yes'>
         <RegistryValue Id='UseMirrorDriver_RegValue' Action='write'
                        Root='HKLM' Key='Software\TightVNC\Server'
@@ -580,6 +598,7 @@
                              Name="PasswordViewOnly" />
         <Condition> SET_VIEWONLYPASSWORD = -1 </Condition>
       </Component>
+  <?endif?>
 
     </DirectoryRef>
   </Fragment>

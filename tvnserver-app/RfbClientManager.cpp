@@ -383,6 +383,9 @@ void RfbClientManager::addNewConnection(SocketIPv4 *socket,
   }
 
   _ASSERT(constViewPort != 0);
+
+  m_log->error(_T("Client #%d connected"), m_nextClientId);
+
   m_nonAuthClientList.push_back(new RfbClient(m_newConnectionEvents,
                                               socket, this, this, viewOnly,
                                               isOutgoing,

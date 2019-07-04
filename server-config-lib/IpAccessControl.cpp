@@ -57,6 +57,7 @@ void IpAccessControl::deserialize(DataInputStream *input)
 
     // Here is would be good to use auto_ptr, but
     // auto_ptr is not compatible with vector.
+    // FIXME: no corresponding delete. use by value?
     IpAccessRule *rule = new IpAccessRule();
     try {
       if (!IpAccessRule::parse(string.getString(), rule)) {

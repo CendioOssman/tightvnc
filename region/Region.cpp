@@ -30,14 +30,14 @@ Region::Region()
 }
 
 // FIXME: Make BoxRec and Rect identical to get rid of conversions.
-Region::Region(const Rect *rect)
+Region::Region(const Rect &rect)
 {
-  if (!rect->isEmpty()) {
+  if (!rect.isEmpty()) {
     BoxRec box;
-    box.x1 = rect->left;
-    box.x2 = rect->right;
-    box.y1 = rect->top;
-    box.y2 = rect->bottom;
+    box.x1 = rect.left;
+    box.x2 = rect.right;
+    box.y1 = rect.top;
+    box.y2 = rect.bottom;
     miRegionInit(&m_reg, &box, 0);
   } else {
     miRegionInit(&m_reg, NullBox, 0);
@@ -87,6 +87,11 @@ void Region::translate(int dx, int dy)
 void Region::add(const Region *other)
 {
   miUnion(&m_reg, &m_reg, (RegionPtr)&other->m_reg);
+}
+
+void Region::add(const Region &other)
+{
+  miUnion(&m_reg, &m_reg, (RegionPtr)&other.m_reg);
 }
 
 void Region::subtract(const Region *other)

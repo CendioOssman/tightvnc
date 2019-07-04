@@ -57,7 +57,9 @@ void DesktopSrvDispatcher::execute()
 {
   while (!isTerminating()) {
     try {
+      m_log->debug(_T("DesktopSrvDispatcher reading code"));
       UINT8 code = m_gate->readUInt8();
+      m_log->debug(_T("DesktopSrvDispatcher, code %d recieved"), code);
       std::map<UINT8, ClientListener *>::iterator iter = m_handlers.find(code);
       if (iter == m_handlers.end()) {
         StringStorage errMess;

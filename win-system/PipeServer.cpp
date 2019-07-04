@@ -99,7 +99,7 @@ NamedPipe *PipeServer::accept()
       throw Exception(errMess.getString());
     }
   }
-
+  // delete is inside ~NamedPipeTransport()
   NamedPipe *result = new NamedPipe(m_serverPipe, m_bufferSize, true);
 
   m_serverPipe = INVALID_HANDLE_VALUE;

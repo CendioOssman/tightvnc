@@ -93,7 +93,7 @@ public:
   // Returns a region which associates with some video data. The region will define
   // by concrete implementation.
   // Implementions will not ensure that this function is thread safety.
-  virtual void getVideoRegion(Region *dstVidRegion) = 0;
+  virtual Region getVideoRegion() = 0;
 };
 
 #endif // __SCREENDRIVER_H__

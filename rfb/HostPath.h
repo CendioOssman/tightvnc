@@ -50,6 +50,7 @@ private:
   static const size_t m_SSH_PORT_MAX_CHARS;
   static const size_t m_VNC_HOST_MAX_CHARS;
   static const size_t m_VNC_PORT_MAX_CHARS;
+  static const size_t m_MAX_PATH_LEN;
 
   char* m_path;
   char* m_sshHost;

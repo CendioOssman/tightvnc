@@ -7,7 +7,7 @@
 #include "thread/AutoLock.h"
 
 // does not works on XP
-#include "Realtimeapiset.h"
+// #include "Realtimeapiset.h"
 
 ProfileLogger::~ProfileLogger()
 {
@@ -41,9 +41,9 @@ ProcessorTimes ProfileLogger::checkPoint(const TCHAR *description)
   m_last.wall = DateTime::now();
   t.wall = m_last.wall - t.wall;
 
-#if DROP_TIME_STAT  // test code
+// #if DROP_TIME_STAT  // test code
   m_checkPoints[description].push_back(m_last);
-#endif
+// #endif
   return t;
 }
 

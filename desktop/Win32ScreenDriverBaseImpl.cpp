@@ -29,7 +29,8 @@ Win32ScreenDriverBaseImpl::Win32ScreenDriverBaseImpl(UpdateKeeper *updateKeeper,
                                                  UpdateListener *updateListener,
                                                  LocalMutex *fbLocalMutex,
                                                  LogWriter *log)
-: m_fbLocalMutex(fbLocalMutex),
+: WinVideoRegionUpdaterImpl(log),
+  m_fbLocalMutex(fbLocalMutex),
   m_cursorPosDetector(updateKeeper, updateListener, log),
   m_curShapeDetector(updateKeeper, updateListener, &m_curShapeGrabber, fbLocalMutex, log)
 {

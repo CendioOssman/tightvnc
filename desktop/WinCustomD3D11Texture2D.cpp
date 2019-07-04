@@ -58,6 +58,18 @@ WinCustomD3D11Texture2D::WinCustomD3D11Texture2D(ID3D11Device *device, UINT widt
 {
 }
 
+WinCustomD3D11Texture2D::WinCustomD3D11Texture2D(const WinCustomD3D11Texture2D &other)
+  : m_textDescInitializer(other.m_textDescInitializer),
+    m_textureWrapper(other.m_textureWrapper)
+{
+}
+
+void WinCustomD3D11Texture2D::operator= (const WinCustomD3D11Texture2D &other) 
+{
+  m_textDescInitializer = other.m_textDescInitializer;
+  m_textureWrapper = other.m_textureWrapper;
+}
+
 WinCustomD3D11Texture2D::~WinCustomD3D11Texture2D()
 {
 

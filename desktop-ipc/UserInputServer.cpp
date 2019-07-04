@@ -172,6 +172,8 @@ void UserInputServer::ansWindowCoords(BlockingGate *backGate)
   HWND hwnd = (HWND)backGate->readUInt64();
   try {
     m_userInput->getWindowCoords(hwnd, &rect);
+    // handle is correct
+    backGate->writeUInt8(0);
     sendRect(&rect, backGate);
   } catch (BrokenHandleException &e) {
     backGate->writeUInt8(1);

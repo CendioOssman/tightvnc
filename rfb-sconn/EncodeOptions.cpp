@@ -131,6 +131,11 @@ bool EncodeOptions::jpegEnabled() const
   return (m_jpegQualityLevel != EO_DEFAULT);
 }
 
+void EncodeOptions::disableJpeg()
+{
+  m_jpegQualityLevel = EO_DEFAULT;
+}
+
 bool EncodeOptions::copyRectEnabled() const
 {
   return m_enableCopyRect;

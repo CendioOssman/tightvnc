@@ -26,7 +26,11 @@
         (WixUI_InstallMode = "InstallTypical" OR WixUI_InstallMode = "InstallComplete" OR
         WixUI_InstallMode = "InstallCustom" OR WixUI_InstallMode = "Change") AND
         <?ifndef VIEWER_FREE ?>
-        (<![CDATA[&Server=3 OR &Viewer = 3]]>)
+          <?ifndef SERVER_FREE ?>
+          (<![CDATA[&Server=3 OR &Viewer = 3]]>)
+          <?else?>
+          (<![CDATA[&Viewer = 3]]>)
+          <?endif?>
         <?else?>
         (<![CDATA[&Server=3]]>)
         <?endif?>
@@ -46,7 +50,11 @@
         (WixUI_InstallMode = "InstallTypical" OR WixUI_InstallMode = "InstallComplete" OR
         WixUI_InstallMode = "InstallCustom" OR WixUI_InstallMode = "Change") AND
         <?ifndef VIEWER_FREE ?>
-        (<![CDATA[&Server=3 OR &Viewer = 3]]>)
+          <?ifndef SERVER_FREE ?>
+          (<![CDATA[&Server=3 OR &Viewer = 3]]>)
+          <?else?>
+          (<![CDATA[&Viewer = 3]]>)
+          <?endif?>
         <?else?>
         (<![CDATA[&Server=3]]>)
         <?endif?>

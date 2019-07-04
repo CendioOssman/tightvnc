@@ -40,6 +40,7 @@ UpdateHandlerServer::UpdateHandlerServer(BlockingGate *forwGate,
   dispatcher->registerNewHandle(SET_FULL_UPD_REQ_REGION, this);
   dispatcher->registerNewHandle(SET_EXCLUDING_REGION, this);
   dispatcher->registerNewHandle(FRAME_BUFFER_INIT, this);
+  m_log->debug(_T("UpdateHandlerServer created"));
 }
 
 UpdateHandlerServer::~UpdateHandlerServer()
@@ -64,18 +65,23 @@ void UpdateHandlerServer::onRequest(UINT8 reqCode, BlockingGate *backGate)
 {
   switch (reqCode) {
   case EXTRACT_REQ:
+    m_log->debug(_T("UpdateHandlerServer, EXTRACT_REQ recieved"));
     extractReply(backGate);
     break;
   case SCREEN_PROP_REQ:
+    m_log->debug(_T("UpdateHandlerServer, SCREEN_PROP_REQ recieved"));
     screenPropReply(backGate);
     break;
   case SET_FULL_UPD_REQ_REGION:
+    m_log->debug(_T("UpdateHandlerServer, SET_FULL_UPD_REQ_REGION recieved"));
     receiveFullReqReg(backGate);
     break;
   case SET_EXCLUDING_REGION:
+    m_log->debug(_T("UpdateHandlerServer, SET_EXCLUDING_REGION recieved"));
     receiveExcludingReg(backGate);
     break;
   case FRAME_BUFFER_INIT:
+    m_log->debug(_T("UpdateHandlerServer, FRAME_BUFFER_INIT recieved"));
     // Init from client
     serverInit(backGate);
     break;
@@ -90,8 +96,10 @@ void UpdateHandlerServer::onRequest(UINT8 reqCode, BlockingGate *backGate)
 
 void UpdateHandlerServer::extractReply(BlockingGate *backGate)
 {
+  m_log->debug(_T("UpdateHandlerServer: extract updates"));
   UpdateContainer updCont;
   m_updateHandler->extract(&updCont);
+  m_log->debug(_T("UpdateHandlerServer: %u changed rectangles"), updCont.changedRegion.getCount());
 
   const FrameBuffer *fb = m_updateHandler->getFrameBuffer();
 
@@ -105,6 +113,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
   backGate->writeUInt8(updCont.screenSizeChanged);
   if (updCont.screenSizeChanged) {
     // Send new screen properties
+    m_log->debug(_T("UpdateHandlerServer: Send new screen properties"));
     sendPixelFormat(&newPf, backGate);
     Dimension fbDim = fb->getDimension();
     Rect fbRect = fbDim.getRect();
@@ -113,6 +122,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
   }
 
   // Send video region
+  m_log->debug(_T("UpdateHandlerServer: Send video region"));
   sendRegion(&updCont.videoRegion, backGate);
   // Send changed region
   std::vector<Rect> rects;
@@ -120,6 +130,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
   updCont.changedRegion.getRectVector(&rects);
   unsigned int countChangedRect = (unsigned int)rects.size();
   _ASSERT(countChangedRect == rects.size());
+  m_log->debug(_T("UpdateHandlerServer: send %u changed rectangles"), countChangedRect);
   backGate->writeUInt32(countChangedRect);
 
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {
@@ -129,6 +140,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
   }
 
   // Send "copyrect"
+  m_log->debug(_T("UpdateHandlerServer: Send copyrect"));
   bool hasCopyRect = !updCont.copiedRegion.isEmpty();
   backGate->writeUInt8(hasCopyRect);
   if (hasCopyRect) {
@@ -140,10 +152,12 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
   }
 
   // Send cursor position if it has been changed.
+  m_log->debug(_T("UpdateHandlerServer: Send cursor position"));
   backGate->writeUInt8(updCont.cursorPosChanged);
   sendPoint(&updCont.cursorPos, backGate);
 
   // Send cursor shape if it has been changed.
+  m_log->debug(_T("UpdateHandlerServer: Send cursor shape"));
   backGate->writeUInt8(updCont.cursorShapeChanged);
   if (updCont.cursorShapeChanged) {
     const CursorShape *curSh = m_updateHandler->getCursorShape();
@@ -157,6 +171,7 @@ void UpdateHandlerServer::extractReply(BlockingGate *backGate)
       backGate->writeFully((void *)curSh->getMask(), curSh->getMaskSize());
     }
   }
+  m_log->debug(_T("UpdateHandlerServer::extractReply finished"));
 }
 
 void UpdateHandlerServer::screenPropReply(BlockingGate *backGate)

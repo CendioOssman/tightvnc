@@ -35,6 +35,7 @@ ServerConfig::ServerConfig()
   m_acceptRfbConnections(true), m_useAuthentication(true),
   m_onlyLoopbackConnections(false), m_acceptHttpConnections(true),
   m_enableAppletParamInUrl(true), m_enableFileTransfers(true),
+  m_D3DAllowed(true),
   m_mirrorDriverAllowed(true),
   m_removeWallpaper(true), m_hasReadOnlyPassword(false),
   m_hasPrimaryPassword(false), m_alwaysShared(false), m_neverShared(false),
@@ -64,6 +65,7 @@ void ServerConfig::serialize(DataOutputStream *output)
   output->writeInt32(m_httpPort);
   output->writeInt8(m_enableFileTransfers ? 1 : 0);
   output->writeInt8(m_removeWallpaper ? 1 : 0);
+  output->writeInt8(m_D3DAllowed ? 1 : 0);
   output->writeInt8(m_mirrorDriverAllowed ? 1 : 0);
   output->writeInt32(m_disconnectAction);
   output->writeInt8(m_acceptRfbConnections ? 1 : 0);
@@ -129,8 +131,10 @@ void ServerConfig::deserialize(DataInputStream *input)
 
   m_rfbPort = input->readInt32();
   m_httpPort = input->readInt32();
+
   m_enableFileTransfers = input->readInt8() == 1;
   m_removeWallpaper = input->readInt8() == 1;
+  m_D3DAllowed = input->readInt8() != 0;
   m_mirrorDriverAllowed = input->readInt8() != 0;
   m_disconnectAction = (ServerConfig::DisconnectAction)input->readInt32();
   m_acceptRfbConnections = input->readInt8() == 1;
@@ -335,6 +339,18 @@ ServerConfig::DisconnectAction ServerConfig::getDisconnectAction()
 {
   AutoLock lock(&m_objectCS);
   return m_disconnectAction;
+}
+
+bool ServerConfig::getD3DIsAllowed()
+{
+  AutoLock lock(&m_objectCS);
+  return m_D3DAllowed;
+}
+
+void ServerConfig::setD3DAllowing(bool value)
+{
+  AutoLock lock(&m_objectCS);
+  m_D3DAllowed = value;
 }
 
 bool ServerConfig::getMirrorIsAllowed()

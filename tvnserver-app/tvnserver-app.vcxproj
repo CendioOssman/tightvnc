@@ -375,6 +375,11 @@
     <ClInclude Include="WinServiceEvents.h" />
     <ClInclude Include="WsConfigRunner.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\win-event-log\win-event-log.vcxproj">
+      <Project>{1e316ab4-e681-4f2b-97a7-cd7de904af62}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

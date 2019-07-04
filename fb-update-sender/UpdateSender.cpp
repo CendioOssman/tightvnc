@@ -323,6 +323,12 @@ void UpdateSender::sendUpdate()
 
   EncodeOptions encodeOptions;
   selectEncoder(&encodeOptions);
+  EncodeOptions losslessEncodeOptions;
+  bool losslessEnabled = encodeOptions.jpegEnabled();
+  if (losslessEnabled) {
+    selectEncoder(&losslessEncodeOptions);
+    losslessEncodeOptions.disableJpeg();
+  }
 
   // Viewport calculating
   Rect viewPort;
@@ -474,6 +480,21 @@ void UpdateSender::sendUpdate()
       paintBlack(frameBuffer, &blackRegion);
     }
 
+    if (losslessEnabled) {
+      m_losslessDirty.add(changedRegion);
+      m_losslessClean.subtract(&changedRegion);
+    }
+    // Add some lossless data to every update but no more than 1/100 part of framebuffer.
+    // So at 20 fps full screen will be sent in 5 sec.
+    int screenArea = frameBufferRect.area();
+    Region losslessRegion = takePartFromRegion(&m_losslessClean, screenArea / 100);
+    if (losslessEnabled) {
+      if (losslessRegion.isEmpty()) {
+        m_losslessClean.set(&m_losslessDirty);
+        m_losslessDirty.clear();
+      }
+    }
+
     //
     // At this point, we've got final regions in changedRegion and videoRegion.
     //
@@ -485,6 +506,14 @@ void UpdateSender::sendUpdate()
     splitRegion(m_enbox.getEncoder(), &changedRegion, &normalRects,
                 frameBuffer, &encodeOptions);
 
+    // Convert losslessRegion to the final list of rectangles.
+    std::vector<Rect> losslessRects;
+    if (losslessEnabled && !losslessRegion.isEmpty()) {
+      m_log->debug(_T("Number of lossless rectangles before splitting: %d"),
+        losslessRegion.getCount());
+      splitRegion(m_enbox.getEncoder(), &losslessRegion, &losslessRects,
+        frameBuffer, &losslessEncodeOptions);
+    }
     // Do the same for the videoRegion.
     std::vector<Rect> videoRects;
     if (!videoRegion.isEmpty()) {
@@ -498,12 +527,22 @@ void UpdateSender::sendUpdate()
     std::vector<Rect> copyRects;
     updCont.copiedRegion.getRectVector(&copyRects);
 
-    // Calculate the total number of rectangles and pseudo-rectangles.
     m_log->debug(_T("Number of normal rectangles: %d"), normalRects.size());
+    m_log->debug(_T("Number of lossless rectangles: %d"), losslessRects.size());
     m_log->debug(_T("Number of video rectangles: %d"), videoRects.size());
     m_log->debug(_T("Number of CopyRect rectangles: %d"), copyRects.size());
+
+    // calculate regions areas
+    if (m_log->isDebug()) {
+      m_log->debug(_T("Area of normal rectangles: %d"), calcAreas(normalRects));
+      m_log->debug(_T("Area of lossless rectangles: %d"), calcAreas(losslessRects));
+      m_log->debug(_T("Area of video rectangles: %d"), calcAreas(videoRects));
+      m_log->debug(_T("Area of CopyRect rectangles: %d"), calcAreas(copyRects));
+    }
+
+    // Calculate the total number of rectangles and pseudo-rectangles.
     size_t numTotalRects =
-      normalRects.size() + videoRects.size() + copyRects.size();
+      normalRects.size() + losslessRects.size() + videoRects.size() + copyRects.size();
 
     if (updCont.cursorPosChanged) {
       numTotalRects++;
@@ -549,6 +588,8 @@ void UpdateSender::sendUpdate()
       ProcessorTimes pt1 = m_log->checkPoint(_T("Before Sending normal rectangles"));
 
       sendRectangles(m_enbox.getEncoder(), &normalRects, frameBuffer, &encodeOptions);
+
+      sendRectangles(m_enbox.getEncoder(), &losslessRects, frameBuffer, &losslessEncodeOptions);
 
       ProcessorTimes pt2 = m_log->checkPoint(_T("After Sending normal rectangles"));
       m_log->debug(_T("Before Sending normal rectangles %f processor Mcycles, %f process time, %f kernel time, %f wall clock time"), 
@@ -623,7 +664,7 @@ void UpdateSender::execute()
     m_log->debug(_T("Update sender thread of client #%d is awake"), m_id);
     if (!isTerminating()) {
       try {
-        m_log->debug(_T("Trying to call the sendUpdate() function"));
+        m_log->debug(_T("UpdateSender::Trying to call the sendUpdate() function"));
         sendUpdate();
         m_log->debug(_T("The sendUpdate() function has finished"));
         m_busy = false;
@@ -908,4 +949,36 @@ bool UpdateSender::updateViewPort(Rect *outNewViewPort, bool *shareApp, Region *
 
   *outNewViewPort = newViewPort;
   return viewPortChanged;
+}
+
+// Returns part of region with total area no more than area
+// and removes this part form source reg
+Region UpdateSender::takePartFromRegion(Region *reg, int area)
+{
+  Region out;
+  std::vector<Rect> rects;
+  reg->getRectVector(&rects);
+  // process region rects form last one, I hope it can reduce allocation number for region structure
+  for (int i = rects.size() - 1; i >= 0 && area > 0; i-- ) {
+    Rect r = rects[i];
+    int a = r.area();
+    if (a > area) {
+      r.setWidth(r.getWidth() * area / a + 1);
+      a = r.area();
+    }
+    area -= a;
+    Region t(r);
+    reg->subtract(&t);
+    out.add(&t);
+  }
+  return out;
+}
+
+int UpdateSender::calcAreas(std::vector<Rect> rects)
+{
+  int sum = 0;
+  for (int i = 0; i < rects.size(); i++) {
+    sum += rects[i].area();
+  }
+  return sum;
 }

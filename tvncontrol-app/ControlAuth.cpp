@@ -36,7 +36,7 @@ ControlAuth::ControlAuth(ControlGate *gate, const TCHAR *password)
 {
   // Prepare data for authentication.
   StringStorage truncatedPass(password);
-  truncatedPass.getSubstring(&truncatedPass, 0, VNC_PASSWORD_SIZE - 1);
+  truncatedPass.getSubstring(&truncatedPass, 0, ServerConfig::VNC_PASSWORD_SIZE - 1);
 
   AnsiStringStorage passwordAnsi(&truncatedPass);
 

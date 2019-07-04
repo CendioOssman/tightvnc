@@ -63,7 +63,7 @@ void RfbServer::onAcceptConnection(SocketIPv4 *socket)
     StringStorage peerIpString;
     peerAddr.toString(&peerIpString);
 
-    m_log->message(_T("Incoming rfb connection from %s"), peerIpString.getString());
+    m_log->message(_T("Incoming rfb connection from %s to port %u"), peerIpString.getString(), peerAddr.getPort());
 
     struct sockaddr_in addr_in = peerAddr.getSockAddr();
 

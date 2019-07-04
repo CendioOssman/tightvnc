@@ -7,6 +7,7 @@
              Display='expand'
              Level='1'
              ConfigurableDirectory='INSTALLDIR'>
+      <?ifndef SERVER_FREE ?>
       <Feature Id='Server'
                Title='TightVNC Server'
                Description='TightVNC Server makes this computer available for remote viewers.'
@@ -19,6 +20,7 @@
         <ComponentRef Id='tvnserverFirewallException'/>
         <ComponentRef Id='LogFolderPermissions'/>
       </Feature>
+      <?endif?>
       <?ifndef VIEWER_FREE ?>
       <Feature Id='Viewer'
                Title='TightVNC Viewer'
@@ -28,6 +30,7 @@
         <ComponentRef Id='ViewerExe' />
         <ComponentRef Id='ViewerFileAssoc' />
         <ComponentRef Id='TvnviewerFirewallException'/>
+        <ComponentRef Id='LogFolderPermissions'/>
       </Feature>
       <?endif?>
       <!-- Always installing component -->

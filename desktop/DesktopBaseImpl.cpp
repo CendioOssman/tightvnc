@@ -195,7 +195,7 @@ void DesktopBaseImpl::setMouseEvent(UINT16 x, UINT16 y, UINT8 buttonMask)
   _ASSERT(m_userInput != 0);
   _ASSERT(m_extDeskTermListener != 0);
 
-  m_log->info(_T("set mouse event (x = %u, y = %u)"), (UINT32)x, (UINT32)y);
+  m_log->info(_T("set mouse event (x = %u, y = %u, mask = %u)"), (UINT32)x, (UINT32)y, (UINT32)buttonMask);
   Point point(x, y);
   try {
     if (isRemoteInputAllowed()) {

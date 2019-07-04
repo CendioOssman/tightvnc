@@ -110,6 +110,6 @@ void ChangePasswordDialog::initControls()
   m_password1.setWindow(GetDlgItem(hwnd, IDC_PASSWORD));
   m_password2.setWindow(GetDlgItem(hwnd, IDC_PASSWORD2));
 
-  m_password1.setTextLengthLimit(VNC_PASSWORD_SIZE);
-  m_password2.setTextLengthLimit(VNC_PASSWORD_SIZE);
+  m_password1.setTextLengthLimit(VncPassCrypt::VNC_PASSWORD_SIZE);
+  m_password2.setTextLengthLimit(VncPassCrypt::VNC_PASSWORD_SIZE);
 }

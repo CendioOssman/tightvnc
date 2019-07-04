@@ -33,38 +33,40 @@
 #include "Win8DeskDuplicationThread.h"
 
 Win8DeskDuplicationThread::Win8DeskDuplicationThread(FrameBuffer *targetFb,
-                                                     const Rect *targetRect,
+                                                     std::vector<Rect> &targetRect,
                                                      Win8CursorShape *targetCurShape,
                                                      LONGLONG *cursorTimeStamp,
                                                      LocalMutex *cursorMutex,
                                                      Win8DuplicationListener *duplListener,
-                                                     WinDxgiOutput *dxgiOutput,
-                                                     int threadNumber,
+                                                     std::vector<WinDxgiOutput> &dxgiOutput,
                                                      LogWriter *log)
 : m_targetFb(targetFb),
-  m_targetRect(*targetRect),
+  m_targetRects(targetRect),
   m_targetCurShape(targetCurShape),
   m_cursorTimeStamp(cursorTimeStamp),
   m_cursorMutex(cursorMutex),
-  m_rotation(dxgiOutput->getRotation()),
   m_duplListener(duplListener),
-  m_dxgiOutput1(dxgiOutput),
   m_device(log),
-  m_outDupl(&m_dxgiOutput1, &m_device),
   m_hasCriticalError(false),
   m_hasRecoverableError(false),
-  m_stageTexture2D(m_device.getDevice(),
-                   (UINT)targetRect->getWidth(),
-                   (UINT)targetRect->getHeight(),
-                   m_rotation),
-  m_threadNumber(threadNumber),
   m_log(log)
 {
+  for (size_t i = 0; i < dxgiOutput.size(); i++) {
+    m_dxgiOutput1.push_back(&dxgiOutput[i]);
+    m_outDupl.push_back(WinDxgiOutputDuplication(&m_dxgiOutput1[i], &m_device));
+    m_rotations.push_back(dxgiOutput[i].getRotation());
+    m_stageTextures2D.push_back(WinCustomD3D11Texture2D(m_device.getDevice(),
+      (UINT)targetRect[i].getWidth(),
+      (UINT)targetRect[i].getHeight(),
+      m_rotations[i]));
+  }
+  m_log->debug(_T("Win8DeskDuplicationThread created"));
   resume();
 }
 
 Win8DeskDuplicationThread::~Win8DeskDuplicationThread()
 {
+  m_log->debug(_T("deleting Win8DeskDuplicationThread"));
   terminate();
   wait();
 }
@@ -76,39 +78,57 @@ bool Win8DeskDuplicationThread::isValid()
 
 void Win8DeskDuplicationThread::execute()
 {
+  const int ACQUIRE_TIMEOUT = 20;
   try {
+    std::vector<int> timeouts;
+    std::vector<DateTime> begins;
+    timeouts.resize(m_outDupl.size());
+    begins.resize(m_outDupl.size());
     while (!isTerminating() && isValid()) {
-      WinDxgiAcquiredFrame acquiredFrame(&m_outDupl, 20);
-      if (acquiredFrame.wasTimeOut()) {
-		m_log->debug(_T("Timeout on acquire frame for output:%d"), m_threadNumber);
-        continue;
+      for (size_t i = 0; i < m_outDupl.size(); i++) {
+        {
+          begins[i] = DateTime::now();
+          WinDxgiAcquiredFrame acquiredFrame(&m_outDupl[i], ACQUIRE_TIMEOUT);
+				  if (acquiredFrame.wasTimeOut()) {
+					  timeouts[i]++;
+					  m_log->debug(_T("Timeout on acquire frame for output: %d"), i);
+					  Thread::yield();
+					  continue;
+          }
+          else {
+            int accum_frames = acquiredFrame.getFrameInfo()->AccumulatedFrames;
+            double dt = (double)(DateTime::now() - begins[i]).getTime(); // in milliseconds
+
+            m_log->debug(_T("Acquire frame for output: %d for %f ms, accumulated %d frames"), i, dt + ACQUIRE_TIMEOUT * timeouts[i], accum_frames);
+            timeouts[i] = 0;
+            WinD3D11Texture2D acquiredDesktopImage(acquiredFrame.getDxgiResource());
+            DXGI_OUTDUPL_FRAME_INFO *info = acquiredFrame.getFrameInfo();
+
+            // Get metadata
+            if (info->TotalMetadataBufferSize) {
+              size_t moveCount = m_outDupl[i].getFrameMoveRects(&m_moveRects);
+              size_t dirtyCount = m_outDupl[i].getFrameDirtyRects(&m_dirtyRects);
+
+              processMoveRects(moveCount, i);
+              processDirtyRects(dirtyCount, &acquiredDesktopImage, i);
+            }
+
+            // Check cursor pointer for updates.
+            {
+              processCursor(info, i);
+            } // Cursor
+          }
+        }
+        Thread::yield();
       }
-
-      WinD3D11Texture2D acquiredDesktopImage(acquiredFrame.getDxgiResource());
-      DXGI_OUTDUPL_FRAME_INFO *info = acquiredFrame.getFrameInfo();
-
-      // Get metadata
-      if (info->TotalMetadataBufferSize) {
-        size_t moveCount = m_outDupl.getFrameMoveRects(&m_moveRects);
-        size_t dirtyCount = m_outDupl.getFrameDirtyRects(&m_dirtyRects);
-
-        processMoveRects(moveCount);
-        processDirtyRects(dirtyCount, &acquiredDesktopImage);
-      }
-
-      // Check cursor pointer for updates.
-      {
-        processCursor(info);
-      } // Cursor
-      Thread::yield();
     }
   } catch (WinDxRecoverableException &e) {
     StringStorage errMess;
-    errMess.format(_T("Catched WinDxRecoverableException: %s, (%d)"), e.getMessage(), (int)e.getErrorCode());
+    errMess.format(_T("Catched WinDxRecoverableException: %s, (%x)"), e.getMessage(), (int)e.getErrorCode());
     setRecoverableError(errMess.getString());
   } catch (WinDxCriticalException &e) {
     StringStorage errMess;
-    errMess.format(_T("Catched WinDxCriticalException: %s, (%d)"), e.getMessage(), (int)e.getErrorCode());
+    errMess.format(_T("Catched WinDxCriticalException: %s, (%x)"), e.getMessage(), (int)e.getErrorCode());
     setRecoverableError(errMess.getString());
   } catch (Exception &e) {
     StringStorage errMess;
@@ -133,26 +153,29 @@ void Win8DeskDuplicationThread::setRecoverableError(const TCHAR *reason)
   m_duplListener->onRecoverableError(reason);
 }
 
-Dimension Win8DeskDuplicationThread::getStageDimension() const
+Dimension Win8DeskDuplicationThread::getStageDimension(size_t out) const
 {
-  return Dimension(m_stageTexture2D.getDesc()->Width, m_stageTexture2D.getDesc()->Height);
+  return Dimension(m_stageTextures2D[out].getDesc()->Width, m_stageTextures2D[out].getDesc()->Height);
 }
 
-void Win8DeskDuplicationThread::processMoveRects(size_t moveCount)
+void Win8DeskDuplicationThread::processMoveRects(size_t moveCount, size_t out)
 {
   _ASSERT(moveCount <= m_moveRects.size());
   Rect destinationRect;
   Rect sourceRect;
+  Rect targetRect = m_targetRects[out];
+  DXGI_MODE_ROTATION rotation = m_rotations[out];
+
   for (size_t iRect = 0; iRect < moveCount; iRect++) {
     destinationRect.fromWindowsRect(&m_moveRects[iRect].DestinationRect);
     sourceRect = destinationRect;
     POINT srcPoint = m_moveRects[iRect].SourcePoint;
     sourceRect.setLocation(srcPoint.x, srcPoint.y);
-    rotateRectInsideStage(&destinationRect, &getStageDimension(), m_rotation);
-    rotateRectInsideStage(&sourceRect, &getStageDimension(), m_rotation);
+    rotateRectInsideStage(&destinationRect, &getStageDimension(out), rotation);
+    rotateRectInsideStage(&sourceRect, &getStageDimension(out), rotation);
     // Translate the rect and point to the frame buffer coordinates.
-    destinationRect.move(m_targetRect.left, m_targetRect.top);
-    sourceRect.move(m_targetRect.left, m_targetRect.top);
+    destinationRect.move(targetRect.left, targetRect.top);
+    sourceRect.move(targetRect.left, targetRect.top);
     int x = sourceRect.left;
     int y = sourceRect.top;
     m_targetFb->move(&destinationRect, x, y);
@@ -162,15 +185,19 @@ void Win8DeskDuplicationThread::processMoveRects(size_t moveCount)
 }
 
 void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
-                                                  WinD3D11Texture2D *acquiredDesktopImage)
+                                                  WinD3D11Texture2D *acquiredDesktopImage, 
+                                                  size_t out)
 {
   _ASSERT(dirtyCount <= m_dirtyRects.size());
 
   Region changedRegion;
 
   Rect dirtyRect;
-  Dimension stageDim = getStageDimension();
+  Dimension stageDim = getStageDimension(out);
   Rect stageRect = stageDim.getRect();
+
+  DXGI_MODE_ROTATION rotation = m_rotations[out];
+
   for (size_t iRect = 0; iRect < dirtyCount; iRect++) {
     dirtyRect.fromWindowsRect(&m_dirtyRects[iRect]);
 
@@ -186,23 +213,23 @@ void Win8DeskDuplicationThread::processDirtyRects(size_t dirtyCount,
       throw Exception(errMess.getString());
       */
     }
-
-    m_device.copySubresourceRegion(m_stageTexture2D.getTexture(), dirtyRect.left, dirtyRect.top,
+    ID3D11Texture2D *texture = m_stageTextures2D[out].getTexture();
+    m_device.copySubresourceRegion(texture, dirtyRect.left, dirtyRect.top,
       acquiredDesktopImage->getTexture(), &dirtyRect, 0, 1);
 
-    WinDxgiSurface surface(m_stageTexture2D.getTexture());
+    WinDxgiSurface surface(texture);
     WinAutoMapDxgiSurface autoMapSurface(&surface, DXGI_MAP_READ);
 
     Rect dstRect(dirtyRect);
-    rotateRectInsideStage(&dstRect, &stageDim, m_rotation);
+    rotateRectInsideStage(&dstRect, &stageDim, rotation);
     // Translate the rect to the frame buffer coordinates.
-    dstRect.move(m_targetRect.left, m_targetRect.top);
+    dstRect.move(m_targetRects[out].left, m_targetRects[out].top);
     m_log->debug(_T("Destination dirty rect = %d, %d, %dx%d"), dstRect.left, dstRect.top, dstRect.getWidth(), dstRect.getHeight());
 
     stageDim.width = static_cast<int> (autoMapSurface.getStride() / 4);
     m_auxiliaryFrameBuffer.setPropertiesWithoutResize(&stageDim, &m_targetFb->getPixelFormat());
     m_auxiliaryFrameBuffer.setBuffer(autoMapSurface.getBuffer());
-    switch (m_rotation)
+    switch (rotation)
     {
       case DXGI_MODE_ROTATION_UNSPECIFIED:
       case DXGI_MODE_ROTATION_IDENTITY:
@@ -267,7 +294,7 @@ void Win8DeskDuplicationThread::rotateRectInsideStage(Rect *toTranspose,
   }
 }
 
-void Win8DeskDuplicationThread::processCursor(const DXGI_OUTDUPL_FRAME_INFO *info)
+void Win8DeskDuplicationThread::processCursor(const DXGI_OUTDUPL_FRAME_INFO *info, size_t out)
 {
   AutoLock al(m_cursorMutex);
   LONGLONG lastUpdateTime = info->LastMouseUpdateTime.QuadPart;
@@ -280,21 +307,22 @@ void Win8DeskDuplicationThread::processCursor(const DXGI_OUTDUPL_FRAME_INFO *inf
     bool newVisibility = pointerPos.Visible != FALSE;
     bool visibleChanged = m_targetCurShape->getIsVisible() != newVisibility;
     if (visibleChanged) {
-      m_targetCurShape->setVisibility(newVisibility, m_threadNumber);
+      m_targetCurShape->setVisibility(newVisibility, out);
       m_duplListener->onCursorShapeChanged();
     }
 
     //
     bool shapeChanged = info->PointerShapeBufferSize != 0;
     if (shapeChanged) {
-      m_outDupl.getFrameCursorShape(m_targetCurShape->getCursorShapeForWriting(), info->PointerShapeBufferSize);
+      m_outDupl[out].getFrameCursorShape(m_targetCurShape->getCursorShapeForWriting(), info->PointerShapeBufferSize);
       m_duplListener->onCursorShapeChanged();
     }
 
     if (pointerPos.Visible) {
       Point hotPoint = m_targetCurShape->getCursorShape()->getHotSpot();
-      m_duplListener->onCursorPositionChanged(pointerPos.Position.x + m_targetRect.left + hotPoint.x,
-                                              pointerPos.Position.y + m_targetRect.top + hotPoint.y);
+      Rect targetRect = m_targetRects[out];
+      m_duplListener->onCursorPositionChanged(pointerPos.Position.x + targetRect.left + hotPoint.x,
+                                              pointerPos.Position.y + targetRect.top + hotPoint.y);
     }
   }
 }

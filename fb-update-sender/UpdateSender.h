@@ -180,6 +180,12 @@ protected:
                    const FrameBuffer *frameBuffer,
                    const EncodeOptions *encodeOptions);
 
+  // Returns part of region with total area not much more than area
+  // and removes this part form source reg
+  Region takePartFromRegion(Region *reg, int area);
+  // calculate total area of rects in pixels
+  int calcAreas(std::vector<Rect> rects);
+
   LogWriter *m_log;
 
   WindowsEvent m_newUpdatesEvent;
@@ -241,6 +247,10 @@ protected:
   // This region constains a video region which was sent at previous time.
   Region m_prevVideoRegion;
   LocalMutex m_vidFreezeLocMut;
+
+
+  Region m_losslessDirty;
+  Region m_losslessClean;
 
   // Output stream.
   RfbOutputGate *m_output;

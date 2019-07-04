@@ -38,11 +38,16 @@ class WinCustomD3D11Texture2D
 public:
   // Initializes ID3D11Texture2D compatible to textures returned from the AcquireNextFrame() function.
   WinCustomD3D11Texture2D(ID3D11Device *device, UINT width, UINT height, DXGI_MODE_ROTATION rotation);
+  WinCustomD3D11Texture2D(const WinCustomD3D11Texture2D &other);
   virtual ~WinCustomD3D11Texture2D();
+
+  void operator = (const WinCustomD3D11Texture2D &other);
 
   ID3D11Texture2D *getTexture() const;
 
   const D3D11_TEXTURE2D_DESC *getDesc() const;
+
+
 
 private:
   class Texture2DDescInitializer

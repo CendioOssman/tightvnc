@@ -49,7 +49,7 @@ protected:
 protected:
   ControlGate *m_gate;
 
-  UINT8 m_password[VNC_PASSWORD_SIZE];
+  UINT8 m_password[ServerConfig::VNC_PASSWORD_SIZE];
 };
 
 #endif

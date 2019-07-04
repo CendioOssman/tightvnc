@@ -61,22 +61,26 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
 {
   Rect copyRect;
   Point copySrc;
+  m_log->debug(_T("UpdateHandlerImpl: getCopiedRegion"));
   m_screenDriver->getCopiedRegion(&copyRect, &copySrc);
-
   {
     AutoLock al(&m_updateKeeper); // The following operations should be atomic
     m_updateKeeper.addCopyRect(&copyRect, &copySrc);
+    m_log->debug(_T("UpdateHandlerImpl: extract Copy Rect"));
     m_updateKeeper.extract(updateContainer);
   }
 
   // Note: The getVideoRegion() function is not a thread safe function, but it invokes
   // only from this one place and so that is why it does not cover by the mutex.
- 	m_screenDriver->getVideoRegion(&updateContainer->videoRegion);
+  m_log->debug(_T("UpdateHandlerImpl: getVideoRegion"));
+  updateContainer->videoRegion = m_screenDriver->getVideoRegion();
   // Constrain the video region to the current frame buffer border.
-  Region fbRect(&m_backupFrameBuffer.getDimension().getRect());
+  m_log->debug(_T("UpdateHandlerImpl: getRect"));
+  Region fbRect(getFrameBufferDimension().getRect());
+  m_log->debug(_T("UpdateHandlerImpl: intersect"));
   updateContainer->videoRegion.intersect(&fbRect);
-  updateContainer->videoRegion.intersect(&fbRect);
-
+  
+  m_log->debug(_T("UpdateHandlerImpl::extract : filter updates"));
   m_updateFilter->filter(updateContainer);
 
   if (!m_absoluteRect.isEmpty()) {
@@ -86,6 +90,7 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
   }
 
   // Checking for screen properties changing or frame buffers differ
+  m_log->debug(_T("UpdateHandlerImpl::extract : Checking for screen properties changing or frame buffers differ"));
   if (m_screenDriver->getScreenPropertiesChanged() ||
       !m_backupFrameBuffer.isEqualTo(m_screenDriver->getScreenBuffer())) {
     Dimension currentDimension = m_backupFrameBuffer.getDimension();
@@ -93,6 +98,7 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
     if (m_screenDriver->getScreenSizeChanged() || !currentDimension.isEqualTo(&newDimension)) {
       updateContainer->screenSizeChanged = true;
     }
+    m_log->debug(_T("UpdateHandlerImpl::extract : applyNewScreenProperties()"));
     applyNewScreenProperties();
     {
       // Only this place the class provides frame buffer changings, and then why it
@@ -109,6 +115,7 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
   }
 
   // Cursor position must always be present.
+  m_log->debug(_T("UpdateHandlerImpl::extract : update cursor position"));
   updateContainer->cursorPos = m_screenDriver->getCursorPosition();
   // Checking for mouse shape changing
   if (updateContainer->cursorShapeChanged || m_fullUpdateRequested) {
@@ -119,6 +126,7 @@ void UpdateHandlerImpl::extract(UpdateContainer *updateContainer)
 
     m_fullUpdateRequested = false;
   }
+  m_log->debug(_T("UpdateHandlerImpl::extract finished"));
 }
 
 void UpdateHandlerImpl::applyNewScreenProperties()

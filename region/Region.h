@@ -53,7 +53,7 @@ public:
    * Creates a region from the given rectangle.
    * @param rect a pointer to the source rectangle.
    */
-  Region(const Rect *rect);
+  Region(const Rect &rect);
   /**
    * Creates a copy of another region.
    * @param rect a reference to the source region.
@@ -96,6 +96,7 @@ public:
    * @param other region to add.
    */
   void add(const Region *other);
+  void add(const Region &other);
   /**
    * Subtracts another region from this region.
    * @param other region to subtract.

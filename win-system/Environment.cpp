@@ -113,7 +113,7 @@ bool Environment::getCurrentModulePath(StringStorage *out)
 
     if (ret == 0) {
       return false;
-    } else if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+    } else if (ret == size || GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
       size += 128;
     } else {
       break;

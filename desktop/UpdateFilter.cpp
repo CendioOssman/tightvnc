@@ -45,11 +45,13 @@ UpdateFilter::~UpdateFilter()
 
 void UpdateFilter::filter(UpdateContainer *updateContainer)
 {
+  m_log->debug(_T("UpdateFilter::filter()"));
   AutoLock al(m_fbMutex);
 
   FrameBuffer *screenFrameBuffer = m_screenDriver->getScreenBuffer();
 
   // Checking for buffers equal
+  m_log->debug(_T("UpdateFilter::filter : Checking for buffers equal"));
   if (!screenFrameBuffer->isEqualTo(m_frameBuffer)) {
     return;
   }
@@ -62,6 +64,7 @@ void UpdateFilter::filter(UpdateContainer *updateContainer)
   std::vector<Rect>::iterator iRect;
 
   // Reproduce CopyRect operations in m_frameBuffer.
+  m_log->debug(_T("UpdateFilter::filter : Reproduce CopyRect operations in m_frameBuffer"));
   updateContainer->copiedRegion.getRectVector(&rects);
   Point *src = &updateContainer->copySrc;
   for (iRect = rects.begin(); iRect < rects.end(); iRect++) {

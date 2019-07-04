@@ -7,6 +7,7 @@
 
     <DirectoryRef Id="INSTALLDIR" DiskId="1">
       <!-- tvnserver with shortcuts -->
+      <?ifndef SERVER_FREE ?>
       <Component Id='ServerExe' Guid='F8F36CD1-9EE3-4911-8CA1-8B0B6BB34175'>
         <ServiceControl Id="ServiceRemover"
                         Name="tvnserver"
@@ -33,6 +34,7 @@
         <File Id='sasDllFile' Name='sas.dll' DiskId='1' Source='$(var.AddonBinFolder)\sas.dll' KeyPath='yes'/>
         <Condition> VersionNT = 600 </Condition>
       </Component>
+      <?endif ?>
 
       <Component Id='UrlComponent' Guid='{9282ED3F-A2F7-4727-909B-02614DEA23EA}'>
         <File Id='UrlFile' Name='TightVNC Web Site.url' Source='TightVNC Web Site.url'
@@ -70,6 +72,7 @@
       <?endif?>
       <!-- Firewall exception -->
       <!-- Server firewall exception -->
+      <?ifndef SERVER_FREE ?>
       <Component Id="tvnserverFirewallException" Guid='{F4560702-BA2E-4498-A6F2-92FF9C109962}'>
         <fire:FirewallException Id="FWX1" Name="$(var.ProductName)" File="tvnserverEXE" Scope="any"
                                 IgnoreFailure="yes"/>
@@ -78,6 +81,7 @@
           SERVER_ADD_FIREWALL_EXCEPTION = 1 AND IS_SILENT = 1)
         </Condition>
       </Component>
+      <?endif?>
       <!-- Viewer firewall exception -->
       <?ifndef VIEWER_FREE ?>
       <Component Id="TvnviewerFirewallException" Guid='{38F67337-C5C3-4616-9327-713B8A18C430}'>
@@ -109,6 +113,7 @@
         <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]1' Type='string' Value='' KeyPath='yes' />
       </Component>
     </DirectoryRef>
+    <?ifndef SERVER_FREE ?>
     <DirectoryRef Id="ServerMenuDir" DiskId="1">
       <Component Id="ServerMenuDir" Guid="{FE06A99B-0809-4199-9759-E55AF044F537}">
         <Shortcut Id="menuTvnServerApp"
@@ -186,6 +191,7 @@
         <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]3' Type='string' Value='' KeyPath='yes' />
       </Component>
     </DirectoryRef>
+    <?endif?>
 
     <!-- Changing permissions of the Tight Log folder that
          should be shared for all users on the tight application mode -->

@@ -59,17 +59,19 @@ public:
   // Returns listen port value
   int getListenPort() const;
 
-  // Returns log level in 0 - 9 range
+  // Changes log level in 0 - 9 range
   void setLogLevel(int logLevel);
   // Returns log level
   int getLogLevel() const;
 
   // Puts log directory to the logDir argument.
   void getLogDir(StringStorage *logDir) const;
+  // Changes log directory 
+  void setLogDir(StringStorage &logDir);
 
   // Creates path to log file and place value to m_pathToLogFile member
   // creates logger and return pointer to him
-  Logger *initLog(const TCHAR logDir[], const TCHAR logName[]);
+  Logger *initLog(const TCHAR logDir[], const TCHAR logName[], bool useSpecialFolder = true);
 
   // function return pointer to logger
   Logger *getLogger();

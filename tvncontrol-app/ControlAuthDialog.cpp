@@ -47,7 +47,7 @@ BOOL ControlAuthDialog::onInitDialog()
 
   HWND hwnd = m_ctrlThis.getWindow();
   m_passwordTextBox.setWindow(GetDlgItem(hwnd, IDC_PASSWORD_EDIT));
-  m_passwordTextBox.setTextLengthLimit(VNC_PASSWORD_SIZE);
+  m_passwordTextBox.setTextLengthLimit(ServerConfig::VNC_PASSWORD_SIZE);
 
   SetForegroundWindow(hwnd);
   m_passwordTextBox.setFocus();

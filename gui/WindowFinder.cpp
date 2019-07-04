@@ -57,16 +57,17 @@ BOOL CALLBACK WindowFinder::findWindowsByClassFunc(HWND hwnd, LPARAM lParam)
   return TRUE;
 }
 
-void WindowFinder::findWindowsByClass(StringVector *classNames,
-                                      std::vector<HWND> *hwndVector)
+std::vector<HWND> WindowFinder::findWindowsByClass(StringVector classNames)
 {
-  hwndVector->clear();
-  if (!classNames->empty()) {
-    WindowsParam windowsParam;
-    windowsParam.classNames = classNames;
-    windowsParam.hwndVector = hwndVector;
-    EnumWindows(findWindowsByClassFunc, (LPARAM)&windowsParam);
+  std::vector<HWND> hwndVector;
+  if (classNames.empty()) {
+    return hwndVector;
   }
+  WindowsParam windowsParam;
+  windowsParam.classNames = &classNames;
+  windowsParam.hwndVector = &hwndVector;
+  EnumWindows(findWindowsByClassFunc, (LPARAM)&windowsParam);
+  return hwndVector;
 }
 
 BOOL CALLBACK WindowFinder::findWindowsByNameFunc(HWND hwnd, LPARAM lParam)
@@ -91,11 +92,11 @@ BOOL CALLBACK WindowFinder::findWindowsByNameFunc(HWND hwnd, LPARAM lParam)
   return TRUE;
 }
 
-HWND WindowFinder::findFirstWindowByName(const StringStorage *windowName)
+HWND WindowFinder::findFirstWindowByName(const StringStorage windowName)
 {
   std::vector<HWND> hwndVector;
   StringVector winNameVector;
-  winNameVector.push_back(*windowName);
+  winNameVector.push_back(windowName);
   winNameVector[0].toLowerCase();
   WindowsParam winParams = { &hwndVector, &winNameVector };
 

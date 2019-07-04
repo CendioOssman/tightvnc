@@ -31,20 +31,23 @@
 class VncPassCrypt
 {
 public:
+
   VncPassCrypt();
   virtual ~VncPassCrypt();
 
-  void updatePlain(const UINT8 cryptedPass[8]);
+  static const int VNC_PASSWORD_SIZE = 8;
+
+  void updatePlain(const UINT8 cryptedPass[VNC_PASSWORD_SIZE]);
 
   // Encrypt the plain password and fills by encrypted values the
   // encryptedPass[8] array.
-  static void getEncryptedPass(UINT8 encryptedPass[8],
-                               const UINT8 plainPassword[8]);
+  static void getEncryptedPass(UINT8 encryptedPass[VNC_PASSWORD_SIZE],
+                               const UINT8 plainPassword[VNC_PASSWORD_SIZE]);
 
   // Decrypt the encrypted password and fills by decrypted values the
   // plainPassword[8] array.
-  static void VncPassCrypt::getPlainPass(UINT8 plainPassword[8],
-                                         const UINT8 encryptedPass[8]);
+  static void VncPassCrypt::getPlainPass(UINT8 plainPassword[VNC_PASSWORD_SIZE],
+                                         const UINT8 encryptedPass[VNC_PASSWORD_SIZE]);
 
   // Returns true if it's matched.
   bool challengeAndResponseIsValid(const UINT8 challenge[16],

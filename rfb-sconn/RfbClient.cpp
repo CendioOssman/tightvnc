@@ -72,10 +72,12 @@ RfbClient::~RfbClient()
 
 void RfbClient::disconnect()
 {
+  StringStorage peerStr;
+  getPeerHost(&peerStr);
   // Shutdown and close socket.
   try { m_socket->shutdown(SD_BOTH); } catch (...) { }
   try { m_socket->close(); } catch (...) { }
-  m_log->message(_T("Connection has been closed"));
+  m_log->message(_T("Connection from %s has been closed for client #%d"), peerStr.getString(), m_id);
 }
 
 unsigned int RfbClient::getId() const
@@ -222,7 +224,7 @@ void RfbClient::execute()
     // UpdateSender initialization
     m_updateSender = new UpdateSender(&codeRegtor, m_desktop, this,
                                       &output, m_id, m_desktop, m_log);
-    m_log->debug(_T("UpdateSender has been created"));
+    m_log->debug(_T("UpdateSender has been created for client #%d"), m_id);
     PixelFormat pf;
     Dimension fbDim;
     m_desktop->getFrameBufferProperties(&fbDim, &pf);
@@ -267,9 +269,9 @@ void RfbClient::execute()
     connClosingEvent.waitForEvent();
   } catch (Exception &e) {
     m_log->error(_T("Connection will be closed: %s"), e.getMessage());
-    sysLogMessage.format(_T("The client %s has been")
+    sysLogMessage.format(_T("The client %s #%d has been")
                          _T(" disconnected for the reason: %s"),
-                         peerStr.getString(), e.getMessage());
+                         peerStr.getString(), m_id, e.getMessage());
   }
 
   disconnect();

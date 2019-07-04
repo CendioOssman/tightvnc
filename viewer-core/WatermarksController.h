@@ -46,7 +46,7 @@ public:
 	void hideWatermarks(FrameBuffer *frameBuffer,
 		LocalMutex *fbLock);
 
-	const Rect* CurrentRect();
+	const Rect CurrentRect();
 
 private:
 	Rect m_currentRect;

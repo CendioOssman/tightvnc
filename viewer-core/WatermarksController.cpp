@@ -89,9 +89,9 @@ void WatermarksController::hideWatermarks(FrameBuffer *frameBuffer, LocalMutex *
 	frameBuffer->copyFrom(&m_currentRect, &m_overlay, 0, 0);
 }
 
-const Rect* WatermarksController::CurrentRect()
+const Rect WatermarksController::CurrentRect()
 {
-	return &m_currentRect;
+	return m_currentRect;
 }
 
 FrameBuffer& WatermarksController::frameBuffer(bool fromFile)

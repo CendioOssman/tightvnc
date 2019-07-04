@@ -74,6 +74,8 @@ protected:
   static const TCHAR MOUSE_SWAP[];
   static const TCHAR JPEG_IMAGE_QUALITY[];
   static const TCHAR COMPRESSION_LEVEL[];
+  static const TCHAR LOG_PATH[];
+
 
   static const TCHAR YES[];
   static const TCHAR NO[];
@@ -121,6 +123,7 @@ private:
   void parseViewOnly();
   void parseJpegImageQuality();
   bool parseHost();
+  void parseLogPath();
 };
 
 #endif

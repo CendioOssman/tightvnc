@@ -29,23 +29,32 @@
 #include "region/Region.h"
 #include "util/StringVector.h"
 #include "ScreenDriver.h"
+#include "thread/LocalMutex.h"
+#include "log-writer/LogWriter.h"
+#include "thread/Thread.h"
+#include "win-system/WindowsEvent.h"
 
-class WinVideoRegionUpdaterImpl : public ScreenDriver
+class WinVideoRegionUpdaterImpl : public ScreenDriver, Thread
 {
 public:
-  WinVideoRegionUpdaterImpl();
+  WinVideoRegionUpdaterImpl(LogWriter *log);
   virtual ~WinVideoRegionUpdaterImpl();
-
+protected:
+  virtual void execute();
+  virtual void onTerminate();
 private:
-  virtual void getVideoRegion(Region *dstVidRegion);
-
+  virtual Region getVideoRegion();
   void updateVideoRegion();
-
-  void addRectsByClass(StringVector *classNames);
-  void addRectsByCoords(std::vector<Rect> *rects);
+  void getClassNamesAndRectsFromConfig(StringVector &classNames, std::vector<Rect> &rects);
+  unsigned int WinVideoRegionUpdaterImpl::getInterval();
+  Region getRectsByClass(StringVector classNames);
+  Region getRectsByCoords(std::vector<Rect> &rects);
 
   DateTime m_lastVidUpdTime;
   Region m_vidRegion;
+  LocalMutex m_regionMutex;
+  LogWriter *m_log;
+  WindowsEvent m_sleeper;
 };
 
 #endif // __WINVIDEOREGIONUPDATERIMPL_H__

@@ -8,7 +8,13 @@
        then the installer will
        install the TightVNC product parallelly with the same version and
        the same name -->
-  <?define Version='!(bind.FileVersion.tvnserverEXE)' ?>
+  <?ifndef SERVER_FREE ?>
+    <?define Version='!(bind.FileVersion.tvnserverEXE)' ?>
+  <?else?>
+    <?ifndef VIEWER_FREE ?>
+      <?define Version='!(bind.FileVersion.viewerEXE)' ?>
+    <?endif?>
+  <?endif?>
   <?define Manufacturer='GlavSoft LLC.' ?>
 
   <?define SrcFolder = "..\" ?>

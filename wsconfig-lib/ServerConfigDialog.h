@@ -85,6 +85,7 @@ private:
   void onFileTransferCheckBoxClick();
   void onRemoveWallpaperCheckBoxClick();
   void onGrabTransparentWindowsChanged();
+  void onUseD3DChanged();
 
   //
   // Input handling
@@ -103,7 +104,7 @@ protected:
   TextBox m_rfbPort;
   TextBox m_httpPort;
   TextBox m_pollingInterval;
-  CheckBox m_grabTransparentWindows;
+  CheckBox m_useD3D;
   CheckBox m_useMirrorDriver;
   CheckBox m_enableFileTransfers;
   CheckBox m_removeWallpaper;

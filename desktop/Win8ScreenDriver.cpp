@@ -29,7 +29,8 @@ Win8ScreenDriver::Win8ScreenDriver(UpdateKeeper *updateKeeper,
                                    UpdateListener *updateListener,
                                    LocalMutex *fbLocalMutex,
                                    LogWriter *log)
-: m_log(log),
+: WinVideoRegionUpdaterImpl(log),
+  m_log(log),
   m_fbLocalMutex(fbLocalMutex),
   m_updateKeeper(updateKeeper),
   m_updateListener(updateListener),
@@ -87,9 +88,11 @@ bool Win8ScreenDriver::getScreenSizeChanged()
 bool Win8ScreenDriver::applyNewScreenProperties()
 {
   try {
+    m_log->debug(_T("Applying new screen properties, deleting old Win8ScreenDriverImpl"));
+    delete m_drvImpl;
+    m_log->debug(_T("Applying new screen properties, creating new Win8ScreenDriverImpl"));
     Win8ScreenDriverImpl *drvImpl =
       new Win8ScreenDriverImpl(m_log, m_updateKeeper, m_fbLocalMutex, m_updateListener, m_detectionEnabled);
-    delete m_drvImpl;
     m_drvImpl = drvImpl;
   } catch (Exception &e) {
     m_log->error(_T("Can't apply new screen properties: %s"), e.getMessage());

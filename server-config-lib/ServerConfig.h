@@ -39,14 +39,15 @@
 
 #include <shlobj.h>
 
-#define VNC_PASSWORD_SIZE 8
-
 class ServerConfig : public Lockable
 {
 public:
   static const unsigned int MINIMAL_POLLING_INTERVAL = 30;
   static const unsigned int MINIMAL_LOCAL_INPUT_PRIORITY_TIMEOUT = 1;
   static const unsigned int MINIMAL_QUERY_TIMEOUT = 1;
+
+  // FIXME: duplicatad at VncPassCrypt
+  static const int VNC_PASSWORD_SIZE = 8;
 
   //
   // Enum defines server action when last client disconnects
@@ -119,6 +120,9 @@ public:
 
   void setDisconnectAction(DisconnectAction action);
   DisconnectAction getDisconnectAction();
+
+  bool getD3DIsAllowed();
+  void setD3DAllowing(bool value);
 
   bool getMirrorIsAllowed();
   void setMirrorAllowing(bool value);
@@ -292,6 +296,7 @@ protected:
 
   bool m_enableFileTransfers;
   bool m_removeWallpaper;
+  bool m_D3DAllowed;
   bool m_mirrorDriverAllowed;
   //
   // Server action when last client disconnects from server

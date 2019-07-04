@@ -73,11 +73,17 @@ bool WindowsCursorShapeGrabber::grabPixels(const PixelFormat *pixelFormat)
   BITMAP bmMask;
   if (!GetObject(iconInfo.hbmMask, sizeof(BITMAP), (LPVOID)&bmMask)) {
     DeleteObject(iconInfo.hbmMask);
+    if (isColorShape) {
+      DeleteObject(iconInfo.hbmColor);
+    }
     return false;
   }
 
   if (bmMask.bmPlanes != 1 || bmMask.bmBitsPixel != 1) {
     DeleteObject(iconInfo.hbmMask);
+    if (isColorShape) {
+      DeleteObject(iconInfo.hbmColor);
+    }
     return false;
   }
 
@@ -94,6 +100,9 @@ bool WindowsCursorShapeGrabber::grabPixels(const PixelFormat *pixelFormat)
   std::vector<char> maskBuff(widthBytes * bmMask.bmHeight);
   if (maskBuff.empty()) {
     DeleteObject(iconInfo.hbmMask);
+    if (isColorShape) {
+      DeleteObject(iconInfo.hbmColor);
+    }
     return true;
   }
   char *mask = &maskBuff.front();
@@ -106,6 +115,9 @@ bool WindowsCursorShapeGrabber::grabPixels(const PixelFormat *pixelFormat)
                               mask) != 0;
 
   DeleteObject(iconInfo.hbmMask);
+  if (isColorShape) {
+    DeleteObject(iconInfo.hbmColor);
+  }
   if (!result) {
     return false;
   }

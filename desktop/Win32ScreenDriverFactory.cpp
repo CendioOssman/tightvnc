@@ -44,11 +44,17 @@ createScreenDriver(UpdateKeeper *updateKeeper,
                    LogWriter *log)
 {
   // Try to use Win8 duplication API firstly because it's in preference to other methods.
-  try {
-    return new Win8ScreenDriver(updateKeeper, updateListener, fbLocalMutex, log);
-  } catch (Exception &e) {
-    log->error(_T("The Win8 duplication api can't be used: %s"),
-               e.getMessage());
+  if (isD3DAllowed()) {
+    log->info(_T("D3D driver usage is allowed, try to start it..."));
+    try {
+      return new Win8ScreenDriver(updateKeeper, updateListener, fbLocalMutex, log);
+    } catch (Exception &e) {
+      log->error(_T("The Win8 duplication api can't be used: %s"),
+                 e.getMessage());
+    }
+  }
+  else {
+    log->info(_T("D3D driver usage is disallowed"));
   }
 
   if (isMirrorDriverAllowed()) {
@@ -92,4 +98,9 @@ createMirrorScreenDriver(UpdateKeeper *updateKeeper,
 bool Win32ScreenDriverFactory::isMirrorDriverAllowed()
 {
   return m_srvConf->getMirrorIsAllowed();
+}
+
+bool Win32ScreenDriverFactory::isD3DAllowed()
+{
+  return m_srvConf->getD3DIsAllowed();
 }

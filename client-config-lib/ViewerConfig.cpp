@@ -142,6 +142,15 @@ void ViewerConfig::getLogDir(StringStorage *logDir) const
   *logDir = m_pathToLogFile;
 }
 
+void ViewerConfig::setLogDir(StringStorage &logDir) 
+{
+  AutoLock l(&m_cs);
+  m_pathToLogFile = logDir;
+  if (m_logger != 0) {
+    m_logger->changeLogProps(m_pathToLogFile.getString(), m_logLevel);
+  }
+}
+
 void ViewerConfig::setHistoryLimit(int historyLimit)
 {
   AutoLock l(&m_cs);
@@ -199,7 +208,7 @@ ConnectionHistory *ViewerConfig::getConnectionHistory()
   return &m_conHistory;
 }
 
-Logger *ViewerConfig::initLog(const TCHAR logDir[], const TCHAR logName[])
+Logger *ViewerConfig::initLog(const TCHAR logDir[], const TCHAR logName[], bool useSpecialFolder)
 {
   m_logName = logName;
   StringStorage logFileFolderPath;
@@ -207,7 +216,7 @@ Logger *ViewerConfig::initLog(const TCHAR logDir[], const TCHAR logName[])
 
   // After that logFilePath variable will contain path to folder
   // where tvnviewer.log must be located
-  if (Environment::getSpecialFolderPath(Environment::APPLICATION_DATA_SPECIAL_FOLDER, &appDataPath)) {
+  if (Environment::getSpecialFolderPath(Environment::APPLICATION_DATA_SPECIAL_FOLDER, &appDataPath) && useSpecialFolder) {
     logFileFolderPath.format(_T("%s\\%s"), appDataPath.getString(), logDir);
   } else {
     logFileFolderPath.format(_T("%s"), logDir);

@@ -39,28 +39,42 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE,
   ViewerConfig config(RegistryPaths::VIEWER_PATH);
   config.loadFromStorage(sm);
 
-  try {
-    config.initLog(LogNames::LOG_DIR_NAME, LogNames::VIEWER_LOG_FILE_STUB_NAME);
-  } catch (...) {
-  }
-
-  LogWriter logWriter(config.getLogger());
-
-  // resource-loader initialization
-  ResourceLoader resourceLoader(hInstance);
-
-  logWriter.debug(_T("main()"));
-  logWriter.debug(_T("loading settings from storage completed"));
-  logWriter.debug(_T("Log initialization completed"));
-
   ConnectionConfig conConf;
   ConnectionData condata;
   bool isListening = false;
   ViewerCmdLine cmd(&condata, &conConf, &config, &isListening);
+  // resource-loader initialization
+  ResourceLoader resourceLoader(hInstance);
+  try {
+    config.initLog(LogNames::LOG_DIR_NAME, LogNames::VIEWER_LOG_FILE_STUB_NAME);
+  }  catch (...) {
+  }
 
-  int result = 0;
   try {
     cmd.parse();
+  }
+  catch (const CommandLineFormatException &exception) {
+    StringStorage strError(exception.getMessage());
+    MessageBox(0,
+      strError.getString(),
+      ProductNames::VIEWER_PRODUCT_NAME,
+      MB_OK | MB_ICONERROR);
+    return 0;
+  }
+  catch (const CommandLineFormatHelp &) {
+    cmd.onHelp();
+    return 0;
+  } 
+
+  LogWriter logWriter(config.getLogger());
+
+
+  logWriter.debug(_T("main()"));
+  logWriter.debug(_T("loading settings from storage completed"));
+  logWriter.debug(_T("Log initialization completed"));
+  
+  int result = 0;
+  try {
     TvnViewer tvnViewer(hInstance,
                         ApplicationNames::WINDOW_CLASS_NAME,
                         WindowNames::TVN_WINDOW_CLASS_NAME);
@@ -73,16 +87,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE,
       tvnViewer.showLoginDialog();
     }
     result = tvnViewer.run();
-  } catch (const CommandLineFormatException &exception) {
-    StringStorage strError(exception.getMessage());
-    MessageBox(0,
-               strError.getString(),
-               ProductNames::VIEWER_PRODUCT_NAME,
-               MB_OK | MB_ICONERROR);
-    return 0;
-  } catch (const CommandLineFormatHelp &) {
-    cmd.onHelp();
-    return 0;
   } catch (const Exception &ex) {
     MessageBox(0,
                StringTable::getString(IDS_UNKNOWN_ERROR_IN_VIEWER),

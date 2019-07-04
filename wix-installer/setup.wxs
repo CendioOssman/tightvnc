@@ -49,8 +49,10 @@
 
       <Directory Id="ProgramMenuFolder" Name="Programs">
         <Directory Id="ProgramMenuDir" Name="$(var.ProductName)">
+        <?ifndef SERVER_FREE ?>
           <Directory Id="ServerMenuDir" Name ="TightVNC Server (Application Mode)"/>
           <Directory Id="ServiceMenuDir" Name ="TightVNC Server (Service Mode)"/>
+        <?endif?>
         </Directory>
       </Directory>
       <Directory Id="DesktopFolder" Name="Desktop" />
@@ -70,7 +72,9 @@
     <UIRef Id="TvnUI" />
     <UIRef Id="WixUI_ErrorProgressText" />
 
+    <?ifndef SERVER_FREE ?>
     <Icon Id="tvnserver.ico" SourceFile="tvnserver.ico" />
+    <?endif?>
     <?ifndef VIEWER_FREE ?>
     <Icon Id="viewer.ico" SourceFile="vncviewer.ico" />
     <?endif?>
@@ -78,14 +82,21 @@
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
     <!--<WixVariable Id="WixUIBannerBmp" Value="\banner.bmp" />-->
     <!--<WixVariable Id="WixUIDialogBmp" Value="\dialog.bmp" />-->
+    <?ifndef SERVER_FREE ?>
     <!--<WixVariable Id="WixUIExclamationIco" Value="tvnserver.ico" />-->
     <WixVariable Id="WixUIInfoIco" Value="tvnserver.ico" />
     <Property Id="ARPPRODUCTICON" Value="tvnserver.ico" />
+    <?else?>
+    <!--<WixVariable Id="WixUIExclamationIco" Value="vncviewer.ico" />-->
+    <WixVariable Id="WixUIInfoIco" Value="vncviewer.ico" />
+    <Property Id="ARPPRODUCTICON" Value="vnciewer.ico" />
+    <?endif?>
 
     <!-- Run custom actions during the install -->
     <InstallExecuteSequence>
       <RemoveExistingProducts After="InstallInitialize" />
 
+    <?ifndef SERVER_FREE ?>
       <!--<Custom Action="UnregService" After="InstallInitialize">
          If the Server feature is deselected
         <![CDATA[(&Server=2) AND (!Server=3)]]>
@@ -133,6 +144,7 @@
         AND <![CDATA[&Server=3 AND NOT (!Server=3)]]>
         AND NOT REMOVE
       </Custom>
+    <?endif?>
 
       <Custom Action='AlreadyUpdated' After='FindRelatedProducts'>SELFFOUND</Custom>
       <Custom Action='NoDowngrade' After='FindRelatedProducts'>NEWERFOUND</Custom>

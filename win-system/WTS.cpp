@@ -197,7 +197,11 @@ void WTS::initialize(LogWriter *log)
   try {
     m_wtsapi32Library = new DynamicLibrary(_T("Wtsapi32.dll"));
     m_WTSQueryUserToken = (pWTSQueryUserToken)m_wtsapi32Library->getProcAddress("WTSQueryUserToken");
-    m_WTSQuerySessionInformation = (pWTSQuerySessionInformation)m_wtsapi32Library->getProcAddress("WTSQuerySessionInformation");
+#ifdef UNICODE
+    m_WTSQuerySessionInformation = (pWTSQuerySessionInformation)m_wtsapi32Library->getProcAddress("WTSQuerySessionInformationW");
+#else
+    m_WTSQuerySessionInformation = (pWTSQuerySessionInformation)m_wtsapi32Library->getProcAddress("WTSQuerySessionInformationA");
+#endif
     m_WTSFreeMemory = (pWTSFreeMemory)m_wtsapi32Library->getProcAddress("WTSFreeMemory");
   } catch (Exception &e) {
     log->error(_T("Can't load the Wtsapi32.dll library: %s"), e.getMessage());

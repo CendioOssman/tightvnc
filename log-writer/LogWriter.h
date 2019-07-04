@@ -63,6 +63,9 @@ public:
   // to write log messages which helps to track work of a code as detailed as possible.
   void debug(const TCHAR *fmt, ...);
 
+  // Returnd true if debug loglevel enabled.
+  bool isDebug();
+
   // Add profiler checkpoint
   ProcessorTimes checkPoint(const TCHAR *tag);
 

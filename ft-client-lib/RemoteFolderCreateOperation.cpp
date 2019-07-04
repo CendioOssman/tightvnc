@@ -38,6 +38,7 @@ RemoteFolderCreateOperation::RemoteFolderCreateOperation(LogWriter *logWriter,
 {
   FileInfoList *list = new FileInfoList(file);
   getRemotePath(list, pathToTargetRoot, &m_pathToTargetFile);
+  // or delete list->getRoot(); ?
   delete list;
 }
 

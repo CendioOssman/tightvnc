@@ -31,6 +31,11 @@ const size_t HostPath::m_SSH_HOST_MAX_CHARS = 255;
 const size_t HostPath::m_SSH_PORT_MAX_CHARS = 5;
 const size_t HostPath::m_VNC_HOST_MAX_CHARS = 255;
 const size_t HostPath::m_VNC_PORT_MAX_CHARS = 5;
+// Compute the maximal length of a valid path. Note that there can be no
+// more than five delimiter characters: "user@sshhost:port/vnchost::port".
+const size_t HostPath::m_MAX_PATH_LEN =
+(HostPath::m_SSH_USER_MAX_CHARS + HostPath::m_SSH_HOST_MAX_CHARS + HostPath::m_SSH_PORT_MAX_CHARS +
+  HostPath::m_VNC_HOST_MAX_CHARS + HostPath::m_VNC_PORT_MAX_CHARS + 5);
 
 HostPath::HostPath()
   : m_path(0),
@@ -64,18 +69,12 @@ HostPath::set(const char *path)
   // Forget previous path if one was set earlier.
   clear();
 
-  // Compute the maximal length of a valid path. Note that there can be no
-  // more than five delimiter characters: "user@sshhost:port/vnchost::port".
-  const size_t MAX_PATH_LEN =
-    (m_SSH_USER_MAX_CHARS + m_SSH_HOST_MAX_CHARS + m_SSH_PORT_MAX_CHARS +
-     m_VNC_HOST_MAX_CHARS + m_VNC_PORT_MAX_CHARS + 5);
-
   // Check the path length and save a copy for this object.
   if (path == 0) {
     return false;
   }
-  size_t pathLen = strlen(path);
-  if (pathLen < 1 || pathLen > MAX_PATH_LEN) {
+  size_t pathLen = strnlen(path, m_MAX_PATH_LEN);
+  if (pathLen < 1 || pathLen > m_MAX_PATH_LEN) {
     return false;
   }
   m_path = new char[pathLen + 1];
@@ -214,9 +213,9 @@ HostPath::parsePath(size_t results[]) const
   const char *colonPtr = strchr(vncHostStart, ':');
   if (colonPtr != 0) {
     results[2] = colonPtr - vncHostStart;
-    results[3] = strlen(colonPtr);
+    results[3] = strnlen(colonPtr, m_MAX_PATH_LEN);
   } else {
-    results[2] = strlen(vncHostStart);
+    results[2] = strnlen(vncHostStart, m_MAX_PATH_LEN);
   }
 }
 

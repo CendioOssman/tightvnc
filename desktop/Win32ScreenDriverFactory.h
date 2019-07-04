@@ -53,6 +53,7 @@ private:
                                            LogWriter *log);
 
   bool isMirrorDriverAllowed();
+  bool isD3DAllowed();
 
   ServerConfig *m_srvConf;
 };

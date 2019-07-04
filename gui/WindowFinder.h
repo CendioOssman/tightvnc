@@ -32,13 +32,11 @@
 class WindowFinder
 {
 public:
-  // hwndVector parameter will be cleared before adding new items
-  static void findWindowsByClass(StringVector *classNames,
-                                 std::vector<HWND> *hwndVector);
+  static std::vector<HWND> findWindowsByClass(StringVector classNames);
 
   // Find first of windows that name contain the string.
   // It is not case sensitive.
-  static HWND findFirstWindowByName(const StringStorage *windowName);
+  static HWND findFirstWindowByName(const StringStorage windowName);
 
 protected:
   static BOOL CALLBACK findWindowsByClassFunc(HWND hwnd, LPARAM lParam);

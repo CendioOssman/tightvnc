@@ -35,6 +35,8 @@ public:
   // Texture will be created by the IDXGIResource->QueryInterface() function call.
   WinD3D11Texture2D(IDXGIResource *dxgiResource);
 
+  WinD3D11Texture2D(const WinD3D11Texture2D & other);
+
   virtual ~WinD3D11Texture2D();
 
   ID3D11Texture2D *getTexture() const;

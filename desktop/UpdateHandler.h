@@ -89,6 +89,18 @@ public:
     *pf = m_backupFrameBuffer.getPixelFormat();
   }
 
+  Dimension getFrameBufferDimension()
+  {
+    AutoLock al(&m_fbLocMut);
+    return m_backupFrameBuffer.getDimension();
+  }
+
+  PixelFormat getFrameBufferPixelFormat(Dimension *dim, PixelFormat *pf)
+  {
+    AutoLock al(&m_fbLocMut);
+    return m_backupFrameBuffer.getPixelFormat();
+  }
+
   void initFrameBuffer(const FrameBuffer *newFb);
 
   virtual bool updateExternalFrameBuffer(FrameBuffer *fb, const Region *region,

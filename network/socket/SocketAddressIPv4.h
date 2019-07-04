@@ -50,6 +50,9 @@ public:
   // Converts socket address to it's string value (ip address as string).
   void toString(StringStorage *address) const;
 
+  // Returns socket port number 
+  unsigned short SocketAddressIPv4::getPort() const;
+
   static SocketAddressIPv4 resolve(const TCHAR *host, unsigned short port) throw(SocketException);
 
 protected:

@@ -41,6 +41,7 @@ public:
   void sendModifier(unsigned char virtKey, bool down);
 
   void processKeyEvent(unsigned short virtKey, unsigned int addKeyData);
+  bool vkCodeToString(unsigned short virtKey, bool isKeyDown, std::wstring *res);
   void processCharEvent(WCHAR charCode, unsigned int addKeyData);
   // Checks a new modifiers state after focus restoration and sends difference
   void processFocusRestoration();
@@ -61,7 +62,7 @@ private:
   void restoreModifier(unsigned char modifier);
   void releaseModifiers();
   void restoreModifiers();
-
+  
   bool isPressed(unsigned char virtKey);
 
   // This function does distinguish between a right or left modifier and
@@ -82,6 +83,12 @@ private:
   // Send one key event (Alt not translated to Meta).
   virtual void sendVerbatimKeySymEvent(unsigned int rfbKeySym, bool down);
 
+  // helper functions
+  WCHAR GettingCharFromCtrlSymbol(WCHAR ctrlSymbol);
+  // E.g if pressed Ctrl + Alt + A
+  // Try found char without modificators
+  bool TryTranslateNotPrintableToUnicode(unsigned short virtKey, HKL currentLayout, WCHAR *unicodeChar);
+
   RfbKeySymListener *m_extKeySymListener;
 
   // This state doesn't difference between left and right modifiers. It's
@@ -97,7 +104,9 @@ private:
 
   Keymap m_keyMap;
   bool m_allowProcessCharEvent;
-
+  bool m_allowProcessDoubleChar;
+  bool m_doubleDeadCatched;
+  
   LogWriter *m_log;
 
   // Flag for ignoring win key.

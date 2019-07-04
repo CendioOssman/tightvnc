@@ -3,6 +3,7 @@
   <Fragment>
     <?include product_definitions.wxi?>
 
+    <?ifndef SERVER_FREE ?>
     <Binary Id="SetupHelperBin" SourceFile="$(var.BinFolder)\setup-helper.dll"/>
 
     <CustomAction Id="AllowSas"
@@ -72,6 +73,8 @@
                   Impersonate="no"
                   Execute="commit"
                   Return="check"/>
+
+    <?endif?>
 
     <CustomAction Id='AlreadyUpdated' Error='TightVNC has already been updated to $(var.Version) or newer.' />
     <CustomAction Id='NoDowngrade' Error='A later version of [ProductName] is already installed.' />

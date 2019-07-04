@@ -106,8 +106,8 @@ BOOL ServerConfigDialog::onCommand(UINT controlID, UINT notificationID)
     case IDC_LOCAL_INPUT_PRIORITY:
       onLocalInputPriorityChanged();
       break;
-    case IDC_GRAB_TRANSPARENT:
-      onGrabTransparentWindowsChanged();
+    case IDC_USE_D3D:
+      onUseD3DChanged();
       break;
     case IDC_USE_MIRROR_DRIVER:
       // FIXME: For high quality code is needed to use a function.
@@ -235,7 +235,7 @@ void ServerConfigDialog::updateUI()
   }
   m_localInputPriorityTimeout.setUnsignedInt(m_config->getLocalInputPriorityTimeout());
 
-  m_grabTransparentWindows.check(m_config->getGrabTransparentWindowsFlag());
+  m_useD3D.check(m_config->getD3DIsAllowed());
   m_useMirrorDriver.check(m_config->getMirrorIsAllowed());
 
   m_showTrayIcon.check(m_config->getShowTrayIconFlag());
@@ -307,7 +307,7 @@ void ServerConfigDialog::apply()
   m_config->blockRemoteInput(m_blockRemoteInput.isChecked());
 
   m_config->setMirrorAllowing(m_useMirrorDriver.isChecked());
-  m_config->setGrabTransparentWindowsFlag(m_grabTransparentWindows.isChecked());
+  m_config->setD3DAllowing(m_useD3D.isChecked());
   m_config->setShowTrayIconFlag(m_showTrayIcon.isChecked());
 }
 
@@ -317,7 +317,7 @@ void ServerConfigDialog::initControls()
   m_rfbPort.setWindow(GetDlgItem(hwnd, IDC_RFB_PORT));
   m_httpPort.setWindow(GetDlgItem(hwnd, IDC_HTTP_PORT));
   m_pollingInterval.setWindow(GetDlgItem(hwnd, IDC_POLLING_INTERVAL));
-  m_grabTransparentWindows.setWindow(GetDlgItem(hwnd, IDC_GRAB_TRANSPARENT));
+  m_useD3D.setWindow(GetDlgItem(hwnd, IDC_USE_D3D));
   m_useMirrorDriver.setWindow(GetDlgItem(hwnd, IDC_USE_MIRROR_DRIVER));
   m_enableFileTransfers.setWindow(GetDlgItem(hwnd, IDC_ENABLE_FILE_TRANSFERS));
   m_removeWallpaper.setWindow(GetDlgItem(hwnd, IDC_REMOVE_WALLPAPER));
@@ -365,9 +365,6 @@ void ServerConfigDialog::initControls()
   m_inactivityTimeoutSpin.setBuddy(&m_localInputPriorityTimeout);
   m_inactivityTimeoutSpin.setAccel(0, 1);
   m_inactivityTimeoutSpin.setRange32(0, INT_MAX);
-
-  // FIXME: This control is not used yet.
-  m_grabTransparentWindows.check(true);
 
   m_ppControl = new PasswordControl(&m_primaryPassword, &m_unsetPrimaryPassword);
   m_vpControl = new PasswordControl(&m_readOnlyPassword, &m_unsetReadOnlyPassword);
@@ -498,6 +495,11 @@ void ServerConfigDialog::onRemoveWallpaperCheckBoxClick()
 }
 
 void ServerConfigDialog::onGrabTransparentWindowsChanged()
+{
+  ((ConfigDialog *)m_parentDialog)->updateApplyButtonState();
+}
+
+void ServerConfigDialog::onUseD3DChanged()
 {
   ((ConfigDialog *)m_parentDialog)->updateApplyButtonState();
 }

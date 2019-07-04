@@ -105,10 +105,12 @@ WinD3D11Device::WinD3D11Device(const WinD3D11Device &src)
 
 WinD3D11Device::~WinD3D11Device()
 {
+  m_log->debug(_T("Release ID3D11Device"));
   if (m_device != 0) {
     m_device->Release();
     m_device = 0;
   }
+  m_log->debug(_T("Release ID3D11DeviceContext"));
   if (m_context != 0) {
     m_context->Release();
     m_context = 0;

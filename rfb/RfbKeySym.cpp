@@ -31,6 +31,8 @@
 RfbKeySym::RfbKeySym(RfbKeySymListener *extKeySymListener, LogWriter *log)
 : m_extKeySymListener(extKeySymListener),
   m_allowProcessCharEvent(false),
+  m_allowProcessDoubleChar(false),
+  m_doubleDeadCatched(false),
   m_leftMetaIsPressed(false),
   m_rightMetaIsPressed(false),
   m_log(log),
@@ -76,10 +78,10 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
   bool shiftPressed = isPressed(VK_LSHIFT) || isPressed(VK_RSHIFT);
   bool capsToggled = (GetKeyState(VK_CAPITAL) & 1) != 0;
   m_log->debug(_T("ctrl = %u, alt = %u, shift = %u, caps toggled = %u"),
-             (unsigned int)ctrlPressed,
-             (unsigned int)altPressed,
-             (unsigned int)shiftPressed,
-             (unsigned int)capsToggled);
+    (unsigned int)ctrlPressed,
+    (unsigned int)altPressed,
+    (unsigned int)shiftPressed,
+    (unsigned int)capsToggled);
 
   // Without distinguishing between left and right modifiers.
   m_viewerKeyState[virtKey & 255] = down ? 128 : 0;
@@ -90,7 +92,6 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
 
   // With distinguishing between left and right modifiers.
   m_serverKeyState[virtKey & 255] = down ? 128 : 0;
-
   UINT32 rfbSym;
   if (m_keyMap.virtualCodeToKeySym(&rfbSym, virtKey & 255)) {
     // Special case for VK_RETURN that have no self numpad code.
@@ -100,89 +101,176 @@ void RfbKeySym::processKeyEvent(unsigned short virtKey,
     }
 
     m_log->debug(_T("The key has been mapped to the %#4.4x rfb symbol"),
-               rfbSym);
+      rfbSym);
     sendKeySymEvent(rfbSym, down);
   } else {
-    WCHAR outBuff[20];
-    HKL currentLayout = GetKeyboardLayout(0);
-
-    int count = ToUnicodeEx(virtKey, 0, m_viewerKeyState, outBuff,
-                            sizeof(outBuff) / sizeof(WCHAR),
-                            0, currentLayout);
-    if (count > 0) {
-      count = ToUnicodeEx(virtKey, 0, m_viewerKeyState, outBuff,
-                          sizeof(outBuff) / sizeof(WCHAR),
-                          0, currentLayout);
+    std::wstring chars;
+    bool needReleaseModifiers = vkCodeToString(virtKey, down, &chars);
+    if (ctrlPressed && altPressed && needReleaseModifiers) {
+      m_log->debug(_T("Release the ctrl and alt")
+        _T(" modifiers before send the key event(s)"));
+      releaseModifiers();
     }
 
-    m_log->debug(_T("ToUnicodeEx() return %d"), count);
-
-    if (count == 1 && !m_allowProcessCharEvent || count > 1) {
-      bool ctrlAltPressed = ctrlPressed && altPressed;
-      bool onlyCtrlPressed = ctrlPressed && !altPressed;
-      if (ctrlAltPressed) {
-        m_log->debug(_T("Release the ctrl and alt")
-                   _T(" modifiers before send the key event(s)"));
-        releaseModifiers();
+    for (int i = 0; i < chars.size(); i++) {
+      if (m_keyMap.unicodeCharToKeySym(chars[i], &rfbSym)) {
+        sendKeySymEvent(rfbSym, down);
+      } else {
+        m_log->error(_T("Can't translate the %#4.4x unicode character to an")
+          _T(" rfb symbol to send it"), (unsigned int)chars[i]);
       }
-      for (int i = 0; i < count; i++) {
-        if (onlyCtrlPressed && outBuff[i] < 32) {
-          if (onlyCtrlPressed && outBuff[i] >= 1 && outBuff[i] <= 26 &&
-              !shiftPressed) {
-            m_log->debug(_T("The %u char is a control symbol then")
-                       _T(" it will be increased by 96 to %u"),
-                       (unsigned int)outBuff[i], (unsigned int)outBuff[i] + 96);
-            outBuff[i] += 96;
-          } else {
-            m_log->debug(_T("The %u char is a control symbol then")
-                       _T(" it will be increased by 64 to %u"),
-                       (unsigned int)outBuff[i], (unsigned int)outBuff[i] + 64);
-            outBuff[i] += 64;
-          }
-        }
-        if (m_keyMap.unicodeCharToKeySym(outBuff[i], &rfbSym)) {
-          m_log->debug(_T("Sending the %#4.4x rfb symbol"), rfbSym);
-          sendKeySymEvent(rfbSym, down);
-        } else {
-          m_log->error(_T("Can't translate the %#4.4x unicode character to an")
-                     _T(" rfb symbol to send it"), (unsigned int)outBuff[i]);
-        }
-      }
-      if (ctrlAltPressed) {
-        m_log->debug(_T("Restore the ctrl and alt")
-                   _T(" modifiers after send the key event(s)"));
-        restoreModifiers();
-      }
-    } else if (count == 0) {
-      m_log->debug(_T("Was get a not printable symbol then try get a printable")
-                 _T(" with turned off the ctrl and alt modifiers"));
-      // E.g if pressed Ctrl + Alt + A
-      // Try found char without modificators
-      unsigned char withoutCtrlAltKbdState[256];
-      memcpy(withoutCtrlAltKbdState, m_viewerKeyState, sizeof(withoutCtrlAltKbdState));
-      withoutCtrlAltKbdState[VK_LCONTROL] = 0;
-      withoutCtrlAltKbdState[VK_RCONTROL] = 0;
-      withoutCtrlAltKbdState[VK_CONTROL] = 0;
-      withoutCtrlAltKbdState[VK_LMENU] = 0;
-      withoutCtrlAltKbdState[VK_RMENU] = 0;
-      withoutCtrlAltKbdState[VK_MENU] = 0;
-      count = ToUnicodeEx(virtKey, 0, withoutCtrlAltKbdState, outBuff,
-                          sizeof(outBuff) / sizeof(WCHAR),
-                          0, currentLayout);
-      m_log->debug(_T("ToUnicodeEx() without ctrl and alt return %d"), count);
-      if (count == 1) { // other case will be ignored
-        if (m_keyMap.unicodeCharToKeySym(outBuff[0], &rfbSym)) {
-          sendKeySymEvent(rfbSym, down);
-        } else {
-          m_log->error(_T("Can't translate the %#4.4x unicode character to an")
-                     _T(" rfb symbol to send it"), (unsigned int)outBuff[0]);
-        }
-      }
-    } else if (count == -1 && down) {
-      m_log->debug(_T("Dead key pressed, wait for a char event"));
-      m_allowProcessCharEvent = true;
+    }
+    if (ctrlPressed && altPressed && needReleaseModifiers) {
+      m_log->debug(_T("Restore the ctrl and alt")
+        _T(" modifiers after send the key event(s)"));
+      restoreModifiers();
     }
   }
+}
+
+bool isDeadCharacter(WCHAR ch)
+{
+  return (ch == '^'    || 
+          ch == 0x00a8 || // '?'
+          ch == '~'    || 
+          ch == 0x00b4 || // '?'
+          ch == '`');
+}
+
+bool isDoubleDeadCharacters(WCHAR *buff)
+{
+  return (isDeadCharacter(buff[0]) && buff[0] == buff[1]);
+}
+
+WCHAR RfbKeySym::GettingCharFromCtrlSymbol(WCHAR ch)
+{
+  bool ctrlPressed = isPressed(VK_LCONTROL) || isPressed(VK_RCONTROL);
+  bool altPressed = isPressed(VK_LMENU) || isPressed(VK_RMENU);
+  bool shiftPressed = isPressed(VK_LSHIFT) || isPressed(VK_RSHIFT);
+  unsigned int oldCh = (unsigned int)ch;
+  if (ctrlPressed && !altPressed && ch < 32) {
+    if (ch >= 1 && ch <= 26 && !shiftPressed) {
+      ch += 96;
+    }
+    else {
+      ch += 64;
+    }
+    m_log->debug(_T("The %u char is a control symbol then")
+      _T(" it will be increased to %u"),
+      oldCh, (unsigned int)ch);
+  }
+  return ch;
+}
+
+bool RfbKeySym::TryTranslateNotPrintableToUnicode(unsigned short virtKey, HKL currentLayout, WCHAR *unicodeChar)
+{
+  WCHAR outBuff[20];
+  m_log->debug(_T("Was get a not printable symbol then try get a printable")
+    _T(" with turned off the ctrl and alt modifiers"));
+  // E.g if pressed Ctrl + Alt + A
+  // Try found char without modificators
+  unsigned char withoutCtrlAltKbdState[256];
+  memcpy(withoutCtrlAltKbdState, m_viewerKeyState, sizeof(withoutCtrlAltKbdState));
+  withoutCtrlAltKbdState[VK_LCONTROL] = 0;
+  withoutCtrlAltKbdState[VK_RCONTROL] = 0;
+  withoutCtrlAltKbdState[VK_CONTROL] = 0;
+  withoutCtrlAltKbdState[VK_LMENU] = 0;
+  withoutCtrlAltKbdState[VK_RMENU] = 0;
+  withoutCtrlAltKbdState[VK_MENU] = 0;
+  int count = ToUnicodeEx(virtKey, 0, withoutCtrlAltKbdState, outBuff,
+    sizeof(outBuff) / sizeof(WCHAR),
+    0, currentLayout);
+  if (count > 0) {
+    outBuff[count] = 0;
+  }
+  else {
+    outBuff[0] = 0;
+  }
+  m_log->debug(_T("ToUnicodeEx() without ctrl and alt return %d wchars : %S"), count, outBuff);
+
+  if (count == 1) { // other case will be ignored
+    *unicodeChar = outBuff[0];
+    return true;
+  }
+  return false;
+}
+
+bool RfbKeySym::vkCodeToString(unsigned short virtKey, bool down, std::wstring *res) 
+{
+  bool needReleaseModifiers = false;
+  WCHAR outBuff[20];
+
+  HKL currentLayout = GetKeyboardLayout(0);
+
+  int count = ToUnicodeEx(virtKey, 0, m_viewerKeyState, outBuff,
+      sizeof(outBuff) / sizeof(WCHAR),
+      0, currentLayout);
+
+  // For keyboards with dead keys
+  if (m_doubleDeadCatched && !down && !m_allowProcessDoubleChar) {
+    m_log->debug(_T("Disable process char event"));
+    m_allowProcessCharEvent = false;
+    m_doubleDeadCatched = false;
+  }
+
+  // For keyboards with dead keys
+  if (count == 2 && (isDoubleDeadCharacters(outBuff))) {
+    m_log->debug(_T("Extra double dead key catched."));
+    if (down) {
+      m_log->debug(_T("Enable process char event. Enable process double char."));
+      m_allowProcessDoubleChar = true;
+      m_allowProcessCharEvent = true;
+      m_doubleDeadCatched = true;
+      count = ToUnicodeEx(virtKey, 0, m_viewerKeyState, outBuff,
+          sizeof(outBuff) / sizeof(WCHAR),
+          0, currentLayout);
+      if (count > 0) {
+        outBuff[count] = 0;
+      } else {
+        outBuff[0] = 0;
+      }
+      //ToUnicodeEx can return without null termination
+      m_log->debug(_T("ToUnicodeEx() function called second. Returned: %d. Output buff: %S"), count, outBuff);
+      res->erase();
+      return false;
+    } else if (!m_allowProcessCharEvent) {
+      m_log->debug(_T("Disable second calling ToUnicodeEx()"));
+      res->erase();
+      return false;
+    }
+  }
+
+  if (count > 0) {
+    count = ToUnicodeEx(virtKey, 0, m_viewerKeyState, outBuff,
+          sizeof(outBuff) / sizeof(WCHAR), 0, currentLayout);
+  }
+  if (count > 0) {
+    outBuff[count] = 0;
+  } else {
+    outBuff[0] = 0;
+  }
+  m_log->debug(_T("ToUnicodeEx() returned %d, output buff : %S"), count, outBuff);
+
+  if (count == 1 && !m_allowProcessCharEvent) {
+    res->push_back(GettingCharFromCtrlSymbol(outBuff[0]));
+    needReleaseModifiers = true;
+  }
+  // Two or more (only two of them is relevant?)
+  else if (count > 1) {
+    for (int i = 0; i < count; i++) {
+      res->push_back(GettingCharFromCtrlSymbol(outBuff[i]));
+    }
+    needReleaseModifiers = true;
+  } else if (count == 0) {
+    WCHAR unicodeChar;
+    if (TryTranslateNotPrintableToUnicode(virtKey, currentLayout, &unicodeChar)) { 
+      res->push_back(unicodeChar);
+    }
+  } else if (count == -1 && down) {
+      m_log->debug(_T("Dead key pressed, wait for a char event"));
+      m_allowProcessCharEvent = true;
+  }
+  return needReleaseModifiers;
 }
 
 void RfbKeySym::processCharEvent(WCHAR charCode,
@@ -192,7 +280,20 @@ void RfbKeySym::processCharEvent(WCHAR charCode,
     m_log->debug(_T("processCharEvent() function called with alowed processing:")
                _T(" charCode = %#4.4x, addKeyData = %#x"),
                (unsigned int)charCode, addKeyData);
-    m_allowProcessCharEvent = false;
+    // For keyboards with dead keys
+    if (m_allowProcessDoubleChar) {
+      m_allowProcessDoubleChar = false;
+      bool ctrlPressed = isPressed(VK_LCONTROL) || isPressed(VK_RCONTROL);
+      bool altPressed = isPressed(VK_LMENU) || isPressed(VK_RMENU);
+      if (ctrlPressed && altPressed) {
+        m_log->debug(_T("Release the ctrl and alt")
+          _T(" modifiers before send dead combination"));
+        releaseModifiers();
+      }
+    } else {
+      m_allowProcessCharEvent = false;
+    }
+
     UINT32 rfbSym;
     if (m_keyMap.unicodeCharToKeySym(charCode, &rfbSym)) {
       sendKeySymEvent(rfbSym, true);

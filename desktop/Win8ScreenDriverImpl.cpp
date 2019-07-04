@@ -72,6 +72,7 @@ Win8ScreenDriverImpl::Win8ScreenDriverImpl(LogWriter *log, UpdateKeeper *updateK
 
 Win8ScreenDriverImpl::~Win8ScreenDriverImpl()
 {
+  terminateDetection();
   terminate();
   int activeResult = (int)isActive();
   int waitResult = (int)wait();
@@ -87,6 +88,7 @@ void Win8ScreenDriverImpl::executeDetection()
 
 void Win8ScreenDriverImpl::terminateDetection()
 {
+  m_log->debug(_T("Destroy Win8DeskDuplicationThreads"));
   m_deskDuplThreadBundle.destroyAllThreads();
   m_detectionEnabled = false;
 }
@@ -120,7 +122,7 @@ void Win8ScreenDriverImpl::initDxgi()
         virtDeskRegion.addRect(&deskCoord);
       }
     }
-  } catch (WinDxRecoverableException &e) {
+  } catch (WinDxRecoverableException &) {
     m_log->debug(_T("Reached the end of dxgi output list with iOutput = %u"), iOutput);
     // End of output list.
   }
@@ -141,17 +143,18 @@ void Win8ScreenDriverImpl::initDxgi()
 
   for (size_t iDxgiOutput  = 0; iDxgiOutput < dxgiOutputArray.size(); iDxgiOutput++) {
     deskCoordArray[iDxgiOutput].move(-virtDeskBoundRect.left, -virtDeskBoundRect.top);
-    Thread *thread = new Win8DeskDuplicationThread(&m_frameBuffer,
-                                                   &deskCoordArray[iDxgiOutput],
-                                                   &m_win8CursorShape,
-                                                   &m_curTimeStamp,
-                                                   &m_cursorMutex,
-                                                   this,
-                                                   &dxgiOutputArray[iDxgiOutput],
-                                                   (int)iDxgiOutput,
-                                                   m_log);
-    m_deskDuplThreadBundle.addThread(thread);
   }
+  Thread *thread = new Win8DeskDuplicationThread(&m_frameBuffer,
+    deskCoordArray,
+    &m_win8CursorShape,
+    &m_curTimeStamp,
+    &m_cursorMutex,
+    this,
+    dxgiOutputArray,
+    m_log);
+  DWORD id = thread->getThreadId();
+  m_log->debug(_T("Created a new Win8DeskDuplicationThread with ID: (%d)"), id);
+  m_deskDuplThreadBundle.addThread(thread);
 }
 
 void Win8ScreenDriverImpl::execute()
@@ -160,10 +163,11 @@ void Win8ScreenDriverImpl::execute()
     initDxgi();
     m_initEvent.notify();
   } catch (WinDxRecoverableException &e) {
-    m_log->error(_T("Catched WinDxRecoverableException: %s, (%d)"), e.getMessage(), (int)e.getErrorCode());
+    m_log->error(_T("Catched WinDxRecoverableException: %s, (%x)"), e.getMessage(), (int)e.getErrorCode());
     m_hasRecoverableError = true;
   } catch (WinDxCriticalException &e) {
-    m_log->error(_T("Catched WinDxCriticalException: %s, (%d)"), e.getMessage(), (int)e.getErrorCode());
+
+    m_log->error(_T("Catched WinDxCriticalException: %s, (%x)"), e.getMessage(), (int)e.getErrorCode());
     m_hasCriticalError = true;
   } catch (Exception &e) {
     m_log->error(_T("Catched Exception in the Win8ScreenDriverImpl::execute() function: %s.")
@@ -183,7 +187,7 @@ void Win8ScreenDriverImpl::execute()
     m_updateKeeper->setScreenSizeChanged();
     m_updateListener->onUpdate();
   }
-  m_deskDuplThreadBundle.destroyAllThreads();
+  terminateDetection();
 }
 
 void Win8ScreenDriverImpl::onTerminate()

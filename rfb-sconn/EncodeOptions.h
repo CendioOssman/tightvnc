@@ -70,6 +70,9 @@ public:
   // false otherwise.
   bool jpegEnabled() const;
 
+  // Disable JPEG for lossless compression
+  void disableJpeg();
+
   //
   // Accessor functions to boolean values.
   //

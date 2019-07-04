@@ -134,6 +134,7 @@ void WindowsUserInput::setMouseEvent(const Point *newPos, UINT8 keyFlag)
 
 void WindowsUserInput::setNewClipboard(const StringStorage *newClipboard)
 {
+  // FIXME: use StringStorage instead TCHAR * in writeToClipBoard arg
   m_clipboard->writeToClipBoard(newClipboard->getString());
 }
 
@@ -216,7 +217,7 @@ void WindowsUserInput::getWindowCoords(HWND hwnd, Rect *rect)
 
 HWND WindowsUserInput::getWindowHandleByName(const StringStorage *windowName)
 {
-  return WindowFinder::findFirstWindowByName(windowName);
+  return WindowFinder::findFirstWindowByName(*windowName);
 }
 
 void WindowsUserInput::getApplicationRegion(unsigned int procId, Region *region)
