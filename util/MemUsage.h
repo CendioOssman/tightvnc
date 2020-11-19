@@ -1,4 +1,4 @@
-// Copyright (C) 2014 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,25 +22,14 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef _DISPATCH_ID_PROVIDER_H_
-#define _DISPATCH_ID_PROVIDER_H_
+#ifndef __MEMUSAGE_H__
+#define __MEMUSAGE_H__
 
-#include "DispatchDataProvider.h"
-
-class DispatchIdProvider : public DispatchDataProvider
+class MemUsage
 {
 public:
-  DispatchIdProvider();
-  DispatchIdProvider(UINT32 id);
-
-  void setId(UINT32 id);
-  void unsetId();
-
-  bool getDispatchData(UINT32 *id, StringStorage *dispatcherName, StringStorage *keyword);
-
-private:
-  UINT32 m_id;
-  bool m_idSet;
+  static size_t getCurrentMemUsage();
 };
 
-#endif
+#endif __MEMUSAGE_H__
+

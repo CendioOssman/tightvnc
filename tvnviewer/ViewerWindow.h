@@ -121,6 +121,7 @@ protected:
   void onFrameBufferPropChange(const FrameBuffer *fb);
   void onCutText(const StringStorage *cutText);
 
+  void getLoginPassword(vector<UINT8> *cryptedPassword);
   int translateAccelToTB(int val);
   void applyScreenChanges(bool isFullScreen);
   

@@ -38,8 +38,10 @@ ViewerInstance::ViewerInstance(WindowsApplication *application,
               &m_conConf,
               ViewerConfig::getInstance()->getLogger()),
   m_vncAuthHandler(&m_condata),
+  m_extAuthHandler(&m_condata),
   m_viewerCore(ViewerConfig::getInstance()->getLogger())
 {
+
 }
 
 ViewerInstance::ViewerInstance(WindowsApplication *application,
@@ -54,8 +56,10 @@ ViewerInstance::ViewerInstance(WindowsApplication *application,
               &m_conConf,
               ViewerConfig::getInstance()->getLogger()),
   m_vncAuthHandler(&m_condata),
+  m_extAuthHandler(&m_condata),
   m_viewerCore(ViewerConfig::getInstance()->getLogger())
 {
+
 }
 
 
@@ -103,14 +107,10 @@ void ViewerInstance::start()
 
   m_viewerWnd.setFileTransfer(&m_fileTransfer);
 
+  m_extAuthHandler.addAuthCapability(&m_viewerCore);
   m_vncAuthHandler.addAuthCapability(&m_viewerCore);
 
   m_fileTransfer.addCapabilities(&m_viewerCore);
-
-  if (m_condata.isSetDispatchId()) {
-    m_idHolder.setId(m_condata.getDispatchId());
-    m_viewerCore.enableDispatching(&m_idHolder);
-  }
 
   if (m_socket) {
     m_viewerCore.start(m_socket,

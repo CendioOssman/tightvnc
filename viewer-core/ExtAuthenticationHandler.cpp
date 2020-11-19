@@ -1,4 +1,4 @@
-// Copyright (C) 2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,29 +22,34 @@
 //-------------------------------------------------------------------------
 //
 
-#include "MakeTcpDispatcherConnCommand.h"
+#include "ExtAuthenticationHandler.h"
+#include "ExternalAuthentication.h"
 
-MakeTcpDispatcherConnCommand::MakeTcpDispatcherConnCommand(ControlProxy *serverControl,
-                               const TCHAR *connectString,
-                               const TCHAR *dispatcherName,
-                               const TCHAR *keyword,
-                               UINT32 connectionId)
-: m_proxy(serverControl),
-  m_connectString(connectString),
-  m_dispatcherName(dispatcherName),
-  m_keyword(keyword),
-  m_connectionId(connectionId)
+#include "rfb/VendorDefs.h"
+
+
+ExtAuthenticationHandler::ExtAuthenticationHandler()
+: AuthHandler(AuthDefs::EXTERNAL)
 {
 }
 
-MakeTcpDispatcherConnCommand::~MakeTcpDispatcherConnCommand()
+ExtAuthenticationHandler::~ExtAuthenticationHandler()
 {
 }
 
-void MakeTcpDispatcherConnCommand::execute()
+void ExtAuthenticationHandler::authenticate(DataInputStream *input,
+                                            DataOutputStream *output)
 {
-  m_proxy->makeTcpDispatcherConnection(m_connectString.getString(),
-                                       m_dispatcherName.getString(),
-                                       m_keyword.getString(),
-                                       m_connectionId);
+  vector<UINT8> cryptedPassword;
+  getLoginPassword(&cryptedPassword);
+
+  ExternalAuthentication::extAuthenticate(input, output, &cryptedPassword);
+}
+
+void ExtAuthenticationHandler::addAuthCapability(CapabilitiesManager *capManager)
+{
+  capManager->addAuthCapability(this,
+                                AuthDefs::EXTERNAL,
+                                VendorDefs::TIGHTVNC,
+                                AuthDefs::SIG_EXTERNAL);
 }

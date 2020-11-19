@@ -30,6 +30,7 @@
 #include "server-config-lib/Configurator.h"
 #include "AuthException.h"
 #include "util/VncPassCrypt.h"
+#include "util/DesCrypt.h"
 #include "win-system/Environment.h"
 #include "util/AnsiStringStorage.h"
 #include "tvnserver-app/NamingDefs.h"
@@ -135,7 +136,11 @@ void RfbInitializer::doTightAuth()
   if (Configurator::getInstance()->getServerConfig()->isUsingAuthentication()
       && m_authAllowed) {
     CapContainer authInfo;
-    authInfo.addCap(AuthDefs::VNC, VendorDefs::STANDARD, AuthDefs::SIG_VNC);
+    if (Configurator::getInstance()->getServerConfig()->externalAuthEnabled()) {
+      authInfo.addCap(AuthDefs::EXTERNAL, VendorDefs::TIGHTVNC, AuthDefs::SIG_EXTERNAL);
+    } else {
+      authInfo.addCap(AuthDefs::VNC, VendorDefs::STANDARD, AuthDefs::SIG_VNC);
+    }
     m_output->writeUInt32(authInfo.getCapCount());
     authInfo.sendCaps(m_output);
     // Read the security type selected by the client.
@@ -154,6 +159,8 @@ void RfbInitializer::doAuth(UINT32 authType)
 {
   if (authType == AuthDefs::VNC) {
     doVncAuth();
+  } else if (authType == AuthDefs::EXTERNAL) {
+    doExternalAuth();
   } else if (authType == AuthDefs::NONE) {
     doAuthNone();
   } else {
@@ -222,6 +229,64 @@ void RfbInitializer::doVncAuth()
 
 void RfbInitializer::doAuthNone()
 {
+}
+
+void RfbInitializer::doExternalAuth()
+{
+  // Read data lengths.
+  UINT8 usernameLen = m_input->readUInt8();
+  UINT8 passwordLen = m_input->readUInt8();
+  size_t dataLen = (usernameLen + passwordLen + 7) & 0xFFFFFFF8;
+
+  // Read data (username and password).
+  std::vector<UINT8> buf(dataLen + 1); // "+ 1" to avoid zero vector.
+  UINT8 *dataPtr = &buf.front();
+  m_input->readFully(dataPtr, dataLen);
+
+  // Decrypt data (username and password).
+  DesCrypt des;
+  const UINT8 key[8] = {11, 110, 60, 254, 61, 210, 245, 92};
+  des.decrypt(dataPtr, dataPtr, dataLen, key);
+
+  // Extract username and password.
+  std::vector<char> username(usernameLen + 1, '\0');
+  memcpy(&username.front(), dataPtr, usernameLen);
+  const char *usernameStr = &username.front();
+  std::vector<char> password(passwordLen + 1, '\0');
+  memcpy(&password.front(), dataPtr + usernameLen, passwordLen);
+  const char *passwordStr = &password.front();
+
+  // Determine the client's IP address.
+  StringStorage clientAddressStorage;
+  m_client->getPeerHost(&clientAddressStorage);
+  AnsiStringStorage clientAddressAnsiStorage(&clientAddressStorage);
+  const char *clientAddressStr = clientAddressAnsiStorage.getString();
+
+  // Determine our local IP address the client is connected to.
+  StringStorage localAddressStorage;
+  m_client->getLocalIpAddress(&localAddressStorage);
+  AnsiStringStorage localAddressAnsiStorage(&localAddressStorage);
+  const char *localAddressStr = localAddressAnsiStorage.getString();
+
+  // Actually verify username, password and IP address.
+  bool authSuccessful = verifyExternalAuth(usernameStr,
+                                           passwordStr,
+                                           localAddressStr,
+                                           clientAddressStr);
+  if (!authSuccessful) {
+    throw AuthException(_T("Authentication failed"));
+  }
+}
+
+bool RfbInitializer::verifyExternalAuth(const char *username,
+                                        const char *password,
+                                        const char *localAddress,
+                                        const char *remoteAddress)
+{
+  // This should be replaced with some real authentication code.
+  // Note that this authentication scheme is disabled in the public version.
+  return (strcmp(username, "testuser") == 0 &&
+          strcmp(password, "testpassword") == 0);
 }
 
 void RfbInitializer::initAuthenticate()

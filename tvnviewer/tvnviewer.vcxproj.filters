@@ -96,6 +96,9 @@
     <ClCompile Include="ViewerCollector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ExternalAuthenticationDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ViewerVncAuthHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -185,6 +188,9 @@
     <ClInclude Include="ViewerCollector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ExternalAuthenticationDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ViewerVncAuthHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -223,6 +229,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="tvnviewer.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="tvnviewerExt.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

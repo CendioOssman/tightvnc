@@ -51,7 +51,7 @@ CursorShape *Win8CursorShape::getCursorShapeForWriting()
 void Win8CursorShape::setVisibility(bool value, int threadOwner)
 {
   // Set to false is allowed only for a thread owner. Else, a not owner thread can
-  // set the false value after owner thread and then cusrsor shape will disappear.
+  // set the false value after owner thread and then cursor shape will disappear.
   if (value || m_threadOwner == threadOwner) {
     m_isVisible = value;
     m_threadOwner = threadOwner;

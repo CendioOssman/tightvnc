@@ -62,6 +62,81 @@ void InputInjector::injectKeyRelease(BYTE vkCode)
   injectKeyEvent(vkCode, true);
 }
 
+
+
+void InputInjector::injectCodeInternal(int selector, BYTE vkCode, WCHAR ch, bool release, bool extended = false)
+{
+  INPUT keyEvent = { 0 };
+  WORD scan = 0;
+  keyEvent.type = INPUT_KEYBOARD;
+  switch (selector) {
+  case SELECT_VK:
+    keyEvent.ki.wVk = vkCode;
+    keyEvent.ki.wScan = 0;
+    m_log->debug(_T("inject key VK code: %d (0x%x), down = %d"), vkCode, vkCode, !release);
+    break;
+  case SELECT_SCAN:
+    keyEvent.ki.wVk = 0;
+#ifndef MAPVK_VK_TO_VSC_EX
+// some extended keys will not work correctly on XP
+#define MAPVK_VK_TO_VSC_EX  (4)
+#endif 
+    scan = MapVirtualKeyEx(vkCode, MAPVK_VK_TO_VSC_EX, 0);
+    keyEvent.ki.wScan = scan;
+    if (scan != 0) {
+      keyEvent.ki.dwFlags |= KEYEVENTF_SCANCODE;
+      m_log->debug(_T("inject key scan code: %d (0x%x) for VK code %d (0x%x), down = %d"), scan, scan, vkCode, vkCode, !release);
+    } else {
+      keyEvent.ki.wVk = vkCode;
+      m_log->debug(_T("can't map key VK code %d (0x%x) to scan code, inject as is, down = %d"), vkCode, vkCode, !release);
+    }
+    break;
+  case SELECT_UNICODE:
+    keyEvent.ki.wVk = 0;
+    keyEvent.ki.wScan = ch;
+    keyEvent.ki.dwFlags |= KEYEVENTF_UNICODE;
+    m_log->debug(_T("inject key as unicode char: %d (0x%x), down = %d"), ch, ch, !release);
+    break;
+  default:
+    return;
+  }
+
+  if (release) {
+    keyEvent.ki.dwFlags |= KEYEVENTF_KEYUP;
+  }
+
+  if (extended) {
+    keyEvent.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+  }
+
+  if (SendInput(1, &keyEvent, sizeof(keyEvent)) == 0) {
+    DWORD errCode = GetLastError();
+    if (errCode != ERROR_SUCCESS) {
+      throw SystemException(errCode);
+    }
+    else {
+      // Under Vista or later the SendInput() function doesn't return error
+      // code if inputs blocked by UIPI.
+      throw Exception(_T("SendInput() function failed"));
+    }
+  }
+}
+
+void InputInjector::injectAsVkCode(BYTE vkCode, bool release, bool extended)
+{
+  injectCodeInternal(SELECT_VK, vkCode, 0, release, extended);
+}
+
+void InputInjector::injectAsScanCode(BYTE vkCode, bool release, bool extended)
+{
+  injectCodeInternal(SELECT_SCAN, vkCode, 0, release, extended);
+}
+
+void InputInjector::injectAsUnicodeCode(WCHAR ch, bool release)
+{
+  injectCodeInternal(SELECT_UNICODE, 0, ch, release);
+}
+
 void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
 {
   m_log->debug(_T("Prepare to inject the key event:")
@@ -80,11 +155,12 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
              (int)m_deleteIsPressed,
              (int)m_shiftIsPressed,
              (int)m_winIsPressed);
-
-  if (vkCode == VK_CONTROL || vkCode == VK_RCONTROL || vkCode == VK_LCONTROL) {
+  bool control = vkCode == VK_CONTROL || vkCode == VK_RCONTROL || vkCode == VK_LCONTROL;
+  bool menu = vkCode == VK_MENU || vkCode == VK_RMENU || vkCode == VK_LMENU;
+  if (control) {
     m_controlIsPressed = !release;
   }
-  if (vkCode == VK_MENU || vkCode == VK_RMENU || vkCode == VK_LMENU) {
+  if (menu) {
     m_menuIsPressed = !release;
   }
   if (vkCode == VK_DELETE) {
@@ -117,30 +193,12 @@ void InputInjector::injectKeyEvent(BYTE vkCode, bool release, bool extended)
       m_log->debug(_T("The Ctrl+Alt+Del combination is disabled. Ignore the Del key pressing"));
     }
   } else {
-    INPUT keyEvent = {0};
-
-    keyEvent.type = INPUT_KEYBOARD;
-    keyEvent.ki.wVk = vkCode;
-    keyEvent.ki.wScan = MapVirtualKey(vkCode, 0);
-
-    if (release) {
-      keyEvent.ki.dwFlags = KEYEVENTF_KEYUP;
-    }
-
-    if (extended) {
-      keyEvent.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-    }
-
-    if (SendInput(1, &keyEvent, sizeof(keyEvent)) == 0) {
-      DWORD errCode = GetLastError();
-      if (errCode != ERROR_SUCCESS) {
-        throw SystemException(errCode);
-      } else {
-        // Under Vista or later the SendInput() function doesn't return error
-        // code if inputs blocked by UIPI.
-        throw Exception(_T("SendInput() function failed"));
-      }
-    }
+//        if (!control && !menu && m_controlIsPressed && m_menuIsPressed) {
+      injectAsScanCode(vkCode, release, extended);
+/*    } else {
+      sendVkCode(vkCode, release, extended);
+      m_log->debug(_T("key vk code %d injected, down = %d"), vkCode, !release);
+    }*/
   }
 }
 
@@ -148,7 +206,6 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
 {
   m_log->debug(_T("Try insert a char event: char = %d, release = %d"),
              (int)ch, (int)release);
-
   bool ctrlOrAltPressed = m_controlIsPressed || m_menuIsPressed;
   SHORT vkKeyScanResult = 0;
   HKL hklCurrent = (HKL)0x04090409;
@@ -165,20 +222,7 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
                    _T(" a modifier is pressed"));
       throw;
     }
-    INPUT keyEvent = {0};
-
-    keyEvent.type = INPUT_KEYBOARD;
-    keyEvent.ki.wVk = 0;
-    keyEvent.ki.wScan = ch;
-    keyEvent.ki.dwFlags = KEYEVENTF_UNICODE;
-
-    if (release) {
-      keyEvent.ki.dwFlags |= KEYEVENTF_KEYUP;
-    }
-
-    if (SendInput(1, &keyEvent, sizeof(keyEvent)) == 0) {
-      throw SystemException();
-    }
+    injectAsUnicodeCode(ch, release);
     return;
   }
   bool controlSym;
@@ -212,6 +256,10 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
     return;
   }
 
+  if (vkKeyScanResult >= VK_NUMPAD0 && vkKeyScanResult <= VK_NUMPAD9 && !numToggled()) {
+    injectKeyPress(VK_NUMLOCK);
+  }
+
   m_log->debug(_T("Variable states before generate key events to get the char:")
              _T(" controlSym = %d;")
              _T(" resistantToCaps = %d;")
@@ -231,21 +279,23 @@ void InputInjector::injectCharEvent(WCHAR ch, bool release)
              (int)altPressNeeded);
 
   if (ctrlPressNeeded) {
-    injectKeyEvent(VK_CONTROL, false);
+    injectKeyPress(VK_CONTROL);
   }
   if (altPressNeeded) {
-    injectKeyEvent(VK_MENU, false);
+    injectKeyPress(VK_MENU);
   }
   if (shiftPressNeeded) {
-    injectKeyEvent(VK_SHIFT, false);
+    injectKeyPress(VK_SHIFT);
   } else if (shiftUpNeeded) {
     injectKeyEvent(VK_SHIFT, true);
   }
+
   injectKeyEvent(vkKeyScanResult & 255, release);
+
   if (shiftPressNeeded) {
     injectKeyEvent(VK_SHIFT, true);
   } else if (shiftUpNeeded) {
-    injectKeyEvent(VK_SHIFT, false);
+    injectKeyPress(VK_SHIFT);
   }
   if (altPressNeeded) {
     injectKeyEvent(VK_MENU, true);
@@ -330,6 +380,11 @@ SHORT InputInjector::searchVirtKey(WCHAR ch, HKL hklCurrent)
 bool InputInjector::capsToggled()
 {
   return (GetKeyState(VK_CAPITAL) & 1) != 0;
+}
+
+bool InputInjector::numToggled()
+{
+  return (GetKeyState(VK_NUMLOCK) & 1) != 0;
 }
 
 bool InputInjector::isDeadKey(SHORT scanResult, HKL keyboardLayout)

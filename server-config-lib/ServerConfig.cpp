@@ -33,6 +33,7 @@ ServerConfig::ServerConfig()
   m_disconnectAction(DA_DO_NOTHING), m_logLevel(0), m_useControlAuth(false),
   m_controlAuthAlwaysChecking(false),
   m_acceptRfbConnections(true), m_useAuthentication(true),
+  m_externalAuthEnabled(false),
   m_onlyLoopbackConnections(false), m_acceptHttpConnections(true),
   m_enableAppletParamInUrl(true), m_enableFileTransfers(true),
   m_D3DAllowed(true),
@@ -46,6 +47,7 @@ ServerConfig::ServerConfig()
   m_videoRecognitionInterval(3000), m_grabTransparentWindows(true),
   m_saveLogToAllUsersPath(false), m_hasControlPassword(false),
   m_showTrayIcon(true),
+  m_connectToRdp(true),
   m_idleTimeout(0)
 {
   memset(m_primaryPassword,  0, sizeof(m_primaryPassword));
@@ -89,6 +91,8 @@ void ServerConfig::serialize(DataOutputStream *output)
   output->writeUInt32(m_localInputPriorityTimeout);
   output->writeInt8(m_defaultActionAccept ? 1 : 0);
   output->writeUInt32(m_queryTimeout);
+  output->writeInt8(m_connectToRdp ? 1 : 0);
+  
 
   m_portMappings.serialize(output);
 
@@ -158,6 +162,7 @@ void ServerConfig::deserialize(DataInputStream *input)
   m_localInputPriorityTimeout = input->readUInt32();
   m_defaultActionAccept = input->readInt8() == 1;
   m_queryTimeout = input->readUInt32();
+  m_connectToRdp = input->readInt8() == 1;
 
   m_portMappings.deserialize(input);
 
@@ -207,6 +212,20 @@ void ServerConfig::setShowTrayIconFlag(bool val)
   AutoLock l(this);
 
   m_showTrayIcon = val;
+}
+
+bool ServerConfig::getConnectToRdpFlag()
+{
+  AutoLock l(this);
+
+  return m_connectToRdp;
+}
+
+void ServerConfig::setConnectToRdpFlag(bool val)
+{
+  AutoLock l(this);
+
+  m_connectToRdp = val;
 }
 
 void ServerConfig::getLogFileDir(StringStorage *logFilePath)
@@ -477,6 +496,18 @@ void ServerConfig::useAuthentication(bool enabled)
 {
   AutoLock lock(&m_objectCS);
   m_useAuthentication = enabled;
+}
+
+bool ServerConfig::externalAuthEnabled()
+{
+  AutoLock lock(&m_objectCS);
+  return m_externalAuthEnabled;
+}
+
+void ServerConfig::enableExternalAuth(bool enable)
+{
+  AutoLock lock(&m_objectCS);
+  m_externalAuthEnabled = enable;
 }
 
 bool ServerConfig::isOnlyLoopbackConnectionsAllowed()

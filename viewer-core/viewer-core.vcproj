@@ -685,7 +685,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DispatchIdProvider.cpp"
+				RelativePath=".\ExtAuthenticationHandler.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ExternalAuthentication.cpp"
 				>
 			</File>
 			<File
@@ -779,7 +783,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\DispatchIdProvider.h"
+				RelativePath=".\ExtAuthenticationHandler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ExternalAuthentication.h"
 				>
 			</File>
 			<File

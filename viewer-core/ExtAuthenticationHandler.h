@@ -1,4 +1,4 @@
-// Copyright (C) 2010,2011,2012 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,34 +22,33 @@
 //-------------------------------------------------------------------------
 //
 
-#include "DispatchCommand.h"
+#ifndef _EXT_AUTHENTICATION_HANDLER_H_
+#define _EXT_AUTHENTICATION_HANDLER_H_
 
-DispatchCommand::DispatchCommand(ControlProxy *serverControl,
-                                 const TCHAR *dispatchSpec)
-: m_proxy(serverControl),
-  m_dispatchSpec(dispatchSpec)
+#include "AuthHandler.h"
+
+class ExtAuthenticationHandler : public AuthHandler
 {
-}
+public:
+  ExtAuthenticationHandler();
+  virtual ~ExtAuthenticationHandler();
 
-DispatchCommand::~DispatchCommand()
-{
-}
+  //
+  // Overrides AuthHandler::authenticate().
+  //
+  virtual void authenticate(DataInputStream *input, DataOutputStream *output);
 
-void DispatchCommand::execute()
-{
-  // Parse dispatcher specification
-  StringStorage name;
-  UINT32 id;
+  //
+  // Overrides AuthHandler::addAuthCapability().
+  //
+  virtual void addAuthCapability(CapabilitiesManager *capabilitiesManager);
 
-  size_t slashPos = m_dispatchSpec.findChar(_T('/'));
-  if (slashPos == (size_t)-1) {
-    name = m_dispatchSpec;
-    id = 0;
-  } else {
-    m_dispatchSpec.getSubstring(&name, 0, slashPos - 1);
-    const TCHAR *str = m_dispatchSpec.getString();
-    id = (UINT32)_tstol(&str[slashPos + 1]);
-  }
+protected:
+  //
+  // This method showing ExternalAuthenticationDialog, get username and password
+  // and save authentication data in m_connectionData.
+  //
+  virtual void getLoginPassword(std::vector<UINT8> *cryptedPassword) = 0;
+};
 
-  m_proxy->makeTcpDispatcherConnection(name.getString(), _T(""), _T(""), id);
-}
+#endif

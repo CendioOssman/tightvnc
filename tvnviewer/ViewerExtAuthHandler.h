@@ -1,4 +1,4 @@
-// Copyright (C) 2010,2011,2012,2013,2014 GlavSoft LLC.
+// Copyright (C) 2012 GlavSoft LLC.
 // All rights reserved.
 //
 //-------------------------------------------------------------------------
@@ -22,43 +22,27 @@
 //-------------------------------------------------------------------------
 //
 
-#ifndef __DISPATCHCOMMAND_H__
-#define __DISPATCHCOMMAND_H__
+#ifndef _VIEWER_EXT_AUTH_HANDLER_H_
+#define _VIEWER_EXT_AUTH_HANDLER_H_
 
-#include "util/Command.h"
+#include "viewer-core/ExtAuthenticationHandler.h"
 
-#include "ControlProxy.h"
+#include "ConnectionData.h"
 
-/**
- * Command that connects TightVNC server to a dispatcher.
- */
-class DispatchCommand : public Command
+class ViewerExtAuthHandler : public ExtAuthenticationHandler
 {
 public:
-  /**
-   * Creates command.
-   * @param serverControl proxy.
-   */
-  DispatchCommand(ControlProxy *serverControl, const TCHAR *dispatchSpec);
-  /**
-   * Destroys command.
-   */
-  virtual ~DispatchCommand();
+  ViewerExtAuthHandler(ConnectionData *connectionData);
+  virtual ~ViewerExtAuthHandler();
 
-  /**
-   * Executes command.
-   *
-   * Inhrited from Command abstract class.
-   *
-   * @throws IOException on io error, RemoteException on server side error.
-   */
-  virtual void execute() throw(IOException, RemoteException);
-private:
-  /**
-   * Proxy to some of TightVNC server control methods.
-   */
-  ControlProxy *m_proxy;
-  StringStorage m_dispatchSpec;
+protected:
+  //
+  // This method showing ExternalAuthenticationDialog, get username and password
+  // and save authentication data in m_connectionData.
+  //
+  virtual void getLoginPassword(std::vector<UINT8> *cryptedPassword);
+
+  ConnectionData *m_connectionData;
 };
 
-#endif // __DISPATCHCOMMAND_H__
+#endif

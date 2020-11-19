@@ -33,7 +33,7 @@
 ConnectionData::ConnectionData()
 : m_isEmpty(true),
   m_isSetPassword(false),
-  m_isSetDispatchId(false),
+  m_isSetExtAuthData(false),
   m_isIncoming(false)
 {
 }
@@ -41,7 +41,7 @@ ConnectionData::ConnectionData()
 ConnectionData::ConnectionData(const ConnectionData &connectionData)
 : m_isEmpty(connectionData.m_isEmpty),
   m_isSetPassword(connectionData.m_isSetPassword),
-  m_isSetDispatchId(connectionData.m_isSetDispatchId),
+  m_isSetExtAuthData(connectionData.m_isSetExtAuthData),
   m_isIncoming(connectionData.m_isIncoming)
 {
   if (!connectionData.isEmpty()) {
@@ -50,8 +50,9 @@ ConnectionData::ConnectionData(const ConnectionData &connectionData)
   if (m_isSetPassword) {
     m_defaultPassword = connectionData.m_defaultPassword;
   }
-  if (m_isSetDispatchId) {
-    m_dispatchId = connectionData.m_dispatchId;
+  if (m_isSetExtAuthData) {
+    m_usernameExt = connectionData.m_usernameExt;
+    m_passwordExt = connectionData.m_passwordExt;
   }
 }
 
@@ -193,4 +194,36 @@ void ConnectionData::getReducedHost(StringStorage *strHost) const
 int ConnectionData::getPort() const
 {
   return m_hostPath.getVncPort();
+}
+
+bool ConnectionData::isSetExtAuthData() const
+{
+  return m_isSetExtAuthData;
+}
+
+void ConnectionData::resetExtAuthData()
+{
+  m_isSetExtAuthData = false;
+}
+
+void ConnectionData::setUsernameExt(const StringStorage *username)
+{
+  m_usernameExt = *username;
+  m_isSetExtAuthData = true; // FIXME: Password may be not set.
+}
+
+StringStorage ConnectionData::getUsernameExt() const
+{
+  return m_usernameExt;
+}
+
+void ConnectionData::setPasswordExt(std::vector<UINT8> *cryptedPassword)
+{
+  m_passwordExt.assign(cryptedPassword->begin(), cryptedPassword->end());
+  m_isSetExtAuthData = true; // FIXME: Username may be not set.
+}
+
+std::vector<UINT8> ConnectionData::getPasswordExt() const
+{
+  return m_passwordExt;
 }

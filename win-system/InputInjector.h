@@ -78,6 +78,8 @@ public:
 private:
   // Return true if CapsLock toggled on.
   bool capsToggled();
+  // Return true if NumLock toggled on.
+  bool numToggled();
 
   // Returns true if the vkCode value is a dead key in keyboardLayout layout.
   bool isDeadKey(SHORT scanResult, HKL keyboardLayout);
@@ -110,6 +112,13 @@ private:
   // if found. If virtual code has not been found throws an Exception.
   // Puts current kbd layout to the *hklCurrent argument (if no throwing).
   SHORT searchVirtKey(WCHAR ch, HKL hklCurrent);
+
+  // This functions call winapi SendInput with corresponding flags
+  enum { SELECT_VK, SELECT_SCAN, SELECT_UNICODE };
+  void injectCodeInternal(int selector, BYTE vkCode, WCHAR ch, bool release, bool extended);
+  void injectAsVkCode(BYTE vkCode, bool release, bool extended);
+  void injectAsScanCode(BYTE vkCode, bool release, bool extended);
+  void injectAsUnicodeCode(WCHAR ch, bool release);
 
   /**
    * Array of extended virtual codes.

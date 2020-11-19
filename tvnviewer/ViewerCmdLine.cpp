@@ -25,6 +25,8 @@
 #include "ViewerCmdLine.h"
 #include "config-lib/IniFileSettingsManager.h"
 #include "win-system/SystemException.h"
+#include "util/AnsiStringStorage.h"
+#include <sstream>
 
 const TCHAR ViewerCmdLine::HELP[] = _T("help");
 const TCHAR ViewerCmdLine::HELP_SHORT[] = _T("h");
@@ -37,7 +39,6 @@ const TCHAR ViewerCmdLine::LISTEN[] = _T("listen");
 const TCHAR ViewerCmdLine::HOST[] = _T("host");
 const TCHAR ViewerCmdLine::PORT[] = _T("port");
 const TCHAR ViewerCmdLine::PASSWORD[] = _T("password");
-const TCHAR ViewerCmdLine::DISPATCH_ID[] = _T("dispatchid");
 const TCHAR ViewerCmdLine::SHOW_CONTROLS[] = _T("showcontrols");
 const TCHAR ViewerCmdLine::VIEW_ONLY[] = _T("viewonly");
 const TCHAR ViewerCmdLine::USE_CLIPBOARD[] = _T("useclipboard");
@@ -112,7 +113,6 @@ void ViewerCmdLine::parse()
     HOST,
     PORT,
     PASSWORD,
-    DISPATCH_ID,
     SHOW_CONTROLS,
     VIEW_ONLY,
     USE_CLIPBOARD,
@@ -159,7 +159,6 @@ void ViewerCmdLine::parse()
       throw CommandLineFormatException(StringTable::getString(IDS_ERROR_COMMAND_LINE));
   }
   parsePassword();
-  parseDispatchId();
   parseEncoding();
   parseMouseShape();
   parseMouseCursor();
@@ -239,7 +238,32 @@ void ViewerCmdLine::parseOptionsFile()
   } else {
     parsePassword();
   }
-  
+
+  StringStorage usernameExt;
+  sm.getString(_T("username_ext"), &usernameExt);
+  if (!usernameExt.isEmpty()) {
+    m_conData->setUsernameExt(&usernameExt);
+  }
+
+  StringStorage passwordExtHex;
+  sm.getString(_T("password_ext"), &passwordExtHex);
+  if (!passwordExtHex.isEmpty()) {
+    AnsiStringStorage ansiHidePassword(&passwordExtHex);
+    size_t passwordLen = passwordExtHex.getLength() / 2;
+    vector<UINT8> passwordExt(passwordLen);
+    for (size_t i = 0; i < passwordLen; ++i) {
+      std::stringstream passwordStream;
+      passwordStream << ansiHidePassword.getString()[i * 2]
+                     << ansiHidePassword.getString()[i * 2 + 1];
+      int ordOfSymbol = 0;
+      passwordStream >> std::hex >> ordOfSymbol;
+      passwordExt[i] = static_cast<UINT8>(ordOfSymbol);
+    }
+
+    // FIXME: read password
+    m_conData->setPasswordExt(&passwordExt);
+  }
+
   sm.setApplicationName(_T("options"));
   m_conConf->loadFromStorage(&sm);
 }
@@ -248,16 +272,6 @@ void ViewerCmdLine::parsePassword()
 {
   if (isPresent(PASSWORD)) {
     m_conData->setPlainPassword(&m_options[PASSWORD]);
-  }
-}
-
-void ViewerCmdLine::parseDispatchId()
-{
-  if (isPresent(DISPATCH_ID)) {
-    const TCHAR *arg = m_options[DISPATCH_ID].getString();
-    TCHAR *ptr = 0;
-    UINT32 id = (UINT32)_tcstoul(arg, &ptr, 10);
-    m_conData->setDispatchId(id);
   }
 }
 

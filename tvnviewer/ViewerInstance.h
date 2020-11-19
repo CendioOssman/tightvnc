@@ -28,8 +28,9 @@
 #include "ViewerWindow.h"
 #include "network/socket/SocketIPv4.h"
 
+#include "ViewerExtAuthHandler.h"
 #include "ViewerVncAuthHandler.h"
-#include "viewer-core/DispatchIdProvider.h"
+
 
 class ViewerInstance
 {
@@ -61,9 +62,9 @@ protected:
 
   ViewerWindow m_viewerWnd;
   RemoteViewerCore m_viewerCore;
+  ViewerExtAuthHandler m_extAuthHandler;
   ViewerVncAuthHandler m_vncAuthHandler;
   FileTransferCapability m_fileTransfer;
-  DispatchIdProvider m_idHolder;
   SocketIPv4 *m_socket;
 };
 

@@ -51,7 +51,8 @@ DesktopServerWatcher::DesktopServerWatcher(ReconnectionListener *recListener, Lo
   path.format(_T("\"%s\""), currentModulePath.getString());
 
   try {
-    m_process = new CurrentConsoleProcess(m_log, path.getString());
+    bool connectRdpSession = Configurator::getInstance()->getServerConfig()->getConnectToRdpFlag();
+    m_process = new CurrentConsoleProcess(m_log, connectRdpSession, path.getString());
   } catch (...) {
     if (m_process) delete m_process;
     throw;
