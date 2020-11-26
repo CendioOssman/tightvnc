@@ -535,7 +535,7 @@ private:
   bool isRfbProtocolString(const char protocol[12]) const;
   void connectToHost();
   void handshake();
-  int negotiateAboutSecurityType();
+  int negotiateSecurityType();
   void authenticate();
   void clientAndServerInit();
   void readSecurityTypeList(vector<UINT32> *secTypes);

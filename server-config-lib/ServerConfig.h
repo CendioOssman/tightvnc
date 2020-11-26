@@ -159,9 +159,6 @@ public:
 
   void useAuthentication(bool enabled);
 
-  bool externalAuthEnabled();
-  void enableExternalAuth(bool enable);
-
   bool isOnlyLoopbackConnectionsAllowed();
 
   void acceptOnlyLoopbackConnections(bool enabled);
@@ -331,9 +328,6 @@ protected:
   int m_logLevel;
   bool m_useControlAuth;
   bool m_controlAuthAlwaysChecking;
-
-  // Special flag enabling external authentication.
-  bool m_externalAuthEnabled;
 
   //
   // Sharing configuration

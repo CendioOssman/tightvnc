@@ -33,7 +33,6 @@ ServerConfig::ServerConfig()
   m_disconnectAction(DA_DO_NOTHING), m_logLevel(0), m_useControlAuth(false),
   m_controlAuthAlwaysChecking(false),
   m_acceptRfbConnections(true), m_useAuthentication(true),
-  m_externalAuthEnabled(false),
   m_onlyLoopbackConnections(false), m_acceptHttpConnections(true),
   m_enableAppletParamInUrl(true), m_enableFileTransfers(true),
   m_D3DAllowed(true),
@@ -47,7 +46,7 @@ ServerConfig::ServerConfig()
   m_videoRecognitionInterval(3000), m_grabTransparentWindows(true),
   m_saveLogToAllUsersPath(false), m_hasControlPassword(false),
   m_showTrayIcon(true),
-  m_connectToRdp(true),
+  m_connectToRdp(false),
   m_idleTimeout(0)
 {
   memset(m_primaryPassword,  0, sizeof(m_primaryPassword));
@@ -496,18 +495,6 @@ void ServerConfig::useAuthentication(bool enabled)
 {
   AutoLock lock(&m_objectCS);
   m_useAuthentication = enabled;
-}
-
-bool ServerConfig::externalAuthEnabled()
-{
-  AutoLock lock(&m_objectCS);
-  return m_externalAuthEnabled;
-}
-
-void ServerConfig::enableExternalAuth(bool enable)
-{
-  AutoLock lock(&m_objectCS);
-  m_externalAuthEnabled = enable;
 }
 
 bool ServerConfig::isOnlyLoopbackConnectionsAllowed()

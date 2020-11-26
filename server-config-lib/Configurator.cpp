@@ -684,12 +684,6 @@ bool Configurator::loadServerConfig(SettingsManager *sm, ServerConfig *config)
     m_isConfigLoadedPartly = true;
     m_serverConfig.useAuthentication(boolVal);
   }
-  if (!sm->getBoolean(_T("ExternalAuth"), &boolVal)) {
-    loadResult = false;
-  } else {
-    m_isConfigLoadedPartly = true;
-    m_serverConfig.enableExternalAuth(boolVal);
-  }
   if (!sm->getBoolean(_T("UseControlAuthentication"), &boolVal)) {
     loadResult = false;
   } else {

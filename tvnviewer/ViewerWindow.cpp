@@ -23,20 +23,14 @@
 //
 
 #include "config-lib/IniFileSettingsManager.h"
-#include "util/AnsiStringStorage.h"
 #include "util/Exception.h"
 #include "util/ResourceLoader.h"
 #include "rfb/StandardPixelFormatFactory.h"
-#include "viewer-core/ExternalAuthentication.h"
 
-#include "ExternalAuthenticationDialog.h"
 #include "FsWarningDialog.h"
 #include "NamingDefs.h"
 #include "TvnViewer.h"
 #include "ViewerWindow.h"
-
-#include <iomanip>
-#include <sstream>
 
 ViewerWindow::ViewerWindow(WindowsApplication *application,
                            ConnectionData *conData,
@@ -559,11 +553,6 @@ void ViewerWindow::commandSaveSession()
       sm.setString(_T("host"), host.getString());
       sm.setUINT(_T("port"), m_conData->getPort());
 
-      StringStorage usernameExt = m_conData->getUsernameExt();
-      if (!usernameExt.isEmpty()) {
-        sm.setString(_T("username_ext"), usernameExt.getString());
-      }
-
       if (m_conData->isSetPassword()) {
         int whetherToSavePass = MessageBox(m_hWnd,
           StringTable::getString(IDS_QUESTION_SAVE_PASSWORD),
@@ -571,25 +560,7 @@ void ViewerWindow::commandSaveSession()
           MB_YESNO);
         if (whetherToSavePass == IDYES) {
           StringStorage password = m_conData->getCryptedPassword();
-          if (!password.isEmpty()) {
-            sm.setString(_T("password"), password.getString());
-          }
-          vector<UINT8> passwordExt = m_conData->getPasswordExt();
-          size_t passwordExtLen = passwordExt.size();
-          vector<UINT8> passwordExtChars(passwordExtLen * 2 + 1);
-          if (!passwordExt.empty()) {
-            for (size_t i = 0; i < passwordExtLen; ++i) {
-              std::stringstream passwordStream;
-              int ordOfSymbol = passwordExt[i];
-              passwordStream << std::hex << setw(2) << setfill('0') << ordOfSymbol;
-              passwordStream >> passwordExtChars[i * 2] >> passwordExtChars[i * 2 + 1];
-            }
-            passwordExtChars[passwordExtChars.size() - 1] = '\0';
-            StringStorage passwordExtHex;
-            AnsiStringStorage ansiHidePassword(reinterpret_cast<char *>(&passwordExtChars.front()));
-            ansiHidePassword.toStringStorage(&passwordExtHex);
-            sm.setString(_T("password_ext"), passwordExtHex.getString());
-          }
+          sm.setString(_T("password"), password.getString());
         }
       }
 
@@ -1032,7 +1003,6 @@ bool ViewerWindow::onAuthError(WPARAM wParam)
         m_requiresReconnect = true;
         ConnectionData *connectionData = new ConnectionData(*m_conData);
         connectionData->resetPassword();
-		connectionData->resetExtAuthData();
         ConnectionConfig *connectionConfig = new ConnectionConfig(*m_conConf);
         m_application->postMessage(TvnViewer::WM_USER_RECONNECT,
                                    (WPARAM)connectionData,
@@ -1182,30 +1152,6 @@ void ViewerWindow::onFrameBufferUpdate(const FrameBuffer *fb, const Rect *rect)
 void ViewerWindow::onFrameBufferPropChange(const FrameBuffer *fb)
 {
   m_dsktWnd.setNewFramebuffer(fb);
-}
-
-void ViewerWindow::getLoginPassword(vector<UINT8> *cryptedPassword)
-{
-  *cryptedPassword = m_conData->getPasswordExt();
-
-  if (cryptedPassword->empty()) {
-    ExternalAuthenticationDialog authDialog;
-    StringStorage hostname = m_conData->getHost();
-    authDialog.setHostname(&hostname);
-    StringStorage savedLogin = m_conData->getUsernameExt();
-    authDialog.setUsername(&savedLogin);
-    if (authDialog.showModal()) {
-      StringStorage login = *authDialog.getLogin();
-      StringStorage password = *authDialog.getPassword();
-
-      ExternalAuthentication::encryptPassword(&login, &password, cryptedPassword);
-
-      m_conData->setUsernameExt(&login);
-      m_conData->setPasswordExt(cryptedPassword);
-    } else {
-      throw AuthCanceledException();
-    }
-  }
 }
 
 void ViewerWindow::onCutText(const StringStorage *cutText)

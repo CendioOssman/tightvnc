@@ -28,8 +28,6 @@
 #include "util/StringStorage.h"
 #include "rfb/HostPath.h"
 
-#include <vector>
-
 class ConnectionData
 {
 public:
@@ -64,7 +62,6 @@ public:
   StringStorage getCryptedPassword() const;
   void setPlainPassword(const StringStorage *password);
   void setCryptedPassword(const StringStorage *password);
-
   bool isSetPassword() const;
   void resetPassword();
 
@@ -76,15 +73,6 @@ public:
   void setIncoming(bool isIncoming);
   bool isIncoming() const;
 
-  //
-  // This methods is necessary for external authentication.
-  //
-  bool isSetExtAuthData() const;
-  void resetExtAuthData();
-  void setUsernameExt(const StringStorage *username);
-  StringStorage getUsernameExt() const;
-  void setPasswordExt(std::vector<UINT8> *cryptedPassword);
-  std::vector<UINT8> getPasswordExt() const;
 protected:
   HostPath m_hostPath;
 
@@ -102,11 +90,6 @@ protected:
 
   bool m_isSetDispatchId;
   UINT32 m_dispatchId;
-  // Extenral authentication
-  // FIXME: Make "external authentication" pluggable.
-  bool m_isSetExtAuthData;
-  StringStorage m_usernameExt;
-  std::vector<UINT8> m_passwordExt;
 };
 
 

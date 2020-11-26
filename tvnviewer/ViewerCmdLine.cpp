@@ -25,8 +25,6 @@
 #include "ViewerCmdLine.h"
 #include "config-lib/IniFileSettingsManager.h"
 #include "win-system/SystemException.h"
-#include "util/AnsiStringStorage.h"
-#include <sstream>
 
 const TCHAR ViewerCmdLine::HELP[] = _T("help");
 const TCHAR ViewerCmdLine::HELP_SHORT[] = _T("h");
@@ -238,32 +236,7 @@ void ViewerCmdLine::parseOptionsFile()
   } else {
     parsePassword();
   }
-
-  StringStorage usernameExt;
-  sm.getString(_T("username_ext"), &usernameExt);
-  if (!usernameExt.isEmpty()) {
-    m_conData->setUsernameExt(&usernameExt);
-  }
-
-  StringStorage passwordExtHex;
-  sm.getString(_T("password_ext"), &passwordExtHex);
-  if (!passwordExtHex.isEmpty()) {
-    AnsiStringStorage ansiHidePassword(&passwordExtHex);
-    size_t passwordLen = passwordExtHex.getLength() / 2;
-    vector<UINT8> passwordExt(passwordLen);
-    for (size_t i = 0; i < passwordLen; ++i) {
-      std::stringstream passwordStream;
-      passwordStream << ansiHidePassword.getString()[i * 2]
-                     << ansiHidePassword.getString()[i * 2 + 1];
-      int ordOfSymbol = 0;
-      passwordStream >> std::hex >> ordOfSymbol;
-      passwordExt[i] = static_cast<UINT8>(ordOfSymbol);
-    }
-
-    // FIXME: read password
-    m_conData->setPasswordExt(&passwordExt);
-  }
-
+  
   sm.setApplicationName(_T("options"));
   m_conConf->loadFromStorage(&sm);
 }

@@ -685,14 +685,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ExtAuthenticationHandler.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ExternalAuthentication.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\FbUpdateNotifier.cpp"
 				>
 			</File>
@@ -780,14 +772,6 @@
 			</File>
 			<File
 				RelativePath=".\DispatchDataProvider.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ExtAuthenticationHandler.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ExternalAuthentication.h"
 				>
 			</File>
 			<File

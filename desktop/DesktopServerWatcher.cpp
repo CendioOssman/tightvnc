@@ -207,7 +207,7 @@ void DesktopServerWatcher::doXPTrick()
     Environment::getCurrentModulePath(&pathToBinary);
 
      // Start current console process that will lock workstation (not using Xp Trick).
-    CurrentConsoleProcess lockWorkstation(m_log, pathToBinary.getString(),
+    CurrentConsoleProcess lockWorkstation(m_log, false, pathToBinary.getString(),
       _T("-lockworkstation"));
     lockWorkstation.start();
     lockWorkstation.waitForExit();

@@ -74,12 +74,6 @@ protected:
   void doVncAuth();
   void doAuthNone();
 
-  void doExternalAuth();
-  bool verifyExternalAuth(const char *username,
-                          const char *password,
-                          const char *localAddress,
-                          const char *remoteAddress);
-
   // Calls the onCheckForBan() function by the external listener
   // @throw AuthException if current is banned.
   void checkForBan();

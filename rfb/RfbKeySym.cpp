@@ -261,7 +261,7 @@ bool RfbKeySym::vkCodeToString(unsigned short virtKey, bool down, std::wstring *
 
   if (count == 1 && !m_allowProcessCharEvent) {
     res->push_back(GettingCharFromCtrlSymbol(outBuff[0]));
-//    needReleaseModifiers = true;
+    needReleaseModifiers = true;
   }
   // Two or more (only two of them is relevant?)
   else if (count > 1) {

@@ -44,7 +44,7 @@
                  Type="CheckBox" X="25" Y="145" Width="300" Height="15"
                  Property="SERVICE_ONLY" 
 		 CheckBoxValue="1"
-                 Text="Service-only mode, application disabled">
+                 Text="Run only as a system service, disable user application mode">
           <Condition Action="hide"> <![CDATA[&Server<>3]]> </Condition>
         </Control>
         <Control Id="SasCheckBox"

@@ -673,14 +673,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ExternalAuthenticationDialog.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ExternalAuthenticationDialog.h"
-				>
-			</File>
-			<File
 				RelativePath=".\FileExistDialog.cpp"
 				>
 			</File>
@@ -742,10 +734,6 @@
 			</File>
 			<File
 				RelativePath=".\ViewerCollector.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ViewerExtAuthHandler.cpp"
 				>
 			</File>
 			<File
@@ -847,10 +835,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\resource1.h"
-				>
-			</File>
-			<File
 				RelativePath=".\ResourceStrings.h"
 				>
 			</File>
@@ -868,10 +852,6 @@
 			</File>
 			<File
 				RelativePath=".\ViewerCollector.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ViewerExtAuthHandler.h"
 				>
 			</File>
 			<File
@@ -938,10 +918,6 @@
 			</File>
 			<File
 				RelativePath=".\tvnviewer.rc"
-				>
-			</File>
-			<File
-				RelativePath=".\tvnviewerExt.rc"
 				>
 			</File>
 		</Filter>

@@ -66,6 +66,7 @@ RemoteViewerCore::RemoteViewerCore(Logger *logger)
   m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
   m_decoderStore(&m_logWriter),
   m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter),
+  m_dispatchDataProvider(0),
   m_isTightEnabled(true),
   m_isUtf8ClipboardEnabled(false)
 {
@@ -81,7 +82,9 @@ RemoteViewerCore::RemoteViewerCore(const TCHAR *host, UINT16 port,
   m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
   m_decoderStore(&m_logWriter),
   m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter),
-  m_dispatchDataProvider(0)
+  m_dispatchDataProvider(0),
+  m_isTightEnabled(true),
+  m_isUtf8ClipboardEnabled(false)
 {
   init();
 
@@ -96,7 +99,10 @@ RemoteViewerCore::RemoteViewerCore(SocketIPv4 *socket,
   m_tcpConnection(&m_logWriter),
   m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
   m_decoderStore(&m_logWriter),
-  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter),
+  m_dispatchDataProvider(0),
+  m_isTightEnabled(true),
+  m_isUtf8ClipboardEnabled(false)
 {
   init();
 
@@ -111,7 +117,10 @@ RemoteViewerCore::RemoteViewerCore(RfbInputGate *input, RfbOutputGate *output,
   m_tcpConnection(&m_logWriter),
   m_fbUpdateNotifier(&m_frameBuffer, &m_fbLock, &m_logWriter, &m_watermarksController),
   m_decoderStore(&m_logWriter),
-  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter)
+  m_updateRequestSender(&m_fbLock, &m_frameBuffer, &m_logWriter),
+  m_dispatchDataProvider(0),
+  m_isTightEnabled(true),
+  m_isUtf8ClipboardEnabled(false)
 {
   init();
 
@@ -586,8 +595,8 @@ void RemoteViewerCore::connectToHost()
 
 void RemoteViewerCore::authenticate()
 {
-  m_logWriter.detail(_T("Negotiating about security type..."));
-  int authenticationType = negotiateAboutSecurityType();
+  m_logWriter.detail(_T("Negotiating security type..."));
+  int authenticationType = negotiateSecurityType();
   m_logWriter.info(_T("Authentication type accepted: %s (%d)"),
                    getAuthenticationTypeName(authenticationType).getString(),
                    authenticationType);
@@ -637,7 +646,7 @@ void RemoteViewerCore::enableTightSecurityType(bool enabled)
   m_isTightEnabled = enabled;	
 }
 
-int RemoteViewerCore::negotiateAboutSecurityType()
+int RemoteViewerCore::negotiateSecurityType()
 {
   m_logWriter.detail(_T("Reading list of security types..."));
   // read list of security types
@@ -779,7 +788,6 @@ void RemoteViewerCore::initTunnelling()
 
 int RemoteViewerCore::initAuthentication()
 {
-  m_authCaps.add(AuthDefs::EXTERNAL, VendorDefs::TIGHTVNC, AuthDefs::SIG_EXTERNAL);
   m_logWriter.detail(_T("Initialization of tight-authentication..."));
   UINT32 authTypesNumber = m_input->readUInt32();
 

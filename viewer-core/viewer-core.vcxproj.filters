@@ -126,9 +126,6 @@
     <ClCompile Include="WatermarksController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ExtAuthenticationHandler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UpdateRequestSender.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
